@@ -1,0 +1,1179 @@
+
+// ===================================
+// Copyright (c) 2025 by Valtteri Kois
+// All rights reserved.
+// ===================================
+
+
+// NOTE: Macro for implicit tagging. And automated Assertions. I know... I know macros bad, but I feel this even though harder to read,
+// does prevent making easy copy paste mistakes.
+#define EFFECT_TAG Weld(Random_PCG(__LINE__), Random_PCG(u32(u64(__FILE__))))
+#define EFFECT(TARGET) Effect effect = {}; effect.tag = EFFECT_TAG; Effect* target = (TARGET); if(!target->tag)
+#define EFFECT_GET_OFFSET_AND_VERIFY_TAG(GS) Offset(target, (GS)); Assert(effect.tag == target->tag)
+
+
+SIG Effect_Offset Get_Critical_Effect_Offset(Game_State* game_state)
+{
+    EFFECT(&game_state->effects_table.critical)
+    {
+        effect.name_offset = Offset(STR("Critical"), game_state);
+        
+        *target = effect;
+    }
+
+    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+
+    return result;
+}
+
+
+SIG Effect_Offset Get_Might_Effect_Offset(Game_State* game_state)
+{
+    EFFECT(&game_state->effects_table.might)
+    {
+        effect.name_offset = Offset(STR("Might"), game_state);
+        
+        *target = effect;
+    }
+
+    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+
+    return result;
+}
+
+
+SIG Effect_Offset Get_Enraged_Effect_Offset(Game_State* game_state)
+{
+    struct local
+    {
+        static void Enrage_On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            if(instance)
+            {
+                u64 effective_duration = Max(u64(1), game_state->round - instance->round_applied);
+
+                Effect* effect = Request_Effect(game_state);
+
+                String name = {};
+                U64_To_String_Memory memory = {};
+                
+                Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
+                
+                name.ptr = Push_String(&game_state->scratch_buffer, STR("Fury x"), &name.length);
+                Push_String(&game_state->scratch_buffer, To_String(effective_duration, &memory), &name.length);
+                
+                effect->name_offset = Offset(name, game_state);
+                
+                Restore(&game_state->scratch_buffer, snapshot);
+
+                effect->flags |= Effect_Flags::has_damage_multiplier;
+                effect->damage_multiplier = 1.f + f32(effective_duration) * 0.1f;
+                effect->type = Effect_Type::physical;
+
+                Effect_Instance effect_instance = {};
+                effect_instance.effect_offset = Offset(effect, game_state);
+                effect_instance.source = instance->source;
+                effect_instance.zero_ticked = true;
+                effect_instance.duration = 1;
+
+                Apply_Effect_Result apply = Apply_Effect(target, effect_instance, game_state);
+                Push_Generic_Apply_Effect_Message(instance, target, effect_instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases damage dealt by 10%% for each round enrage has been effective.");
+            }
+        }
+
+        static void Enrage_On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                instance->zero_ticked = false;
+                Push_Message(STR("Enrage refreshed."), game_state);
+            }
+            else
+            {
+                Print("Refreshes effect duration.");
+            }
+        }
+    };
+
+    EFFECT(&game_state->effects_table.enraged)
+    {
+        effect.name_offset = Offset(STR("Enraged"), game_state);
+        effect.type = Effect_Type::physical;
+        effect.on_turn_start_fn_offset = Offset(local::Enrage_On_Turn_Start, game_state);
+        effect.on_hit_fn_offset = Offset(local::Enrage_On_Hit, game_state);
+
+        *target = effect;
+    }
+
+    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+    return result;
+}
+
+
+SIG Effect_Offset Get_Vampirism_Effect_Offset(Game_State* game_state)
+{
+    struct local
+    {
+        static void Vampirism_On_Apply_Effect(Effect_Instance* instance, Entity* entity, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::vampiric;
+            if(entity)
+            {
+                bool already_knows_it = entity->known_attack_modifiers & Attack_Modifier_Mask(mod);
+                if(!already_knows_it)
+                {
+                    entity->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+                    String entity_name = Name(entity, game_state);
+                    String message = Format_Message(game_state, "%s learned the %s attack.", entity_name.ptr, Attack_Mod::name[mod].ptr);
+                    Push_Message(message, game_state);
+                }
+            }
+            else
+            {
+                Print("Teaches the %s attack.", Attack_Mod::name[mod].ptr);
+            }
+        }
+
+        static void Vampirisim_On_Heal_Effect(Effect_Instance* instance, Entity* entity, s32* amount, String source_name, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(!Match_Case_Sensitive(source_name, STR("Vampiric attack")))
+                {
+                    *amount = 0;
+                    String message = Format_Message(game_state, "Vampirism negates healing from %s.", source_name.ptr);
+                    Push_Message(message, game_state);
+                }
+            }
+            else
+            {
+                Print("Negates the healing unless it's source is from the %s attack.", Attack_Mod::name[Attack_Mod::vampiric].ptr);
+            }
+        }
+    };
+
+    EFFECT(&game_state->effects_table.vampirism)
+    {
+        effect.name_offset = Offset(STR("Vampirism"), game_state);
+        effect.on_heal_fn_offset = Offset(local::Vampirisim_On_Heal_Effect, game_state);
+        effect.on_apply_fn_offset = Offset(local::Vampirism_On_Apply_Effect, game_state);
+        effect.type = Effect_Type::curse;
+        *target = effect;
+    }
+
+    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+
+    return result;
+}
+
+
+SIG Dice Poison_Damage_Dice()
+{
+    Dice poison_damage = {2, 4};
+    return poison_damage;
+}
+
+
+SIG void Poison_On_Turn_End_FN(Effect_Instance* instance, Entity* target, Game_State* game_state)
+{
+    Dice dice = Poison_Damage_Dice();
+
+    if(target)
+    {
+        s16 dmg = (s16)Roll(dice, game_state);
+        String name = Effect_Name(instance, game_state);
+        Deal_Damage(target, instance->source, name, dmg, Damage_Type::magical, game_state, Verbose::yes);
+    }
+    else
+    {
+        Print("Deals %dd%d damage.", dice.count, dice.faces);
+    }
+}
+
+
+SIG Effect_Offset Get_Poison_Effect_Offset(Game_State* game_state)
+{
+    EFFECT(&game_state->effects_table.poison)
+    {
+        effect.name_offset = Offset(STR("Poison"), game_state);
+        effect.on_turn_end_fn_offset = Offset(Poison_On_Turn_End_FN, game_state);
+        effect.type = Effect_Type::poison;
+        *target = effect;
+    }
+
+    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+
+    return result;
+}
+
+
+SIG Effect_Offset Get_Burning_Effect_Offset(Game_State* game_state)
+{
+    struct local
+    {
+        static void Burning_On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            Dice dice = {4, 2};
+            if(instance)
+            {
+                s16 dmg = (s16)Roll(dice, game_state);
+                String name = Effect_Name(instance, game_state);
+                Deal_Damage(target, instance->source, name, dmg, Damage_Type::magical, game_state, Verbose::yes);
+            }
+            else
+            {
+                Print("Deals %dd%d damage.\n", dice.count, dice.faces);
+            }
+        }
+    };
+
+    EFFECT(&game_state->effects_table.burning)
+    {
+        effect.name_offset = Offset(STR("Burning"), game_state);
+        effect.type = Effect_Type::magic;
+        effect.on_turn_end_fn_offset = Offset(local::Burning_On_Turn_End, game_state);
+        *target = effect;
+    }
+
+    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+
+    return result;
+}
+
+
+SIG Effect_Offset Get_Weak_Grip_Offset(Game_State* game_state)
+{
+    struct local
+    {
+        static void Weak_Grip_On_Get_Stat_Effect(Effect_Instance* instance, Entity* actor, Stats::T stat, s32* bonuses, s16* base, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(stat == Stats::might)
+                {
+                    Reference item_equiped_in_primary_hand = actor->equipment[Equipment_Slots::primary_hand];
+                    if(Entity* item = Dereference(item_equiped_in_primary_hand, game_state))
+                    {
+                        if(Effect* effect = Pointer(item->on_equip_effect_offset, game_state))
+                        {
+                            s16 might = effect->stat_modifiers[Stats::might];
+                            if(might > 0)
+                            {
+                                *bonuses -= might;
+                                String actor_name = Name(actor, game_state);
+                                String item_name = Name(item, game_state);
+
+                                char* format_string = "Weak Grip on %s negates %d might from %s.";
+                                String message = Format_Message(game_state, format_string, actor_name.ptr, might, item_name.ptr);
+
+                                Push_Message(message, game_state);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Print("Negates might benefits from item equipped in primary hand.");
+            }
+        }
+    };
+
+    EFFECT(&game_state->effects_table.weak_grip)
+    {
+        effect.name_offset = Offset(STR("Weak Grip"), game_state);
+        effect.type = Effect_Type::physical;
+        effect.on_get_stat_value_fn_offset = Offset(local::Weak_Grip_On_Get_Stat_Effect, game_state);
+
+        *target = effect;
+    }
+
+    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+
+    return result;
+}
+
+
+SIG void Stun_Attacker(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+{
+    u8 duration = 1;
+    if(instance)
+    {
+        attacker->stunned += duration;
+
+        String name = Name(attacker, game_state);
+        
+        char* format_string = "%s is stunned for %d turn.";
+        String message = Format_Message(game_state, format_string, name.ptr, duration);
+        
+        Push_Message(message, game_state);
+    }
+    else
+    {
+        Print("Stuns the attacker for %d round(s).", duration);
+    }
+}
+
+
+SIG Effect_Instance Reckless_Attack(Entity* attacker, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Reckless attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        s16 v = Level(attacker);
+        effect->raw_damage_modifier                 += v;
+        effect->stat_modifiers[Stats::resistance]   -= v;
+
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration = 1;
+        instance.zero_ticked = true;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("gives a raw damage bonus equal to user level, but until the begining of the next round reduces resistance by the same amount.");
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Careful_Attack(Entity* attacker, Game_State* game_state)
+{
+    s16 fumple_reduction = 5;
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Careful attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        s16 v = Level(attacker);
+        effect->raw_damage_modifier             -= v;
+        effect->stat_modifiers[Stats::accuracy] += v;
+        effect->critical_failure_range          -= s8(fumple_reduction);
+        
+
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration = 1;
+        instance.duration_type = Duration_Type::attack;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("gives bonus accuracy equal to user level and reduces fumple range by %d, but reduces damage done equal to user level.", fumple_reduction);
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Weakspot_Attack(Entity* attacker, Game_State* game_state)
+{
+    s16 crit_boost = 5;
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Weakspot attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        effect->stat_modifiers[Stats::accuracy] -= Level(attacker);
+        effect->critical_success_range          += s8(crit_boost);
+
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration = 1;
+        instance.duration_type = Duration_Type::attack;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("gives %d bonus crit range, but reduces accuracy equal to user level.", crit_boost);
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Allin_Attack(Entity* attacker, Game_State* game_state)
+{
+    s16 crit_boost = 10;
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Allin attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        s16 v = Level(attacker) * 2;
+        effect->stat_modifiers[Stats::accuracy] += v;
+        effect->raw_damage_modifier             += v;
+        effect->critical_success_range          += s8(crit_boost);
+        effect->on_attack_fn_offset             = Offset(Stun_Attacker, game_state);
+
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration = 1;
+        instance.duration_type = Duration_Type::attack;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("gives %d bonus crit range, accuracy aqual to two times the users level and the same amount of bonus damage, but user is stunned after the attack.", crit_boost);
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Guarding_Attack(Entity* attacker, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Guarding attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        s16 v = Level(attacker);
+        effect->stat_modifiers[Stats::resistance]   += v;
+        effect->raw_damage_modifier                 -= v;
+        
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration = 1;
+        instance.zero_ticked = true;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("gives a bonus to resistance equal to user level until the begining of next round, but reduces damage done by the same amount.");
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Evasive_Attack(Entity* attacker, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Evasive attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        s16 v = Level(attacker);
+        effect->stat_modifiers[Stats::resistance]   -= v;
+        effect->stat_modifiers[Stats::dodge]        += v;
+        
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration = 1;
+        instance.zero_ticked = true;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("gives a bonus to dodge equal to user level, but until the begining of the next round reduces resistance by the same amount.");
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Execute_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static s32 Execute_Miss_Experience_Point_Reduction_Multiplier()
+        {
+            return 10;
+        }
+
+        static void Execute_On_Attack(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            s32 mult = Execute_Miss_Experience_Point_Reduction_Multiplier();
+
+            if(instance)
+            {
+                String message = {};
+                if(ar->deal_damage_result.is_killing_blow)
+                {
+                    message = STR("Execute attack kills the target. Action is Refunded.");
+                    attacker->actions |= AT::normal;
+                }
+                else
+                {
+                    s32 exp_drain = Level(attacker) * mult;
+
+                    attacker->exp -= exp_drain;
+                    
+                    String attacker_name = Name(attacker, game_state);
+                    char* format_string = "Execute attack did not kill the target. %s loses %d points of experience.";
+                    message = Format_Message(game_state, format_string, attacker_name.ptr, exp_drain);
+                }
+                
+                Push_Message(message, game_state);
+            }
+            else
+            {
+                Print("If the attack kills the target, refunds the attack action, if not drains %d times level worth of exp from the user.", mult);
+            }
+        }
+    };
+
+    s32 mult = local::Execute_Miss_Experience_Point_Reduction_Multiplier();
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Execute attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        effect->on_attack_fn_offset = Offset(local::Execute_On_Attack, game_state);
+
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration_type = Duration_Type::attack;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("if the strike kills the target, refunds the action, otherwise lose experience points equal to %d times user level.", mult);
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Disarming_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static void Disarming_Attack_On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(ar->is_critical_success)
+                {
+                    if(Entity* weapon = Dereference(defender->equipment[Equipment_Slots::primary_hand], game_state))
+                    {
+                        // Internals
+                        Entity* room = Dereference(defender->residence, game_state);
+                        Assert(room);
+                        Deep_Insert(weapon, room, game_state);
+
+                        // Message ---
+                        String defender_name = Name(defender, game_state);
+                        String weapon_name = Name(weapon, game_state);
+                        
+                        char* format_string = "%s drops his %s on the ground.";
+                        String message = Format_Message(game_state, format_string, defender_name.ptr, weapon_name.ptr);
+                        
+                        Push_Message(message, game_state);
+                    }
+                }
+                else
+                {
+                    Effect_Instance weak_grip_instance = {};
+                    weak_grip_instance.effect_offset = Get_Weak_Grip_Offset(game_state);
+                    weak_grip_instance.duration = 1;
+                    weak_grip_instance.source = Make_Reference(attacker, game_state);
+
+                    Apply_Effect_Result apply = Apply_Effect(defender, weak_grip_instance, game_state);
+                    Push_Generic_Apply_Effect_Message(instance, defender, weak_grip_instance, apply, game_state);
+                }
+            }
+            else
+            {
+                Print("If attack is a critical success the defender is forced to drop the item equipped in their primary hand, otherwise the Weak Grip effect is applied to the defender for 1 turn.");
+            }
+        }
+    };
+
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        Effect* effect = Request_Effect(game_state);
+        effect->name_offset = Offset(STR("Disarming attack"), game_state);
+        effect->type = Effect_Type::physical;
+
+        s16 v = Level(attacker);
+        effect->flags |= Effect_Flags::has_damage_multiplier;
+        effect->damage_multiplier = 0.5f;
+        effect->on_hit_fn_offset = Offset(local::Disarming_Attack_On_Hit, game_state);
+
+        instance.effect_offset = Offset(effect, game_state);
+        instance.duration_type = Duration_Type::attack;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("on critical hit the opponent is forced to drop the item in his primary hand or, on a requal hit the debuff \"Weak Grip\" is applied to the target for one round, but this attack deals half damage.");
+    }
+    
+    return instance;
+}
+
+
+// Heals for half damage dealt, but at increased fumble. After used can not heal by any other means.
+SIG Effect_Instance Vampiric_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static void Vampiric_Attack_On_Attack(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(ar->is_hit)
+                {
+                    u32 healing = Round_To_S32(f32(ar->deal_damage_result.damage_after_mitigation) / 2.f);
+                    String effect_name = Effect_Name(instance, game_state);
+                    Heal(attacker, healing, effect_name, Verbose::yes, game_state);
+                }
+
+                Effect_Instance vampirism_effect_instance = {};
+                vampirism_effect_instance.effect_offset = Get_Vampirism_Effect_Offset(game_state);
+                vampirism_effect_instance.source = Make_Reference(attacker, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(attacker, vampirism_effect_instance, game_state);
+                Push_Generic_Apply_Effect_Message(instance, attacker, vampirism_effect_instance, apply, game_state);
+            }
+            else
+            {
+                Print("");
+            }
+        }
+    };
+
+    s8 fumple_boost = 5;
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        EFFECT(&game_state->effects_table.vampiric_attack)
+        {
+            effect.name_offset = Offset(STR("Vampiric attack"), game_state);
+            effect.type = Effect_Type::physical;
+
+            effect.on_attack_fn_offset = Offset(local::Vampiric_Attack_On_Attack, game_state);
+            effect.critical_failure_range += fumple_boost;
+            *target = effect;
+        }
+
+        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+        instance.duration_type = Duration_Type::attack;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("Heals for half damage dealt, but fumple is increased by %d. After use receive the curse of vampirism.", fumple_boost);
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Blessed_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static f32 Health_Ratio()
+        {
+            return 0.2f;
+        }
+
+        static void Blessed_Attack_On_Apply(Effect_Instance* instance, Entity* entity, Game_State* game_state)
+        {
+            if(entity)
+            {
+                s32 amount = Round_To_S32(f32(Max_Health(entity, game_state)) * Health_Ratio());
+                Give_Temporary_Health(entity, amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+            }
+            else
+            {
+                Print("gives temporary health equal to %.2f%% of maximum health.", Health_Ratio() * 100.f);
+            }
+        }
+
+        static void Blessed_Attack_On_Miss(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                s32 amount = Round_To_S32(f32(Max_Health(attacker, game_state)) * Health_Ratio() * 2.f);
+                Deal_Damage
+                (
+                    attacker, 
+                    Make_Reference(attacker, game_state), 
+                    Effect_Name(instance, game_state), 
+                    amount, 
+                    Damage_Type::magical, 
+                    game_state, 
+                    Verbose::yes
+                );
+            }
+            else
+            {
+                Print("Take damage equal to %.2f%% of maximum health.", Health_Ratio() * 200.f);
+            }
+        }
+    };
+    
+
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        EFFECT(&game_state->effects_table.blessed_attack)
+        {
+            effect.name_offset = Offset(STR("Blessed attack"), game_state);
+            effect.type = Effect_Type::physical;
+
+            effect.on_apply_fn_offset = Offset(local::Blessed_Attack_On_Apply, game_state);
+            effect.on_miss_fn_offset = Offset(local::Blessed_Attack_On_Miss, game_state);
+            *target = effect;
+        }
+
+        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+        instance.duration_type = Duration_Type::attack;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("on hit gives temporary health equal to %.2f%% of maximum health, but on a miss take damage equal to twice that.", local::Health_Ratio() * 100.f);
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static void Berserking_Attack_On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Deal_Damage
+                (
+                    attacker, 
+                    Make_Reference(attacker, game_state), 
+                    Effect_Name(instance, game_state), 
+                    Round_To_S32(f32(ar->deal_damage_result.damage_after_mitigation) / 2.f),
+                    Damage_Type::magical, 
+                    game_state, 
+                    Verbose::yes
+                );
+            }
+            else
+            {
+                Print("take half of the attack damage also to your self.");
+            }
+        }
+
+        static void Berserking_Attack_On_Apply(Effect_Instance* instance, Entity* entity, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Effect_Instance enraged = {};
+                enraged.effect_offset = Get_Enraged_Effect_Offset(game_state);
+                enraged.source = instance->source;
+                enraged.zero_ticked = true;
+                enraged.duration = 1;
+
+                Apply_Effect_Result apply = Apply_Effect(entity, enraged, game_state);
+                Push_Generic_Apply_Effect_Message(instance, entity, enraged, apply, game_state);
+            }
+            else
+            {
+                Print("applies the \"Enraged\" effect to your self.");
+            }
+        }
+    };
+    
+
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        EFFECT(&game_state->effects_table.berserking_attack)
+        {
+            effect.name_offset = Offset(STR("Berserking attack"), game_state);
+            effect.type = Effect_Type::physical;
+            effect.on_hit_fn_offset = Offset(local::Berserking_Attack_On_Hit, game_state);
+            effect.on_apply_fn_offset = Offset(local::Berserking_Attack_On_Apply, game_state);
+            *target = effect;
+        }
+
+        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+        instance.duration_type = Duration_Type::attack;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("apply the \"Enraged\" effect to your self, but deal half of this attacks damage also to your self.");
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Redirect_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static void Redirect_Attack_On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                defender->flags |= EFlags::redirected;
+
+                String message = Format_Message(game_state, "%s is redirected.", Name(defender, game_state).ptr);
+                Push_Message(message, game_state);
+            }
+            else
+            {
+                Print("forces the defender to attack one of its allies (if able) on its next turn.");
+            }
+        }
+    };
+    
+
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        EFFECT(&game_state->effects_table.redirecting_attack)
+        {
+            effect.name_offset = Offset(STR("Redirect attack"), game_state);
+            effect.type = Effect_Type::physical;
+            effect.flags = Effect_Flags::has_damage_multiplier;
+            effect.on_hit_fn_offset = Offset(local::Redirect_Attack_On_Hit, game_state);
+            *target = effect;
+        }
+
+        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+        instance.duration_type = Duration_Type::attack;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+
+
+        attacker->flags |= EFlags::goes_last;
+        String message = Format_Message(game_state, "%s goes last on next initiative.", Name(attacker, game_state).ptr);
+        Push_Message(message, game_state);
+    }
+    else
+    {
+        Print("forces the target to attack on of it's allies (if able), but deals no damage and user will go last on next initiative.");
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static s32 Temp_Health_Mult()
+        {
+            return 3;
+        }
+
+        static s8 Fumple_Boost()
+        {
+            return 8;
+        }
+
+        static u32 Burn_Duration()
+        {
+            return 4;
+        }
+
+        static void Change_Attack_Apply_Burn_On_Attack(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Effect_Instance burning = {};
+                burning.source = instance->source;
+                burning.effect_offset = Get_Burning_Effect_Offset(game_state);
+                burning.duration = Burn_Duration();
+
+                Apply_Effect_Result apply = Apply_Effect(defender, burning, game_state);
+                Push_Generic_Apply_Effect_Message(instance, defender, burning, apply, game_state);
+            }
+            else
+            {
+                Print("sets the taget on fire.");
+            }
+        }
+    };
+    
+
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        switch(Roll(3, game_state))
+        {
+            case 1:
+            {
+                s32 temp_health_amount = Level(attacker) * local::Temp_Health_Mult();
+                Give_Temporary_Health(attacker, temp_health_amount, STR("Change attack"), Verbose::yes, game_state);
+            }break;
+
+            case 2:
+            {
+                EFFECT(&game_state->effects_table.change_attack_apply_burn)
+                {
+                    effect.name_offset = Offset(STR("Change attack"), game_state);
+                    effect.type = Effect_Type::physical;
+                    effect.on_attack_fn_offset = Offset(local::Change_Attack_Apply_Burn_On_Attack, game_state);
+                    *target = effect;
+                }
+
+                instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+                instance.source = Make_Reference(attacker, game_state);
+                instance.duration_type = Duration_Type::attack;
+                instance.duration = 1;
+            }break;
+
+            case 3:
+            {
+                EFFECT(&game_state->effects_table.change_attack_fumple)
+                {
+                    effect.name_offset = Offset(STR("Change attack"), game_state);
+                    effect.type = Effect_Type::physical;
+                    effect.critical_failure_range += local::Fumple_Boost();
+                    *target = effect;
+                }
+
+                instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+                instance.source = Make_Reference(attacker, game_state);
+                instance.duration_type = Duration_Type::attack;
+                instance.duration = 1;
+            }break;
+
+            default:
+            {
+                Terminate("Unreachable code!");
+            }
+        }
+
+    }
+    else
+    {
+        Print("does one of 3 differenct effects: A) Resive temporary health equal to %d times user level, B) Give the target the \"burning\" effect for %d turns, C) Increased fumple range of this attack by %d.", local::Temp_Health_Mult(), local::Burn_Duration(), local::Fumple_Boost());
+    }
+    
+    return instance;
+}
+
+
+SIG Effect_Instance Thieving_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static void Thieving_Attack_On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                struct local
+                {
+                    static bool Can_Be_Stolen(Entity* item, void* user_ptr, Game_State* game_state)
+                    {
+                        bool result = !Is_Equipped((Entity*)user_ptr, item, game_state);
+                        return result;
+                    }
+                };
+
+                if(Entity* item = Random_Entity_That_Matches_Criteria(&defender->inventory, local::Can_Be_Stolen, defender, game_state))
+                {
+                    Deep_Insert(item, attacker, game_state);
+                    
+                    String message = Format_Message
+                    (
+                        game_state,
+                        "%s manages to steal %s from %s.",
+                        Name(attacker, game_state).ptr,
+                        Name(item, game_state).ptr,
+                        Name(defender, game_state).ptr
+                    );
+                    Push_Message(message, game_state);
+                }
+                else
+                {
+                    String message = Format_Message
+                    (
+                        game_state,
+                        "%s cant find anything stealable on %s.", 
+                        Name(attacker, game_state).ptr, 
+                        Name(defender, game_state).ptr
+                    );
+                    Push_Message(message, game_state);
+                }
+            }
+            else
+            {
+                Print("takes a random unequipped item from the targets inventory and places it in the users inventory.");
+            }
+        }
+
+        static void Thieving_Attack_On_Get_Stat(Effect_Instance* instance, Entity* actor, Stats::T stat, s32* bonuses, s16* base, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(stat == Stats::dodge)
+                {
+                    *base = 1;
+                    *bonuses = 0;
+                }
+            }
+            else
+            {
+                Print("sets dodge to one.");
+            }
+        }
+    };
+    
+
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        EFFECT(&game_state->effects_table.thieving_attack)
+        {
+            effect.name_offset = Offset(STR("Thieving attack"), game_state);
+            effect.type = Effect_Type::physical;
+            effect.flags = Effect_Flags::has_damage_multiplier;
+            effect.on_get_stat_value_fn_offset = Offset(local::Thieving_Attack_On_Get_Stat, game_state);
+            effect.on_hit_fn_offset = Offset(local::Thieving_Attack_On_Hit, game_state);
+            *target = effect;
+        }
+
+        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+        instance.zero_ticked = true;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("On hit steals one unequipped item from the target, but this attack deals no damage and sets the users dodge to 1 until the start of his next round.");
+    }
+    
+    return instance;
+}
+
+//  on crit convert random a lower level enenemy on your side, but on miss enrages all enemies in the room.
+SIG Effect_Instance Stylish_Attack(Entity* attacker, Game_State* game_state)
+{
+    struct local
+    {
+        static void Stylish_Attack_On_Miss(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                char* format_string = "The infuriating incompetence of %s causes all his enemies to become enraged!";
+                String message = Format_Message(game_state, format_string, Name(attacker, game_state).ptr);
+                Push_Message(message, game_state);
+
+                Effect_Instance enraged_instance = {};
+                enraged_instance.source = instance->source;
+                enraged_instance.effect_offset = Get_Enraged_Effect_Offset(game_state);
+                enraged_instance.duration = 1;
+
+                Entity* room = Dereference(attacker->residence, game_state);
+                Entity_Iterator iter = Make_Iterator(room, game_state);
+                while(Entity* entity = Next_Entity(&iter))
+                {
+                    if(Is_Living_Enemy_Of(entity, attacker))
+                    {
+                        Apply_Effect_Result apply = Apply_Effect(entity, enraged_instance, game_state);
+                        Push_Generic_Apply_Effect_Message(instance, entity, enraged_instance, apply, game_state);
+                    }
+                }
+            }
+            else
+            {
+                Print("applies \"enraged\" to all the users enemies.");
+            }
+        }
+
+        static void Stylish_Attack_On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            struct Package
+            {
+                Entity* attacker;
+                Entity* defender;
+            };
+
+            struct local
+            {
+                static bool Conditional(Entity* entity, void* user_ptr, Game_State* game_state)
+                {
+                    Package* p = (Package*)user_ptr;
+                    bool result = entity != p->defender && Is_Living_Enemy_Of(entity, p->attacker) && Level(entity) < Level(p->attacker);
+                    return result;
+                }
+            };
+
+            if(instance)
+            {
+                if(ar->is_critical_success)
+                {
+                    Package p = {attacker, defender};
+
+                    Entity* room = Dereference(attacker->residence, game_state);
+                    if(Entity* target = Random_Entity_That_Matches_Criteria(&room->inventory, local::Conditional, &p, game_state))
+                    {
+                        String message = Format_Message
+                        (
+                            game_state, 
+                            "The power of %s is so convinsing that %s converts to %ss side.",
+                            Effect_Name(instance, game_state).ptr,
+                            Name(target, game_state).ptr,
+                            Name(attacker, game_state).ptr
+                        );
+                        Push_Message(message, game_state);
+
+                        target->faction = attacker->faction;
+                    }
+                }
+            }
+            else
+            {
+                Print("Converts one random enemy other than the target, that is lower level than the user, to the users faction.");
+            }
+        }
+    };
+    
+
+    Effect_Instance instance = {};
+    if(attacker)
+    {
+        EFFECT(&game_state->effects_table.stylish_attack)
+        {
+            effect.name_offset = Offset(STR("Stylish attack"), game_state);
+            effect.type = Effect_Type::physical;
+            effect.on_miss_fn_offset = Offset(local::Stylish_Attack_On_Miss, game_state);
+            effect.on_hit_fn_offset = Offset(local::Stylish_Attack_On_Hit, game_state);
+            *target = effect;
+        }
+
+        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+        instance.duration_type = Duration_Type::attack;
+        instance.duration = 1;
+        instance.source = Make_Reference(attacker, game_state);
+    }
+    else
+    {
+        Print("on a critical hit converts one random enemy other than the target, that is lower level than the user, to the users faction, but on a miss apply the \"enrage\" effect on all hostiles in the room.");
+    }
+    
+    return instance;
+}
