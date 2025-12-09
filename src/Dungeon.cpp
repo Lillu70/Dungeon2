@@ -6,20 +6,18 @@
 // ===================================
 
 
-// TODO: Compile without devmode.
+// TODO: Consider loot tables? Even if pre-generated you still need one.
+// TODO: Consider content structuring.
 // TODO: Make room picking based on a range. 20% up and and down from distance travelled.
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
-// TODO: Show rolls in the initiative listing.
-// TODO: Colorize shit... I dunnno. Just add colors.
 // TODO: Confimation on drop if the item is equipped.
 // TODO: Visualise apply poison rolls, also make it integer check not a float so it can be represented by a "dice".
 // TODO: Level up / Rest mechanic.
 // TODO: Make Loot command usable on items in the inventory.
 // TODO: Consumable with a CD. Currenty acrhitecture does not support this. Large sacale effort?
+// TODO: Consumable stacking.
 
 // TODO: Implement More attack modifiers
-// TODO: Make attack command list available modifiers when used without arguments.
-// TODO: Make attack/help command describe a modifier when used as the only argument. -- maybe ask for an oppinion.
 // TODO: Make help command describe common effects.
 
 
@@ -28,15 +26,15 @@
 #define RANDOM_SEED  0
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
-#define ENTRANCE     1
-#define QUICKSTART   0
+#define ENTRANCE     0
+#define QUICKSTART   1
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
 
 #define Print printf
 #define Terminate(MSG) Print("[FATAL ERROR]: %s\nAborting... FILE: %s  LINE: %lu\n", MSG, __FILE__, __LINE__); *((s32*)0) = 666 
-#define Warn(MSG) Color ____c = global_current_output_color; Set_Output_Color(180, 10, 10); Print("\n[WARNING]: %s FILE:%s LINE:%lu", MSG, __FILE__, __LINE__); Set_Output_Color(____c)
+#define Warn(MSG) Print("\n[WARNING]: %s FILE:%s LINE:%lu", MSG, __FILE__, __LINE__)
 #define Request_Effect(GS) _Request_Effect(GS, EFFECT_TAG)
 
 #include "LibPrimordial\Primitives.h"
@@ -55,16 +53,59 @@
 #include "Effects.cpp"
 #include "Factory.cpp"
 
+
+SIG char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, u8 red, u8 green, u8 blue)
+{
+    char* format_string = "\x1b[38;2;%hhu;%hhu;%hhum";
+    s32 size = snprintf(buffer->data, Array_Length(buffer->data), format_string, red, green, blue);
+    Assert(size + 1 < Array_Length(buffer->data));
+
+    return buffer->data;
+}
+
+
+SIG char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, Color color)
+{
+    char* result = Get_Output_Color_CSTR(buffer, color.r, color.g, color.b);
+    return result;
+}
+
+
 SIG void Set_Output_Color(u8 red, u8 green, u8 blue)
 {
-    Print("\x1b[38;2;%hhu;%hhu;%hhum", red, green, blue);
-    global_current_output_color = {red, green, blue};
+    ANSI_Color_Buffer buffer;
+    char* c = Get_Output_Color_CSTR(&buffer, red, green, blue);
+    Print("%s", c);
 }
 
 
 SIG void Set_Output_Color(Color color)
 {
     Set_Output_Color(color.r, color.g, color.b);
+}
+
+
+SIG char* Entity_Color(Entity* entity, Game_State* game_state)
+{
+    char* result = 0;
+    if(entity->faction == Faction::none)
+    {
+        result = game_state->default_color.data;
+    }
+    else
+    {
+        Entity* player = Dereference(game_state->player, game_state);
+        if(entity->faction == player->faction)
+        {
+            result = game_state->ally_color.data;
+        }
+        else
+        {
+            result = game_state->enemy_color.data;
+        }
+    }
+
+    return result;
 }
 
 
@@ -985,7 +1026,15 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
         {
             Print((ar->is_critical_success)? "and the attack is a critical success!" : " and the attack lands.");
             Wait(0.5, game_state);
-            Print(" Dealing %d points of damage.", ar->deal_damage_result.damage_after_mitigation);
+
+            {
+                ANSI_Color_Buffer cbuf = {};
+                char* cstart    = Get_Output_Color_CSTR(&cbuf, 210, 50, 210);
+                char* cend      = game_state->default_color.data;
+
+                Print(" Dealing %s%d%s points of damage.", cstart, ar->deal_damage_result.damage_after_mitigation, cend);
+            }
+
             Wait(0.8, game_state);
             if(ar->deal_damage_result.damage_to_temp_health)
             {
@@ -1010,7 +1059,11 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
             }
             else if(ar->deal_damage_result.damage_after_mitigation)
             {
-                String message = Format_Message(game_state, "%s is down to %d health.", defender_name.ptr, defender->_health);
+                ANSI_Color_Buffer* cbuf = Push_Struct(&game_state->messages_buffer, ANSI_Color_Buffer);
+                char* cstart    = Get_Output_Color_CSTR(cbuf, 180, 20, 20);
+                char* cend      = game_state->default_color.data;
+
+                String message = Format_Message(game_state, "%s is down to %s%d%s health.", defender_name.ptr, cstart, defender->_health, cend);
                 Push_Message(message, game_state);
             }
 
@@ -1633,12 +1686,19 @@ SIG f32 Critical_Multiplier(Entity* entity, Game_State* game_state)
 SIG s32 Carry_Capacity(Entity* entity, Game_State* game_state)
 {
     s32 result = 50 + Get_Stat_Value(entity, Stats::might, game_state) * 5;
-    
+    s32 mod = 0;
+    Effects_Iterator iter = Make_Iterator(&entity->active_effects, game_state);
+    while(Effect* effect = Next_Effect(&iter))
+    {
+        mod += effect->carry_capacity_modifier;
+    }
+
     if(entity->flags & EFlags::godmode)
     {
-        result = 100000;
+        result += 100000;
     }
     
+    result = Max(1, result + mod);
     return result;
 }
 
@@ -2281,29 +2341,29 @@ void Describe_Effect(Effect* effect, Game_State* game_state)
         
         if(effect->type)
         {
-            Print("\nType: [%s]", Effect_Type::names[effect->type].ptr);
+            Print("\n| Type: [%s]", Effect_Type::names[effect->type].ptr);
         }
 
         if(effect->critical_success_range)
         {
             char c = (effect->critical_success_range > 0)? '+' : '-';
-            Print("\nCrtical range: %c%d", c, effect->critical_success_range);
+            Print("\n| Crtical range: %c%d", c, effect->critical_success_range);
         }
 
         if(effect->critical_failure_range)
         {
             char c = (effect->critical_failure_range > 0)? '+' : '-';
-            Print("\nCrtical range: %c%d", c, effect->critical_failure_range);
+            Print("\n| Crtical range: %c%d", c, effect->critical_failure_range);
         }
         
         if(effect->flags & Effect_Flags::has_damage_multiplier)
         {
-            Print("\nDamage multiplier: %.2f", effect->damage_multiplier);
+            Print("\n| Damage multiplier: %.2f", effect->damage_multiplier);
         }
 
         if(effect->raw_damage_modifier)
         {
-            Print("\nRaw damage modifier: %d", effect->raw_damage_modifier);
+            Print("\n| Raw damage modifier: %d", effect->raw_damage_modifier);
         }
 
         switch(effect->damage_die.count)
@@ -2316,12 +2376,12 @@ void Describe_Effect(Effect* effect, Game_State* game_state)
             case 1:
             {
                 Dice dice = effect->damage_die.unique_die[0];
-                Print("\nDamage dice: %dd%d", dice.count, dice.faces);
+                Print("\n| Damage dice: %dd%d", dice.count, dice.faces);
             }break;
             
             default:
             {
-                Print("\nDamage dice:");
+                Print("\n| Damage dice:");
                 
                 for(s16 i = 0; i < effect->damage_die.count; ++i)
                 {
@@ -2336,82 +2396,89 @@ void Describe_Effect(Effect* effect, Game_State* game_state)
             }
         }
         
-        bool first = true;
-        for(u64 i = 0; i < Array_Length(effect->stat_modifiers); ++i)
         {
-            s16 mod = effect->stat_modifiers[i];
-            if(mod)
+            bool first = true;
+            for(u64 i = 0; i < Array_Length(effect->stat_modifiers); ++i)
             {
-                if(first)
+                s16 mod = effect->stat_modifiers[i];
+                if(mod)
                 {
-                    Print("\nStat Modifiers:");
-                    first = false;
+                    if(first)
+                    {
+                        Print("\n| Stat Modifiers:");
+                        first = false;
+                    }
+                    
+                    char* sign = (mod > 0)? "+" : "-";
+                    Print("\n| %10s: %s %d", Stats::name[i].ptr, sign, Abs(mod));
                 }
-                
-                char* sign = (mod > 0)? "+" : "-";
-                Print("\n%10s: %s %d\n", Stats::name[i].ptr, sign, Abs(mod));
             }
+        }
+
+        if(effect->carry_capacity_modifier)
+        {
+            Print("\n| Carrying capacity modifeir: %d", effect->carry_capacity_modifier);
         }
         
         // CONSIDER: bite the bullet and use 'auto'?
         
         if(PROTOTYPE_EFFINST_ENT_GS* on_apply_fn = Pointer(effect->on_apply_fn_offset, game_state))
         {
-            Print("\n[On apply]: ");
+            Print("\n| [On apply]: ");
             on_apply_fn(0, 0, 0);
         }
 
         if(PROTOTYPE_EFFINST_ENT_GS* on_turn_end_fn = Pointer(effect->on_turn_end_fn_offset, game_state))
         {
-            Print("\n[On turn end]: ");
+            Print("\n| [On turn end]: ");
             on_turn_end_fn(0, 0, 0);
         }
 
         if(PROTOTYPE_EFFINST_ENT_GS* on_turn_start_fn = Pointer(effect->on_turn_start_fn_offset, game_state))
         {
-            Print("\n[On turn start]: ");
+            Print("\n| [On turn start]: ");
             on_turn_start_fn(0, 0, 0);
         }
         
         if(PROTOTYPE_EFFINST_ENT_ENT_AR_GS* on_attack_fn = Pointer(effect->on_attack_fn_offset, game_state))
         {
-            Print("\n[On attack]: ");
+            Print("\n| [On attack]: ");
             on_attack_fn(0, 0, 0, 0, 0);
         }
         
         if(PROTOTYPE_EFFINST_ENT_ENT_AR_GS* on_miss_fn = Pointer(effect->on_miss_fn_offset, game_state))
         {
-             Print("\n[On miss]: ");
+             Print("\n| [On miss]: ");
             on_miss_fn(0, 0, 0, 0, 0);
         }
         
         if(PROTOTYPE_EFFINST_ENT_ENT_AR_GS* on_hit_fn = Pointer(effect->on_hit_fn_offset, game_state))
         {
-            Print("\n[On hit]: ");
+            Print("\n| [On hit]: ");
             on_hit_fn(0, 0, 0, 0, 0);
         }
         
         if(PROTOTYPE_EFFINST_ENT_ENT_AR_GS* on_dodge_fn = Pointer(effect->on_dodge_fn_offset, game_state))
         {
-             Print("\n[On dodge]: ");
+             Print("\n| [On dodge]: ");
             on_dodge_fn(0, 0, 0, 0, 0);
         }
         
         if(PROTOTYPE_EFFINST_REF_ENT_DDR_GS* on_damage_taken_fn = Pointer(effect->on_damage_taken_fn_offset, game_state))
         {
-             Print("\n[On damage taken]: ");
+             Print("\n| [On damage taken]: ");
             on_damage_taken_fn(0, {}, 0, 0, 0);
         }
         
         if(PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS* on_heal_fn = Pointer(effect->on_heal_fn_offset, game_state))
         {
-             Print("\n[On heal]: ");
+             Print("\n| [On heal]: ");
             on_heal_fn(0, 0, 0, {}, 0);
         }
         
         if(PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS* on_get_stat_value_fn = Pointer(effect->on_get_stat_value_fn_offset, game_state))
         {
-             Print("\n[On on read stat value]: ");
+             Print("\n| [On on read stat value]: ");
             on_get_stat_value_fn(0, 0, Stats::T(0), 0, 0, 0);
         }
     }
@@ -2819,6 +2886,58 @@ SIG void Open(Entity* actor, Game_State* game_state)
 }
 
 
+SIG u64 Longest_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_state, u64* out_count DEF(0))
+{
+    Entity* storage = Dereference(actor->residence, game_state);
+
+    u64 count = 0;
+    u64 result = 0;
+    Entity_Iterator iter = Make_Iterator(storage, game_state);
+    while(Entity* entity = Next_Entity(&iter))
+    {
+        if(entity != actor)
+        {
+            count += 1;
+            result = Max(result, Name(entity, game_state).length);
+        }
+    }
+
+    if(out_count)
+    {
+        *out_count = count;
+    }
+
+    return result;
+}
+
+
+SIG u64 Longest_Entity_Name_In_Actor_Inventory(Entity* actor, Game_State* game_state, u64* out_count DEF(0), s16* out_heaviest_weight DEF(0))
+{
+    s16 heaviest_weight = 0;
+    u64 count = 0;
+    u64 result = 0;
+    Entity_Iterator iter = Make_Iterator(actor, game_state);
+    while(Entity* entity = Next_Entity(&iter))
+    {
+        count += 1;
+        result = Max(result, Name(entity, game_state).length);
+        heaviest_weight = Max(heaviest_weight, entity->weight);
+    }
+
+    if(out_count)
+    {
+        *out_count = count;
+    }
+
+    if(out_heaviest_weight)
+    {
+        *out_heaviest_weight = heaviest_weight;
+    }
+
+    return result;
+}
+
+
 SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status::T report_turn_taken_status DEF(Report_Turn_Taken_Status::T(1)))
 {
     Entity* actor_residence = Dereference(actor->residence, game_state);
@@ -2828,6 +2947,10 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
     bool first = true;
     if(actor_residence)
     {
+        u64 entity_total_count;
+        s32 longest_entity_name = (s32)Longest_Entity_Name_In_Actor_Storage(actor, game_state, &entity_total_count);
+        s32 digit_count = Digits(s32(entity_total_count));
+
         u64 entity_count = 0;
         
         Entity_Iterator iter = Make_Iterator(actor_residence, game_state);
@@ -2844,16 +2967,16 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                     first = false;
                 }
 
-                if(entity->faction == actor->faction)
-                {
-                    Set_Output_Color(game_state->ally_color);
-                }
-                else if(entity->faction != Faction::none)
-                {
-                    Set_Output_Color(game_state->enemy_color);
-                }
-
-                Print("\n\t- %-3llu %s", entity_count, Name(entity, game_state).ptr);
+                Print
+                (
+                    "\n| - %-*llu %s%*s%s", 
+                    digit_count,
+                    entity_count, 
+                    Entity_Color(entity, game_state), 
+                    longest_entity_name,
+                    Name(entity, game_state).ptr, 
+                    game_state->default_color.data
+                );
                 Wait(0.1, game_state);
 
                 if(entity->flags & EFlags::actor && !(entity->flags & EFlags::hidden_iniative))
@@ -2885,8 +3008,6 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                 {
                     Print(" [EMPTY]");
                 }
-
-                Set_Output_Color(game_state->default_color);
             }
         }
     }
@@ -3043,13 +3164,8 @@ SIG bool Can_Use_Attack_Modifier(Entity* entity, Attack_Mod::T modifier)
 {
     bool standard_attack = !modifier;
     bool knows_the_attack = (entity->known_attack_modifiers & Attack_Modifier_Mask(modifier)) > 0;
-
     bool result = standard_attack || knows_the_attack;
-
-    #if DEVMODE
-    bool godmode = (entity->flags & EFlags::godmode) > 0;
-
-    #endif
+    result = result || (entity->flags & EFlags::godmode) > 0;
 
     return result;
 }
@@ -3281,11 +3397,11 @@ SIG void Player_Action(Entity* actor, String actor_name, Game_State* game_state)
     {
         if(actor->actions == Full_Action)
         {
-            Print("\n\n- What do you do? : ");
+            Print("\n\n- What do you [HP:%d/%d] do? : ", actor->_health, Max_Health(actor, game_state));
         }
         else if(actor->actions & AT::normal)
         {
-            Print("\n\n- What do you do? (Normal action left) : ");
+            Print("\n\n- What do you [HP:%d/%d] do? (Normal action left) : ", actor->_health, Max_Health(actor, game_state));
         }
         
         String user_input = Get_User_Input(game_state);
@@ -4294,6 +4410,8 @@ SIG void Prepare_Game_Round(Game_State* game_state)
         u64 counter = 0;
         #endif
         
+        u64 longest_entity_name_lenght = 0;
+        s32 longest_digit_count = 0;
         {
             Entity_Iterator iter = Make_Iterator(space, game_state);
             while(Reference* ref = Next(&iter))
@@ -4303,6 +4421,8 @@ SIG void Prepare_Game_Round(Game_State* game_state)
 
                 if(Roll_Initiative(entity, game_state))
                 {
+                    longest_digit_count = Max(longest_digit_count, Digits(entity->initiative.value.total_result));
+                    longest_entity_name_lenght = Max(longest_entity_name_lenght, Name(entity, game_state).length);
                     game_state->initiative_count += 1;
                     if(entity->initiative.visible)
                     {
@@ -4341,7 +4461,23 @@ SIG void Prepare_Game_Round(Game_State* game_state)
                     if(init->visible)
                     {
                         Wait(0.4, game_state);
-                        Print("\n\t-%10s with initiative of %3d.", Name(entity, game_state).ptr, init->value.total_result);
+
+                        s32 npadding = s32(longest_entity_name_lenght + 1);
+                        s32 dpadding = s32(longest_digit_count);
+                        Print
+                        (
+                            "\n| -%s%*s%s with initiative of %*d", 
+                            Entity_Color(entity, game_state),
+                            npadding, 
+                            Name(entity, game_state).ptr,
+                            game_state->default_color.data,
+                            dpadding, 
+                            init->value.total_result
+                        );
+
+                        Print(" [%s(%d) + ", Stats::name[init->value.stat].ptr, init->value.stat_value);
+                        Print_Dice(init->value.dice, init->value.dice_result);
+                        Print("]");
                     }
                 }
 
@@ -4496,11 +4632,9 @@ SIG void Reset_Game_State(Game_State* game_state)
     game_state->enable_dramatic_pausing = true;
     #endif
 
-    game_state->default_color = {204, 204, 204}; //{ 239, 228, 176 };
-    game_state->ally_color    = {000, 200, 100};
-    game_state->enemy_color   = {210, 100, 050};
-
-    Set_Output_Color(game_state->default_color);
+    Get_Output_Color_CSTR(&game_state->default_color,    204, 204, 204);
+    Get_Output_Color_CSTR(&game_state->ally_color,       000, 200, 100);
+    Get_Output_Color_CSTR(&game_state->enemy_color,      210, 100, 050);
     
     game_state->next_room = true;
     game_state->running = true;
@@ -4623,7 +4757,7 @@ SIG CMD_Result::T Help_Command(Entity* entity, String args, Game_State* game_sta
         
         for(Game_Command* cmd = first; cmd < last; ++cmd)
         {
-            Print("\n\t%s", cmd->name.ptr);
+            Print("\n| %s", cmd->name.ptr);
         }
     }
     else
@@ -4640,6 +4774,59 @@ SIG CMD_Result::T Help_Command(Entity* entity, String args, Game_State* game_sta
                 
                 Print("\n[%s]\nAction type: %s\nDescription: %s\nArguments: %s", cmd->name.ptr, action_name, cmd->description, cmd->arguments);
                 break;
+            }
+        }
+    }
+    
+    return result;
+}
+
+
+SIG CMD_Result::T Attacks_Command(Entity* entity, String args, Game_State* game_state)
+{
+    CMD_Result::T result = CMD_Result::invalid_args;
+    
+    if(!args.length)
+    {
+        result = CMD_Result::success;
+        
+        Print("\nTo use an attack modifier, type the modfier name after the attack command, but before the target name or reference number.");
+        Print("\nUse \"attacks\" followed by command name for a detailed description.");
+        
+        if(entity->known_attack_modifiers)
+        {
+            Print("\nAvailable modifiers:");
+            
+            for(u64 i = 1; i < Attack_Mod::COUNT; ++i)
+            {
+                Attack_Mod::T mod = Attack_Mod::T(i);
+                if(Can_Use_Attack_Modifier(entity, mod))
+                {
+                    Print("\n| %s", Attack_Mod::name[i].ptr);
+                }
+            }
+        }
+        else
+        {
+            Print("\nYou don't know any attack modifiers.");
+        }
+    }
+    else
+    {
+        for(u64 i = 1; i < Attack_Mod::COUNT; ++i)
+        {
+            if(Match_Case_Insensitive(args, Attack_Mod::name[i]))
+            {
+                Attack_Mod::T mod = Attack_Mod::T(i);
+
+                if(Can_Use_Attack_Modifier(entity, mod))
+                {
+                    result = CMD_Result::success;
+                    Entity* null = 0;
+                    Print("[%s] \n| ", Attack_Mod::name[i].ptr);
+                    Apply_Or_Describe_Attak_Modifier(&null, &null, mod, game_state);
+                    break;
+                }
             }
         }
     }
@@ -4706,18 +4893,32 @@ SIG CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game
         Entity_Iterator iter = Make_Iterator(&actor->inventory, game_state);
         if(iter.count)
         {
+            s16 heaviest_item_weight;
+            u64 total_count;
+            s32 longest_item_name = (s32)Longest_Entity_Name_In_Actor_Inventory(actor, game_state, &total_count, &heaviest_item_weight);
+            s32 count_digit_count = s32(Digits(s32(total_count)));
+            s32 weight_digit_count = Digits(heaviest_item_weight);
+
             u64 count = 0;
             s32 carrying_amount = Carrying_Amount(actor, game_state);
             s32 carry_capacity = Carry_Capacity(actor, game_state);
-            Print("\nYour inventory contains: [%d/%d]", carrying_amount, carry_capacity);
+            Print("\nYour inventory [%d/%d] contains:", carrying_amount, carry_capacity);
             while(Entity* entity = Next_Entity(&iter))
             {
                 count += 1;
+                Print
+                (
+                    "\n| %s %-*llu %-*s [Weight: %*d]", 
+                    (Is_Equipped(actor, entity, game_state))? "*" : "-", 
+                    count_digit_count,
+                    count, 
+                    longest_item_name,
+                    Name(entity, game_state).ptr, 
+                    weight_digit_count,
+                    entity->weight
+                );
                 
-                char* is_equip = (Is_Equipped(actor, entity, game_state))? "*" : "-";
-                
-                Print("\n\t %s %-3llu %-30s [Weight: %3d]", is_equip, count, Name(entity, game_state).ptr, entity->weight);
-                
+
                 if(entity->_health <= 0)
                 {
                     if(Is_Item(entity))
@@ -4745,7 +4946,6 @@ SIG CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game
                     Print("]");
                 }
             }
-            Print("\n");
         }
         else
         {
@@ -4864,16 +5064,23 @@ SIG CMD_Result::T Equipment_Command(Entity* actor, String args, Game_State* game
     
     if(args.length == 0)
     {
+        Print("Equipped items:");
+        u64 longest_equipment_slot_name_length = 0;
         for(u64 i = 0; i < Equipment_Slots::COUNT; ++i)
         {
-            Print("\n%22s:", Equipment_Slots::name[i].ptr);
+            longest_equipment_slot_name_length = Max(longest_equipment_slot_name_length, Equipment_Slots::name[i].length);
+        }
+
+        for(u64 i = 0; i < Equipment_Slots::COUNT; ++i)
+        {
+            Print("\n| %*s:", s32(longest_equipment_slot_name_length), Equipment_Slots::name[i].ptr);
             if(Entity* entity = Dereference(actor->equipment + i, game_state))
             {
                 Print(" %s", Name(entity, game_state).ptr);
             }
             else
             {
-                Print("[EMPTY]");
+                Print(" [EMPTY]");
             }
         }
     }
@@ -4998,17 +5205,39 @@ SIG CMD_Result::T Stats_Command(Entity* actor, String args, Game_State* game_sta
     
     if(args.length == 0)
     {
+        Critical_Ranges_Result cr_base = Critical_Ranges(0, 0);
+        u32 success_effecting_count;
+        u32 failure_effecting_count;
+        Critical_Ranges_Result cr = Critical_Ranges(actor, game_state, &success_effecting_count, &failure_effecting_count);
+
+        String crit_range_name = STR("crit range");
+        String fumple_range_name = STR("fumple range");
+        
         Print("\nStats are:");
+        u64 longest_stat_name_length = 0;
+        s32 largest_stat_value = 0;
+        for(u64 i = 0; i < Stats::COUNT; ++i)
+        {
+            longest_stat_name_length = Max(longest_stat_name_length, Stats::name[i].length);
+            largest_stat_value = Max(largest_stat_value, Get_Stat_Value(actor, Stats::T(i), game_state));
+        }
+        longest_stat_name_length = Max(longest_stat_name_length, crit_range_name.length);
+        longest_stat_name_length = Max(longest_stat_name_length, fumple_range_name.length);
+        largest_stat_value = Max(largest_stat_value, s32((CRITICAL_DICE_RANGE + 1) - cr.success));
+        largest_stat_value = Max(largest_stat_value, s32(cr.failure));
+
+        s32 larget_stat_value_digit_count = Digits(largest_stat_value);
+        
         for(u64 i = 0; i < Stats::COUNT; ++i)
         {
             s16 base = actor->_stats[i];
             u64 effect_count;
             s32 total = Get_Stat_Value(actor, Stats::T(i), game_state, &effect_count);
             
-            Print("\n%17s: %-3d", Stats::name[i].ptr, total);
+            Print("\n| %*s: %*d ", s32(longest_stat_name_length), Stats::name[i].ptr, larget_stat_value_digit_count, total);
             if(effect_count)
             {
-                Print(" base: %d", base);
+                Print("= base: %d", base);
                 
                 Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
                 while(Effect_Instance* instance = Next_Effect_Instance(&iter))
@@ -5024,45 +5253,54 @@ SIG CMD_Result::T Stats_Command(Entity* actor, String args, Game_State* game_sta
             }
         }
 
+        Print
+        (
+            "\n| %*s: %*d", 
+            s32(longest_stat_name_length), 
+            crit_range_name.ptr, 
+            larget_stat_value_digit_count, 
+            (CRITICAL_DICE_RANGE + 1) - cr.success
+        );
+        
+        if(success_effecting_count)
         {
-            Critical_Ranges_Result cr_base = Critical_Ranges(0, 0);
-            u32 success_effecting_count;
-            u32 failure_effecting_count;
-            Critical_Ranges_Result cr = Critical_Ranges(actor, game_state, &success_effecting_count, &failure_effecting_count);
+            Print(" base: %d", cr_base.success);
 
-            Print("\n%17s: %-3d", "crit range", (CRITICAL_DICE_RANGE + 1) - cr.success);
-            if(success_effecting_count)
+            Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
+            while(Effect_Instance* instance = Next_Effect_Instance(&iter))
             {
-                Print(" base: %d", cr_base.success);
-
-                Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
-                while(Effect_Instance* instance = Next_Effect_Instance(&iter))
+                s8 mod = Pointer(instance->effect_offset, game_state)->critical_success_range;
+                if(mod)
                 {
-                    s8 mod = Pointer(instance->effect_offset, game_state)->critical_success_range;
-                    if(mod)
-                    {
-                        String src_name = Effect_Name(instance, game_state);
-                        
-                        Print(" + %d:(%s)", mod, src_name.ptr);
-                    }
+                    String src_name = Effect_Name(instance, game_state);
+                    
+                    Print(" + %d:(%s)", mod, src_name.ptr);
                 }
             }
+        }
 
-            Print("\n%17s: %-3d", "fumple range", cr.failure);
-            if(failure_effecting_count)
+        Print
+        (
+            "\n| %*s: %*d",
+            s32(longest_stat_name_length),
+            fumple_range_name.ptr,
+            larget_stat_value_digit_count,
+            cr.failure
+        );
+        
+        if(failure_effecting_count)
+        {
+            Print(" base: %d", cr_base.failure);
+
+            Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
+            while(Effect_Instance* instance = Next_Effect_Instance(&iter))
             {
-                Print(" base: %d", cr_base.failure);
-
-                Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
-                while(Effect_Instance* instance = Next_Effect_Instance(&iter))
+                s8 mod = Pointer(instance->effect_offset, game_state)->critical_failure_range;
+                if(mod)
                 {
-                    s8 mod = Pointer(instance->effect_offset, game_state)->critical_failure_range;
-                    if(mod)
-                    {
-                        String src_name = Effect_Name(instance, game_state);
-                        
-                        Print(" + %d:(%s)", mod, src_name.ptr);
-                    }
+                    String src_name = Effect_Name(instance, game_state);
+                    
+                    Print(" + %d:(%s)", mod, src_name.ptr);
                 }
             }
         }
@@ -5106,27 +5344,20 @@ SIG CMD_Result::T Status_Command(Entity* actor, String args, Game_State* game_st
                     first = false;
                 }
                 
-                Print("\n---------------------");
-
-                Print("\nName: %s", Effect_Name(instance, game_state).ptr);
+                Print("\n\n[%s]", Effect_Name(instance, game_state).ptr);
                 
                 if(instance->duration == UNLIMITED_DURATION)
                 {
-                    Print("\nDuration: Unlimited.");
+                    Print("\n| Duration: Unlimited.");
                 }
                 else
                 {
-                    char* format_string = (instance->duration == 1)? "\nDuration: %llu %s." : "\nDuration: %llu %ss.";
+                    char* format_string = (instance->duration == 1)? "\n| Duration: %llu %s." : "\n| Duration: %llu %ss.";
                     Print(format_string, instance->duration, duration_type_names[u32(instance->duration_type)].ptr);
                 }
 
                 Describe_Effect(effect, game_state);
             }
-        }
-
-        if(!first)
-        {
-            Print("\n---------------------");
         }
     }
     else

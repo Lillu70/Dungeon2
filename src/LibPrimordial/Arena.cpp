@@ -85,7 +85,8 @@ SIG void* Push(Arena* arena, u64 size)
         {
             extra = (size / page + 1) * page;
         }
-        
+        Assert(extra >= size);
+
         arena->commited += extra;
         
         if(arena->commited <= arena->reserved)

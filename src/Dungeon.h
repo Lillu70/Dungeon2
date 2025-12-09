@@ -33,7 +33,13 @@ union Color
     u32 value;
 };
 static_assert(sizeof(Color) == sizeof(u32));
-Color global_current_output_color;
+
+
+struct ANSI_Color_Buffer
+{
+    char data[sizeof("\x1b[38;2;255;255;255um")];
+};
+
 
 namespace AT
 {
@@ -158,15 +164,16 @@ namespace Equipment_Slots
     X(S(primary_hand,      Primary Hand,      (u32(1) << 0))),      \
     X(S(secondary_hand,    Secondary Hand,    (u32(1) << 1))),      \
     X(S(head,              Head,              (u32(1) << 2))),      \
-    X(S(chest,             Chest,             (u32(1) << 3))),      \
-    X(S(belt,              Belt,              (u32(1) << 4))),      \
-    X(S(legs,              Legs,              (u32(1) << 5))),      \
-    X(S(boots,             Boots,             (u32(1) << 6))),      \
-    X(S(gloves,            Gloves,            (u32(1) << 7))),      \
-    X(S(ring_1,            Ring,              (u32(1) << 8))),      \
-    X(S(ring_2,            Ring,              (u32(1) << 8))),      \
-    X(S(ring_3,            Ring,              (u32(1) << 8))),      \
-    X(S(ring_4,            Ring,              (u32(1) << 8))),      \
+    X(S(back,              Back,              (u32(1) << 3))),      \
+    X(S(chest,             Chest,             (u32(1) << 4))),      \
+    X(S(belt,              Belt,              (u32(1) << 5))),      \
+    X(S(legs,              Legs,              (u32(1) << 6))),      \
+    X(S(boots,             Boots,             (u32(1) << 7))),      \
+    X(S(gloves,            Gloves,            (u32(1) << 8))),      \
+    X(S(ring_1,            Ring,              (u32(1) << 9))),      \
+    X(S(ring_2,            Ring,              (u32(1) << 9))),      \
+    X(S(ring_3,            Ring,              (u32(1) << 9))),      \
+    X(S(ring_4,            Ring,              (u32(1) << 9))),      \
     
     
     enum T : u32
@@ -663,6 +670,9 @@ struct Permanent_Effects_Table
     Effect stylish_attack;
     
     Effect giant_rat_blight_fangs;
+    Effect backpack;
+    Effect cape_of_avoidance;
+    Effect cape_of_dashing;
     Effect great_sword;
     Effect poison_dagger;
     Effect ring_of_giants;
@@ -707,9 +717,9 @@ struct Game_State
 
     Message_Pipe messages;
 
-    Color default_color;
-    Color ally_color;
-    Color enemy_color;
+    ANSI_Color_Buffer default_color;
+    ANSI_Color_Buffer ally_color;
+    ANSI_Color_Buffer enemy_color;
 
     // CONSIDER: Change to flags... "better", but is it worth it for something like this? that is only stored once.
     // There is only the one game_state.
@@ -889,6 +899,12 @@ constexpr char* proceed_command_description =
 "but otherwise a speed check is rolled against all of the hostiles.\n"
 "If any of them roll better than you, they prevent you from fleeing.";
 
+constexpr char* attacks_command_description = 
+"When used without arguments lists all known attack modifiers,\n"
+"or if a name of an attack modifier is provided as the argument,\n"
+"provides a detailed description of said attack modifeir.";
+
+
 constexpr char* attack_command_description      = "Make an attempt to strike at a target.";
 constexpr char* loot_command_description        = "Everything inside the target will be moved into the room space.";
 constexpr char* pickup_command_description      = "Take the target and put in your inventory";
@@ -899,6 +915,7 @@ constexpr char* equip_command_description       = "Equips the targeted item from
 constexpr char* unequip_command_description     = "Unequips the targeted item. The item has to be equiped.";
 constexpr char* status_command_description      = "Shows current health, experience points and active effects.";
 constexpr char* use_command_description         = "Use an item from your inventory or interact with an object in the room.";
+constexpr char* attacks_command_args            = "No arguments, or a name of an attack modifier.";
 
 /*
     NOTE!
@@ -912,6 +929,7 @@ Game_Command Player_Actions[] =
     { Proceed_Command,      AT::normal, 0, STR("proceed"),      proceed_command_description,        no_args},
     { Inspect_Command,      AT::free,   0, STR("inspect"),      inspect_command_description,        inspect_command_args},
     { Glance_Command,       AT::free,   0, STR("glance"),       glance_command_description,         no_args},
+    { Attacks_Command,      AT::free,   0, STR("attacks"),      attacks_command_description,        attacks_command_args},
     { Attack_Command,       AT::normal, 0, STR("attack"),       attack_command_description,         target_args},
     { Pass_Command,         AT::free,   1, STR("pass"),         "Ends your turn.",                  no_args},
     { Pickup_Command,       AT::normal, 0, STR("pickup"),       pickup_command_description,         target_args},

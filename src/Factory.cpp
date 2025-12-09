@@ -58,6 +58,7 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     stats[Stats::accuracy]      = 7;
     stats[Stats::speed]         = 7;
     stats[Stats::perception]    = 7;
+    stats[Stats::resistance]    = 1;
     Full_Heal(entity,  game_state);
 
     entity->known_attack_modifiers |= 
@@ -71,7 +72,12 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     
     Equip(entity, Create_Dagger(entity, game_state), game_state);
     Equip(entity, Create_Wooden_Shield(entity, game_state), game_state);
-    
+    Equip(entity, Create_Backpack(entity, game_state), game_state);
+    Equip(entity, Create_Cape_Of_Avoidance(entity, game_state), game_state);
+    Equip(entity, Create_Cape_Of_Dashing(entity, game_state), game_state);
+
+    Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
+
     Create_Antidote(entity, game_state);
     Create_Healing_Potion(entity, game_state);
     Create_Healing_Potion(entity, game_state);
@@ -95,6 +101,7 @@ SIG Entity* Create_Class_Wretched(Game_State* game_state)
     stats[Stats::accuracy]      = 1;
     stats[Stats::speed]         = 1;
     stats[Stats::perception]    = 1;
+    stats[Stats::resistance]    = 1;
     Full_Heal(entity,  game_state);
     Set_Level_Based_On_Stats(entity);
     return entity;
@@ -381,6 +388,110 @@ SIG Entity* Create_Dagger(Entity* room, Game_State* game_state)
     entity->weight = 2;
     entity->_stats[Stats::vitality] = 4; 
     
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Cape_Of_Avoidance(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static Effect_Offset On_Equip_Effect_Offset(Game_State* game_state)
+        {
+            EFFECT(&game_state->effects_table.cape_of_avoidance)
+            {
+                effect.stat_modifiers[Stats::dodge]  = + 4;
+                *target = effect;
+            }
+            
+            Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+            return result;
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Cape of Avoidance"), game_state);
+    entity->description_offset = Offset(STR("A fast flowing cape that blurs the edges of the wearer, making them hard to hit."), game_state);
+    
+    entity->flags = EFlags::equippable;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
+    entity->weight = 1;
+    entity->on_equip_effect_offset = local::On_Equip_Effect_Offset(game_state);
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Cape_Of_Dashing(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static Effect_Offset On_Equip_Effect_Offset(Game_State* game_state)
+        {
+            EFFECT(&game_state->effects_table.cape_of_dashing)
+            {
+                effect.stat_modifiers[Stats::speed]  = + 4;
+                *target = effect;
+            }
+            
+            Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+            return result;
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Cape of Dashing"), game_state);
+    entity->description_offset = Offset(STR("A short blue triangular cape enchanted with speed enhancing magics."), game_state);
+    
+    entity->flags = EFlags::equippable;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
+    entity->weight = 1;
+    entity->on_equip_effect_offset = local::On_Equip_Effect_Offset(game_state);
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Backpack(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static Effect_Offset On_Equip_Effect_Offset(Game_State* game_state)
+        {
+            EFFECT(&game_state->effects_table.backpack)
+            {
+                effect.stat_modifiers[Stats::speed]     = - 5;
+                effect.stat_modifiers[Stats::accuracy]  = - 1;
+                effect.carry_capacity_modifier          = + 100;
+                *target = effect;
+            }
+            
+            Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
+            return result;
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Backpack"), game_state);
+    entity->description_offset = Offset(STR("A leather sack with straps to pull our hands through and throw it on your back."), game_state);
+    
+    entity->flags = EFlags::equippable;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
+    
+    entity->weight = 5;
+    entity->_stats[Stats::vitality] = 2; 
+    
+    entity->on_equip_effect_offset = local::On_Equip_Effect_Offset(game_state);
+
     Finalize_Entity(entity, room, game_state);
     
     return entity;

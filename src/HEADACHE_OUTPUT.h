@@ -86,118 +86,119 @@ namespace Stats
 
 // FILE: src\Dungeon.h:
 union Color;                                                                                                                                                                                // LINE: 23
-struct Entity_Offset;                                                                                                                                                                       // LINE: 74
-struct Effect_Offset;                                                                                                                                                                       // LINE: 80
-struct Effects_Node_Offset;                                                                                                                                                                 // LINE: 87
-struct Entity_Node_Offset;                                                                                                                                                                  // LINE: 100
-struct String_Offset;                                                                                                                                                                       // LINE: 106
-struct String_Wrapper;                                                                                                                                                                      // LINE: 112
-struct String_Table;                                                                                                                                                                        // LINE: 119
-struct String_Table_Root;                                                                                                                                                                   // LINE: 127
-struct Reference;                                                                                                                                                                           // LINE: 134
-struct Entity_Node;                                                                                                                                                                         // LINE: 141
-struct Entity_Root_Node;                                                                                                                                                                    // LINE: 148
-struct Dice;                                                                                                                                                                                // LINE: 192
-struct Bonus_Dice;                                                                                                                                                                          // LINE: 199
-struct Effect;                                                                                                                                                                              // LINE: 216
-enum class Apply_Effect_Result : u8;                                                                                                                                                        // LINE: 277
-enum class Duration_Type : u8;                                                                                                                                                              // LINE: 290
-struct Effect_Instance;                                                                                                                                                                     // LINE: 336
-struct Effects_Node;                                                                                                                                                                        // LINE: 373
-struct Effects_Root;                                                                                                                                                                        // LINE: 384
-struct Roll_Result;                                                                                                                                                                         // LINE: 392
-struct Initiative;                                                                                                                                                                          // LINE: 402
-struct Interactable;                                                                                                                                                                        // LINE: 410
-enum class Faction : u8;                                                                                                                                                                    // LINE: 418
-struct Entity;                                                                                                                                                                              // LINE: 428
-struct Damage_Modifier;                                                                                                                                                                     // LINE: 474
-struct Healing_Result;                                                                                                                                                                      // LINE: 485
-struct Deal_Damage_Result;                                                                                                                                                                  // LINE: 496
-enum class Damage_Type;                                                                                                                                                                     // LINE: 508
-struct Critical_Ranges_Result;                                                                                                                                                              // LINE: 515
-struct Message_Pipe;                                                                                                                                                                        // LINE: 522
-struct Attack_Record;                                                                                                                                                                       // LINE: 529
-struct Entity_Iterator;                                                                                                                                                                     // LINE: 608
-struct Backwards_Iterator;                                                                                                                                                                  // LINE: 623
-struct Effects_Iterator;                                                                                                                                                                    // LINE: 633
-struct Permanent_Effects_Table;                                                                                                                                                             // LINE: 645
-struct Game_State;                                                                                                                                                                          // LINE: 677
-struct Character_Creator;                                                                                                                                                                   // LINE: 725
-struct Room_Generator_Element;                                                                                                                                                              // LINE: 735
-struct Room_Generator_Element_Array;                                                                                                                                                        // LINE: 742
-struct Game_Command;                                                                                                                                                                        // LINE: 831
-enum class Call_Style;                                                                                                                                                                      // LINE: 842
-struct Command;                                                                                                                                                                             // LINE: 850
-typedef void PROTOTYPE_ENT_GS(Entity*, Game_State*);;                                                                                                                                       // LINE: 943
-typedef void PROTOTYPE_ENT_ENT_GS(Entity*, Entity*, Game_State*);;                                                                                                                          // LINE: 944
-typedef void PROTOTYPE_EFFINST_ENT_GS(Effect_Instance*, Entity*, Game_State*);;                                                                                                             // LINE: 945
-typedef void PROTOTYPE_EFFINST_ENT_ENT_AR_GS(Effect_Instance*, Entity*, Entity*, Attack_Record*, Game_State*);;                                                                             // LINE: 946
-typedef void PROTOTYPE_EFFINST_REF_ENT_DDR_GS(Effect_Instance*, Reference, Entity*, Deal_Damage_Result*, Game_State*);;                                                                     // LINE: 947
-typedef void PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS(Effect_Instance*, Entity*, s32*, String, Game_State*);;                                                                                    // LINE: 948
-typedef void PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS(Effect_Instance*, Entity*, Stats::T, s32*, s16*, Game_State*);;                                                                    // LINE: 949
+struct ANSI_Color_Buffer;                                                                                                                                                                   // LINE: 38
+struct Entity_Offset;                                                                                                                                                                       // LINE: 80
+struct Effect_Offset;                                                                                                                                                                       // LINE: 86
+struct Effects_Node_Offset;                                                                                                                                                                 // LINE: 93
+struct Entity_Node_Offset;                                                                                                                                                                  // LINE: 106
+struct String_Offset;                                                                                                                                                                       // LINE: 112
+struct String_Wrapper;                                                                                                                                                                      // LINE: 118
+struct String_Table;                                                                                                                                                                        // LINE: 125
+struct String_Table_Root;                                                                                                                                                                   // LINE: 133
+struct Reference;                                                                                                                                                                           // LINE: 140
+struct Entity_Node;                                                                                                                                                                         // LINE: 147
+struct Entity_Root_Node;                                                                                                                                                                    // LINE: 154
+struct Dice;                                                                                                                                                                                // LINE: 199
+struct Bonus_Dice;                                                                                                                                                                          // LINE: 206
+struct Effect;                                                                                                                                                                              // LINE: 223
+enum class Apply_Effect_Result : u8;                                                                                                                                                        // LINE: 284
+enum class Duration_Type : u8;                                                                                                                                                              // LINE: 297
+struct Effect_Instance;                                                                                                                                                                     // LINE: 343
+struct Effects_Node;                                                                                                                                                                        // LINE: 380
+struct Effects_Root;                                                                                                                                                                        // LINE: 391
+struct Roll_Result;                                                                                                                                                                         // LINE: 399
+struct Initiative;                                                                                                                                                                          // LINE: 409
+struct Interactable;                                                                                                                                                                        // LINE: 417
+enum class Faction : u8;                                                                                                                                                                    // LINE: 425
+struct Entity;                                                                                                                                                                              // LINE: 435
+struct Damage_Modifier;                                                                                                                                                                     // LINE: 481
+struct Healing_Result;                                                                                                                                                                      // LINE: 492
+struct Deal_Damage_Result;                                                                                                                                                                  // LINE: 503
+enum class Damage_Type;                                                                                                                                                                     // LINE: 515
+struct Critical_Ranges_Result;                                                                                                                                                              // LINE: 522
+struct Message_Pipe;                                                                                                                                                                        // LINE: 529
+struct Attack_Record;                                                                                                                                                                       // LINE: 536
+struct Entity_Iterator;                                                                                                                                                                     // LINE: 615
+struct Backwards_Iterator;                                                                                                                                                                  // LINE: 630
+struct Effects_Iterator;                                                                                                                                                                    // LINE: 640
+struct Permanent_Effects_Table;                                                                                                                                                             // LINE: 652
+struct Game_State;                                                                                                                                                                          // LINE: 687
+struct Character_Creator;                                                                                                                                                                   // LINE: 735
+struct Room_Generator_Element;                                                                                                                                                              // LINE: 745
+struct Room_Generator_Element_Array;                                                                                                                                                        // LINE: 752
+struct Game_Command;                                                                                                                                                                        // LINE: 841
+enum class Call_Style;                                                                                                                                                                      // LINE: 852
+struct Command;                                                                                                                                                                             // LINE: 860
+typedef void PROTOTYPE_ENT_GS(Entity*, Game_State*);;                                                                                                                                       // LINE: 961
+typedef void PROTOTYPE_ENT_ENT_GS(Entity*, Entity*, Game_State*);;                                                                                                                          // LINE: 962
+typedef void PROTOTYPE_EFFINST_ENT_GS(Effect_Instance*, Entity*, Game_State*);;                                                                                                             // LINE: 963
+typedef void PROTOTYPE_EFFINST_ENT_ENT_AR_GS(Effect_Instance*, Entity*, Entity*, Attack_Record*, Game_State*);;                                                                             // LINE: 964
+typedef void PROTOTYPE_EFFINST_REF_ENT_DDR_GS(Effect_Instance*, Reference, Entity*, Deal_Damage_Result*, Game_State*);;                                                                     // LINE: 965
+typedef void PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS(Effect_Instance*, Entity*, s32*, String, Game_State*);;                                                                                    // LINE: 966
+typedef void PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS(Effect_Instance*, Entity*, Stats::T, s32*, s16*, Game_State*);;                                                                    // LINE: 967
 namespace AT
 {
-    enum T : u8;                                                                                                                                                                            // LINE: 40
+    enum T : u8;                                                                                                                                                                            // LINE: 46
 }
 
 namespace EFlags
 {
-    enum T : u64;                                                                                                                                                                           // LINE: 53
+    enum T : u64;                                                                                                                                                                           // LINE: 59
 }
 
 namespace Equipment_Slots
 {
-    enum T : u32;                                                                                                                                                                           // LINE: 172
+    enum T : u32;                                                                                                                                                                           // LINE: 179
 }
 
 namespace Effect_Flags
 {
-    enum T : s8;                                                                                                                                                                            // LINE: 208
+    enum T : s8;                                                                                                                                                                            // LINE: 215
 }
 
 namespace Effect_Type
 {
-    enum T : u8;                                                                                                                                                                            // LINE: 262
+    enum T : u8;                                                                                                                                                                            // LINE: 269
 }
 
 namespace Class
 {
-    enum T : u8;                                                                                                                                                                            // LINE: 314
+    enum T : u8;                                                                                                                                                                            // LINE: 321
 }
 
 namespace Roll_Print_Style
 {
-    enum T;                                                                                                                                                                                 // LINE: 567
+    enum T;                                                                                                                                                                                 // LINE: 574
 }
 
 namespace Report_Turn_Taken_Status
 {
-    enum T : u8;                                                                                                                                                                            // LINE: 580
+    enum T : u8;                                                                                                                                                                            // LINE: 587
 }
 
 namespace Verbose
 {
-    enum T : u8;                                                                                                                                                                            // LINE: 590
+    enum T : u8;                                                                                                                                                                            // LINE: 597
 }
 
 namespace Forced
 {
-    enum T : u8;                                                                                                                                                                            // LINE: 600
+    enum T : u8;                                                                                                                                                                            // LINE: 607
 }
 
 namespace Attack_Mod
 {
-    enum T;                                                                                                                                                                                 // LINE: 802
+    enum T;                                                                                                                                                                                 // LINE: 812
 }
 
 namespace CMD_Result
 {
-    enum T : u8;                                                                                                                                                                            // LINE: 821
+    enum T : u8;                                                                                                                                                                            // LINE: 831
 }
 
 
 // FILE: src\Dungeon.cpp:
-struct On_Get_Stat_Value_Storage;                                                                                                                                                           // LINE: 1516
+struct On_Get_Stat_Value_Storage;                                                                                                                                                           // LINE: 1567
 
 
 // Functions:
@@ -259,11 +260,14 @@ void Mem_Copy(void* dest, void* src, u64 count);                                
 u64 Weld(u32 a, u32 b);                                                                                                                                                                     // LINE: 53
 
 // FILE: src\LibPrimordial\Maths.cpp:
-f32 Square_Root(f32 v);                                                                                                                                                                     // LINE: 30
-u32 Random_PCG(u32 seed);                                                                                                                                                                   // LINE: 43
-u32 Random_PCG(u32* pcg_state);                                                                                                                                                             // LINE: 51
-s32 Round_To_S32(f32 v);                                                                                                                                                                    // LINE: 63
-f32 Round(f32 v);                                                                                                                                                                           // LINE: 72
+f32 Square_Root(f32 v);                                                                                                                                                                     // LINE: 32
+u32 Random_PCG(u32 seed);                                                                                                                                                                   // LINE: 69
+u32 Random_PCG(u32* pcg_state);                                                                                                                                                             // LINE: 77
+f32 Fraction(f32 v);                                                                                                                                                                        // LINE: 88
+s32 Round_To_S32(f32 v);                                                                                                                                                                    // LINE: 97
+f32 Round(f32 v);                                                                                                                                                                           // LINE: 107
+f32 Round_Up(f32 v);                                                                                                                                                                        // LINE: 115
+s32 Digits(s32 v);                                                                                                                                                                          // LINE: 128
 
 // FILE: src\LibPrimordial\String.cpp:
 u64 Null_Terminated_Length(char* buffer);                                                                                                                                                   // LINE: 17
@@ -299,12 +303,12 @@ void Initialize_Arena(Arena* arena, u64 reserve_byte_count = Gigabytes(64), u64 
 Arena Create_Arena(u64 reserve_byte_count = Gigabytes(64), u64 pages_per_commit = 16);                                                                                                      // LINE: 54
 void Clear(Arena* arena, Zero_Memory zero_memory);                                                                                                                                          // LINE: 63
 void* Push(Arena* arena, u64 size);                                                                                                                                                         // LINE: 74
-char* Push_String(Arena* arena, String str, u64* out_length);                                                                                                                               // LINE: 117
-char* Push_String(Arena* arena, String str);                                                                                                                                                // LINE: 127
-Arena_Snapshot Snapshot(Arena* arena);                                                                                                                                                      // LINE: 136
-void Restore(Arena* arena, Arena_Snapshot snapshot);                                                                                                                                        // LINE: 143
-bool Is_Taken(Arena_Snapshot snapshot);                                                                                                                                                     // LINE: 150
-String To_String(Arena* arena);                                                                                                                                                             // LINE: 157
+char* Push_String(Arena* arena, String str, u64* out_length);                                                                                                                               // LINE: 118
+char* Push_String(Arena* arena, String str);                                                                                                                                                // LINE: 128
+Arena_Snapshot Snapshot(Arena* arena);                                                                                                                                                      // LINE: 137
+void Restore(Arena* arena, Arena_Snapshot snapshot);                                                                                                                                        // LINE: 144
+bool Is_Taken(Arena_Snapshot snapshot);                                                                                                                                                     // LINE: 151
+String To_String(Arena* arena);                                                                                                                                                             // LINE: 158
 
 // FILE: src\LibPrimordial\Win32.cpp:
 f64 OS_Time();                                                                                                                                                                              // LINE: 17
@@ -360,196 +364,205 @@ Effect_Instance Stylish_Attack(Entity* attacker, Game_State* game_state);       
 void Finalize_Entity(Entity* entity, Entity* container, Game_State* game_state);                                                                                                            // LINE: 9
 void Add_Dice(Effect* effect, s16 count, s16 faces);                                                                                                                                        // LINE: 18
 Entity* Create_Class_Adventurer(Game_State* game_state);                                                                                                                                    // LINE: 47
-Entity* Create_Class_Wretched(Game_State* game_state);                                                                                                                                      // LINE: 84
-Entity* Create_Bandit(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 104
-Entity* Create_Giant_Rat(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 132
-Entity* Create_Rat_Meat(Entity* container, Game_State* game_state);                                                                                                                         // LINE: 222
-Entity* Create_Rat_Mound(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 236
-Entity* Create_Spider(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 262
-Entity* Create_Boss_Spider(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 292
-Entity* Create_Greate_Sword(Entity* room, Game_State* game_state);                                                                                                                          // LINE: 322
-Entity* Create_Dagger(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 369
-Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state);                                                                                                                         // LINE: 390
-Entity* Create_Ring_Of_Giants(Entity* room, Game_State* game_state);                                                                                                                        // LINE: 466
-Entity* Create_Ring_Of_Strange_Fortunes(Entity* room, Game_State* game_state);                                                                                                              // LINE: 506
-Entity* Create_Ring_Of_Rebirth(Entity* room, Game_State* game_state);                                                                                                                       // LINE: 543
-Entity* Create_Ring_Of_Regeneration(Entity* room, Game_State* game_state);                                                                                                                  // LINE: 611
-Entity* Create_Antidote(Entity* container, Game_State* game_state);                                                                                                                         // LINE: 661
-Entity* Create_Healing_Potion(Entity* container, Game_State* game_state);                                                                                                                   // LINE: 703
-Entity* Create_Custom_Ring(Entity* room, Game_State* game_state, String name);                                                                                                              // LINE: 791
-Entity* Create_Gloves_Of_Brutality(Entity* room, Game_State* game_state);                                                                                                                   // LINE: 812
-Entity* Create_Wooden_Shield(Entity* room, Game_State* game_state);                                                                                                                         // LINE: 853
-Entity* Create_Room(Game_State* game_state);                                                                                                                                                // LINE: 892
-void Generate_Entrace_Room(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 903
-Room_Generator_Element_Array Caves();                                                                                                                                                       // LINE: 918
-Entity* Create_Ring_Of_Just_Fucking_Crit(Entity* room, Game_State* game_state);                                                                                                             // LINE: 1061
+Entity* Create_Class_Wretched(Game_State* game_state);                                                                                                                                      // LINE: 90
+Entity* Create_Bandit(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 111
+Entity* Create_Giant_Rat(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 139
+Entity* Create_Rat_Meat(Entity* container, Game_State* game_state);                                                                                                                         // LINE: 229
+Entity* Create_Rat_Mound(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 243
+Entity* Create_Spider(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 269
+Entity* Create_Boss_Spider(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 299
+Entity* Create_Greate_Sword(Entity* room, Game_State* game_state);                                                                                                                          // LINE: 329
+Entity* Create_Dagger(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 376
+Entity* Create_Cape_Of_Avoidance(Entity* room, Game_State* game_state);                                                                                                                     // LINE: 397
+Entity* Create_Cape_Of_Dashing(Entity* room, Game_State* game_state);                                                                                                                       // LINE: 430
+Entity* Create_Backpack(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 463
+Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state);                                                                                                                         // LINE: 501
+Entity* Create_Ring_Of_Giants(Entity* room, Game_State* game_state);                                                                                                                        // LINE: 577
+Entity* Create_Ring_Of_Strange_Fortunes(Entity* room, Game_State* game_state);                                                                                                              // LINE: 617
+Entity* Create_Ring_Of_Rebirth(Entity* room, Game_State* game_state);                                                                                                                       // LINE: 654
+Entity* Create_Ring_Of_Regeneration(Entity* room, Game_State* game_state);                                                                                                                  // LINE: 722
+Entity* Create_Antidote(Entity* container, Game_State* game_state);                                                                                                                         // LINE: 772
+Entity* Create_Healing_Potion(Entity* container, Game_State* game_state);                                                                                                                   // LINE: 814
+Entity* Create_Custom_Ring(Entity* room, Game_State* game_state, String name);                                                                                                              // LINE: 902
+Entity* Create_Gloves_Of_Brutality(Entity* room, Game_State* game_state);                                                                                                                   // LINE: 923
+Entity* Create_Wooden_Shield(Entity* room, Game_State* game_state);                                                                                                                         // LINE: 964
+Entity* Create_Room(Game_State* game_state);                                                                                                                                                // LINE: 1003
+void Generate_Entrace_Room(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 1014
+Room_Generator_Element_Array Caves();                                                                                                                                                       // LINE: 1029
+Entity* Create_Ring_Of_Just_Fucking_Crit(Entity* room, Game_State* game_state);                                                                                                             // LINE: 1172
 
 // FILE: src\Dungeon.cpp:
-void Set_Output_Color(u8 red, u8 green, u8 blue);                                                                                                                                           // LINE: 58
-void Set_Output_Color(Color color);                                                                                                                                                         // LINE: 65
-String Format_Message(Game_State* game_state, char* format_string, ...);                                                                                                                    // LINE: 71
-_inline void Flush_Messages(Game_State* game_state);                                                                                                                                        // LINE: 90
-_inline void Print_Messages(Game_State* game_state);                                                                                                                                        // LINE: 97
-void Push_Message(String message, Game_State* game_state);                                                                                                                                  // LINE: 115
-void Wait(f64 seconds, Game_State* game_state);                                                                                                                                             // LINE: 130
-String Get_User_Input(Game_State* game_state);                                                                                                                                              // LINE: 139
-bool User_Query_Yes_No(Game_State* game_state);                                                                                                                                             // LINE: 158
-Reference* Find_Empty_Slot(Entity_Node* node);                                                                                                                                              // LINE: 192
-_inline Entity_Offset Offset(Entity* entity, Game_State* game_state);                                                                                                                       // LINE: 214
-_inline Entity* Pointer(Entity_Offset offset, Game_State* game_state);                                                                                                                      // LINE: 226
-_inline Effect_Offset Offset(Effect* effect, Game_State* game_state);                                                                                                                       // LINE: 238
-_inline Effect* Pointer(Effect_Offset offset, Game_State* game_state);                                                                                                                      // LINE: 251
-_inline Entity_Node_Offset Offset(Entity_Node* entity_node, Game_State* game_state);                                                                                                        // LINE: 264
-_inline Entity_Node* Pointer(Entity_Node_Offset offset, Game_State* game_state);                                                                                                            // LINE: 276
-_inline Effects_Node_Offset Offset(Effects_Node* effects_node, Game_State* game_state);                                                                                                     // LINE: 288
-_inline Effects_Node* Pointer(Effects_Node_Offset offset, Game_State* game_state);                                                                                                          // LINE: 300
-String Unwrap_String(String_Wrapper* strw, Game_State* game_state);                                                                                                                         // LINE: 312
-String_Offset Offset(String str, Game_State* game_state);                                                                                                                                   // LINE: 320
-String Get_String(String_Offset offset, Game_State* game_state);                                                                                                                            // LINE: 387
-_inline u64 Storage_Offset(void* ptr, Game_State* game_state);                                                                                                                              // LINE: 400
-_inline void* Pull_From_Storage_Offset(u64 offset, Game_State* game_state);                                                                                                                 // LINE: 413
-Reference* Find_Entity(Entity* entity, Entity_Root_Node* storage, Game_State* game_state, Entity_Node** out_node = 0);                                                                      // LINE: 426
-Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Reference space, String name_or_reference_number, Game_State* game_state, Verbose::T verbose = Verbose::T(1));               // LINE: 452
-Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_State* game_state, Verbose::T verbose = Verbose::T(1));                                                         // LINE: 464
-Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Entity* space, String name_or_reference_number, Game_State* game_state, Verbose::T verbose = Verbose::T(1));                 // LINE: 488
-Reference Make_Reference(Entity* entity, Game_State* game_state);                                                                                                                           // LINE: 538
-Entity* Dereference(Reference* reference, Game_State* game_state);                                                                                                                          // LINE: 547
-Entity* Dereference(Reference reference, Game_State* game_state);                                                                                                                           // LINE: 567
-Entity_Iterator Make_Iterator(Entity_Root_Node* root, Game_State* game_state);                                                                                                              // LINE: 574
-Entity_Iterator Make_Iterator(Entity* entity, Game_State* game_state);                                                                                                                      // LINE: 597
-Effects_Iterator Make_Iterator(Effects_Root* root, Game_State* game_state);                                                                                                                 // LINE: 605
-Reference* Next(Entity_Iterator* iter);                                                                                                                                                     // LINE: 624
-Entity* Next_Entity(Entity_Iterator* iter);                                                                                                                                                 // LINE: 654
-u64 Count(Entity_Root_Node* root_node, Game_State* game_state);                                                                                                                             // LINE: 668
-bool Memory_Snapshot_Save(String file_path, Game_State* game_state);                                                                                                                        // LINE: 681
-bool Memory_Snapshot_Restore(String file_path, Game_State* game_state);                                                                                                                     // LINE: 690
-Effect_Instance* Next_Effect_Instance(Effects_Iterator* iter);                                                                                                                              // LINE: 722
-_inline Effect_Instance* Next(Effects_Iterator* iter);                                                                                                                                      // LINE: 755
-Effect* Next_Effect(Effects_Iterator* iter);                                                                                                                                                // LINE: 762
-Backwards_Iterator Make_Backwards_Iterator(Entity_Root_Node* root, Game_State* game_state);                                                                                                 // LINE: 776
-Reference* Previous(Backwards_Iterator* back_iter);                                                                                                                                         // LINE: 790
-u32 Roll(u32 range, Game_State* game_state);                                                                                                                                                // LINE: 835
-s32 Roll(Dice dice, Game_State* game_state);                                                                                                                                                // LINE: 847
-s32* Roll_With_Record(Dice dice, Game_State* game_state);                                                                                                                                   // LINE: 863
-f32 Random_F32(Game_State* game_state);                                                                                                                                                     // LINE: 877
-Roll_Result Stat_Roll(s32 value, Stats::T stat, Game_State* game_state);                                                                                                                    // LINE: 887
-s32 Value(Roll_Result rr);                                                                                                                                                                  // LINE: 903
-Roll_Result Stat_Roll(Entity* entity, Stats::T stat, Game_State* game_state);                                                                                                               // LINE: 910
-_inline bool Is_Rolled(Roll_Result rr);                                                                                                                                                     // LINE: 921
-void Print_Dice(Dice dice, s32 result);                                                                                                                                                     // LINE: 928
-void Print_Roll_Result(Roll_Result rr);                                                                                                                                                     // LINE: 934
-void Print_Attack_Record(Attack_Record* ar, Game_State* game_state);                                                                                                                        // LINE: 947
-_inline String Name(Entity* entity, Game_State* game_state);                                                                                                                                // LINE: 1112
-char* Action_Name(AT::T action);                                                                                                                                                            // LINE: 1119
-void Print_Required_Equipment_Slots(Entity* item);                                                                                                                                          // LINE: 1146
-void Push_Generic_Apply_Effect_Message(Effect_Instance* source_effect, Entity* target, Effect_Instance new_effect, Apply_Effect_Result apply, Game_State* game_state);                      // LINE: 1170
-void Remove_From_Residence(Entity* entity, Game_State* game_state);                                                                                                                         // LINE: 1227
-void Release_Entity_Node(Entity_Root_Node* root, Game_State* game_state);                                                                                                                   // LINE: 1260
-Entity_Node* Request_Entity_Node(Game_State* game_state);                                                                                                                                   // LINE: 1282
-Effect* _Request_Effect(Game_State* game_state, u64 tag);                                                                                                                                   // LINE: 1299
-void Release_Effect(Effect* effect, Game_State* game_state);                                                                                                                                // LINE: 1322
-Entity* Request_Entity(Game_State* game_state);                                                                                                                                             // LINE: 1336
-void Release_Entity(Entity* entity, Game_State* game_state);                                                                                                                                // LINE: 1358
-Effects_Node* Request_Effects_Node(Game_State* game_state);                                                                                                                                 // LINE: 1366
-void Release_Effects_Node(Effects_Node* node, Game_State* game_state);                                                                                                                      // LINE: 1383
-void Insert(Entity* entity, Entity_Root_Node* storage, Game_State* game_state);                                                                                                             // LINE: 1391
-void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_state);                                                                                                           // LINE: 1428
-void Remove_All_Effects(Entity* entity, Game_State* game_state);                                                                                                                            // LINE: 1438
-void Delete_Entity(Entity* entity, Game_State* game_state);                                                                                                                                 // LINE: 1496
-bool Has_Content(Entity_Root_Node* root);                                                                                                                                                   // LINE: 1503
-bool Is_Empty(Entity_Root_Node* root);                                                                                                                                                      // LINE: 1510
-s32 Get_Stat_Value(Entity* entity, Stats::T stat, Game_State* game_state, u64* out_effect_count = 0);                                                                                       // LINE: 1523
-s32 Exp_To_Level_Up(s32 _lvl);                                                                                                                                                              // LINE: 1570
-_inline s32 Exp_To_Level_Up(Entity* entity);                                                                                                                                                // LINE: 1578
-s16 Calculate_Level(Entity* entity);                                                                                                                                                        // LINE: 1585
-void Set_Level_Based_On_Stats(Entity* entity);                                                                                                                                              // LINE: 1599
-s16 Level(Entity* entity);                                                                                                                                                                  // LINE: 1606
-s32 Max_Health(Entity* entity, Game_State* game_state);                                                                                                                                     // LINE: 1613
-f32 Critical_Multiplier(Entity* entity, Game_State* game_state);                                                                                                                            // LINE: 1626
-s32 Carry_Capacity(Entity* entity, Game_State* game_state);                                                                                                                                 // LINE: 1633
-s32 Exp_Reward(Entity* entity);                                                                                                                                                             // LINE: 1646
-s32 Carrying_Amount(Entity* entity, Game_State* game_state);                                                                                                                                // LINE: 1659
-Critical_Ranges_Result Critical_Ranges(Entity* entity, Game_State* game_state, u32* out_success_effecting_count = 0, u32* out_failure_effecing_count = 0);                                  // LINE: 1672
-void Full_Heal(Entity* entity, Game_State* game_state);                                                                                                                                     // LINE: 1714
-bool Is_Item(Entity* entity);                                                                                                                                                               // LINE: 1720
-bool Is_Alive(Entity* entity);                                                                                                                                                              // LINE: 1727
-bool Is_Hostile_Against(Entity* A, Entity* B);                                                                                                                                              // LINE: 1734
-bool Is_Living_Enemy_Of(Entity* actor, Entity* target);                                                                                                                                     // LINE: 1741
-s32 Give_Temporary_Health(Entity* entity, s32 amount, String source_name, Verbose::T verbose, Game_State* game_state);                                                                      // LINE: 1748
-Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose::T verbose, Game_State* game_state);                                                                            // LINE: 1769
-Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String source_name, s32 dmg, Damage_Type type, Game_State* game_state, Verbose::T verbose);                            // LINE: 1839
-_inline Deal_Damage_Result Deal_Damage(Entity* defender, Entity* attacker, String dmg_src_name, s32 dmg, Damage_Type type, Game_State* game_state, Verbose::T verbose);                     // LINE: 1983
-void Proc_Effects(u64 offset, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state);                                                                               // LINE: 1991
-void Proc_Effects(u64 offset, Entity* target, Game_State* game_state);                                                                                                                      // LINE: 2008
-String Effect_Name(Effect_Instance* instance, Game_State* game_state);                                                                                                                      // LINE: 2024
-u64 Count_Effect_Instances(Effects_Root* root, Effect_Instance cmp, Game_State* game_state, Effect_Instance** out_shortest_duration = 0);                                                   // LINE: 2044
-void Delete_Effect_Slot(Effects_Root* root, Effects_Node* node, u64 *idx, u64* count, Game_State* game_state);                                                                              // LINE: 2074
-Effect_Instance* New_Effect_Slot(Effects_Root* root, Game_State* game_state);                                                                                                               // LINE: 2114
-Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, Game_State* game_state);                                                                                         // LINE: 2160
-void Remove_Effects_From_Source(Entity* actor, Entity* source, Game_State* game_state);                                                                                                     // LINE: 2217
-u64 Remove_Effects_Of_Type(Entity* actor, Effect_Type::T type_to_remove, Game_State* game_state, Verbose::T verbose);                                                                       // LINE: 2242
-void Inspect(Entity* target, Game_State* game_state);                                                                                                                                       // LINE: 2421
-bool Is_Equipped(Entity* actor, Entity* item, Game_State* game_state);                                                                                                                      // LINE: 2460
-bool Unequip(Entity* actor, Entity* item, Game_State* game_state);                                                                                                                          // LINE: 2483
-bool Unequip(Entity* item, Game_State* game_state);                                                                                                                                         // LINE: 2507
-bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T verbose);                                                                                                          // LINE: 2515
-bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T verbose = Verbose::T(0));                                                                                      // LINE: 2555
-void Print_Uses(Entity* entity);                                                                                                                                                            // LINE: 2776
-void Open(Entity* actor, Game_State* game_state);                                                                                                                                           // LINE: 2796
-bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status::T report_turn_taken_status = Report_Turn_Taken_Status::T(1));                                                  // LINE: 2822
-void Remove_Random_Effect(Entity* entity, String source_name, Game_State* game_state);                                                                                                      // LINE: 2898
-s32 Damage_Modifier_From_Effects(Entity* attacker, Attack_Record* ar, Game_State* game_state);                                                                                              // LINE: 2937
-u64 Attack_Modifier_Mask(Attack_Mod::T modifier);                                                                                                                                           // LINE: 3028
-u64 Class_Mask(Class::T _class);                                                                                                                                                            // LINE: 3035
-bool Can_Use_Attack_Modifier(Entity* entity, Attack_Mod::T modifier);                                                                                                                       // LINE: 3042
-void Apply_Or_Describe_Attak_Modifier(Entity** attacker_ptr, Entity** defender_ptr, Attack_Mod::T modifier, Game_State* game_state);                                                        // LINE: 3058
-void Attack(Entity* attacker, Entity* defender, Game_State* game_state, Attack_Mod::T modifier = Attack_Mod::T(0));                                                                         // LINE: 3200
-void Player_Action(Entity* actor, String actor_name, Game_State* game_state);                                                                                                               // LINE: 3275
-Entity* Redirected_Target(Entity* actor, String actor_name, Game_State* game_state);                                                                                                        // LINE: 3360
-Entity* Random_Entity_That_Matches_Criteria(Entity_Root_Node* storage, bool(*conditional)(Entity* entity, void* user_ptr, Game_State* game_state), void* user_ptr, Game_State* game_state); // LINE: 3398
-Entity* Find_Attack_Target(Entity* actor, Game_State* game_state);                                                                                                                          // LINE: 3437
-void NPC_Action(Entity* actor, String actor_name, Game_State* game_state);                                                                                                                  // LINE: 3466
-void Take_Action(Entity* actor, Game_State* game_state);                                                                                                                                    // LINE: 3526
-bool Roll_Initiative(Entity* entity, Game_State* game_state);                                                                                                                               // LINE: 3598
-void Sort_Iniative_Order(Reference* refs, Game_State* game_state);                                                                                                                          // LINE: 3632
-void Sort_Space(Entity_Root_Node* space, Game_State* game_state);                                                                                                                           // LINE: 3764
-u64 Count_Longest_Round_Effect_Duration(Entity* actor, Game_State* game_state);                                                                                                             // LINE: 3840
-void Tick_Down_Effect_Durations(Entity* actor, Duration_Type type, Game_State* game_state);                                                                                                 // LINE: 3855
-_inline void Enter_A_Room_Printout(Entity* player, Entity* room, Game_State* game_state);                                                                                                   // LINE: 3929
-Room_Generator_Element Pick_Room_Generator(Room_Generator_Element_Array array, u32 selector, Game_State* game_state);                                                                       // LINE: 3952
-Room_Generator_Element Pick_Room_Generator(Room_Generator_Element_Array array, Game_State* game_state);                                                                                     // LINE: 3973
-void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 count, void* user_ptr, Game_State* game_state);                                                                  // LINE: 3987
-void Create_Player_Charater(Game_State* game_state);                                                                                                                                        // LINE: 4081
-void Tick_Active_Effects_Down_To_Zero(Entity* actor, Game_State* game_state);                                                                                                               // LINE: 4172
-Entity* Proceed_To_Next_Room(Game_State* game_state);                                                                                                                                       // LINE: 4197
-void Prepare_Game_Round(Game_State* game_state);                                                                                                                                            // LINE: 4267
-void Excecute_Game_Round(Game_State* game_state);                                                                                                                                           // LINE: 4361
-void Exit_Handling(Game_State* game_state);                                                                                                                                                 // LINE: 4399
-bool Play_Game(Game_State* game_state);                                                                                                                                                     // LINE: 4431
-void Reset_Game_State(Game_State* game_state);                                                                                                                                              // LINE: 4462
-Game_State* Create_Game_State();                                                                                                                                                            // LINE: 4510
-CMD_Result::T Kill_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 4541
-CMD_Result::T Toggle_Dramatic_Pause(Entity* actor, String args, Game_State* game_state);                                                                                                    // LINE: 4568
-CMD_Result::T Toggle_Godmode(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 4592
-CMD_Result::T Help_Command(Entity* entity, String args, Game_State* game_state);                                                                                                            // LINE: 4611
-CMD_Result::T Pickup_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 4651
-CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game_state);                                                                                                        // LINE: 4700
-CMD_Result::T Proceed_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 4764
-CMD_Result::T Equipment_Command(Entity* actor, String args, Game_State* game_state);                                                                                                        // LINE: 4861
-CMD_Result::T Drop_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 4889
-CMD_Result::T Use_Command(Entity* actor, String args, Game_State* game_state);                                                                                                              // LINE: 4919
-CMD_Result::T Equip_Command(Entity* actor, String args, Game_State* game_state);                                                                                                            // LINE: 4943
-CMD_Result::T Unequip_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 4966
-CMD_Result::T Stats_Command(Entity* actor, String args, Game_State* game_state);                                                                                                            // LINE: 4995
-CMD_Result::T Status_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 5079
-CMD_Result::T Inspect_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 5141
-CMD_Result::T Pass_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5183
-CMD_Result::T Glance_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 5199
-CMD_Result::T Restart_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 5223
-CMD_Result::T Save_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5258
-CMD_Result::T Load_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5284
-CMD_Result::T Exit_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5310
-CMD_Result::T Loot_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5348
-CMD_Result::T Attack_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 5404
-CMD_Result::T Set_Seed_Command(Entity* actor, String args, Game_State* game_state);                                                                                                         // LINE: 5467
-void Get_Character_Creator_Commands(Game_State* game_state, Command** out_commands, u64* out_count);                                                                                        // LINE: 5497
+char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, u8 red, u8 green, u8 blue);                                                                                                          // LINE: 55
+char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, Color color);                                                                                                                        // LINE: 65
+void Set_Output_Color(u8 red, u8 green, u8 blue);                                                                                                                                           // LINE: 72
+void Set_Output_Color(Color color);                                                                                                                                                         // LINE: 80
+char* Entity_Color(Entity* entity, Game_State* game_state);                                                                                                                                 // LINE: 86
+String Format_Message(Game_State* game_state, char* format_string, ...);                                                                                                                    // LINE: 110
+_inline void Flush_Messages(Game_State* game_state);                                                                                                                                        // LINE: 129
+_inline void Print_Messages(Game_State* game_state);                                                                                                                                        // LINE: 136
+void Push_Message(String message, Game_State* game_state);                                                                                                                                  // LINE: 154
+void Wait(f64 seconds, Game_State* game_state);                                                                                                                                             // LINE: 169
+String Get_User_Input(Game_State* game_state);                                                                                                                                              // LINE: 178
+bool User_Query_Yes_No(Game_State* game_state);                                                                                                                                             // LINE: 197
+Reference* Find_Empty_Slot(Entity_Node* node);                                                                                                                                              // LINE: 231
+_inline Entity_Offset Offset(Entity* entity, Game_State* game_state);                                                                                                                       // LINE: 253
+_inline Entity* Pointer(Entity_Offset offset, Game_State* game_state);                                                                                                                      // LINE: 265
+_inline Effect_Offset Offset(Effect* effect, Game_State* game_state);                                                                                                                       // LINE: 277
+_inline Effect* Pointer(Effect_Offset offset, Game_State* game_state);                                                                                                                      // LINE: 290
+_inline Entity_Node_Offset Offset(Entity_Node* entity_node, Game_State* game_state);                                                                                                        // LINE: 303
+_inline Entity_Node* Pointer(Entity_Node_Offset offset, Game_State* game_state);                                                                                                            // LINE: 315
+_inline Effects_Node_Offset Offset(Effects_Node* effects_node, Game_State* game_state);                                                                                                     // LINE: 327
+_inline Effects_Node* Pointer(Effects_Node_Offset offset, Game_State* game_state);                                                                                                          // LINE: 339
+String Unwrap_String(String_Wrapper* strw, Game_State* game_state);                                                                                                                         // LINE: 351
+String_Offset Offset(String str, Game_State* game_state);                                                                                                                                   // LINE: 359
+String Get_String(String_Offset offset, Game_State* game_state);                                                                                                                            // LINE: 426
+_inline u64 Storage_Offset(void* ptr, Game_State* game_state);                                                                                                                              // LINE: 439
+_inline void* Pull_From_Storage_Offset(u64 offset, Game_State* game_state);                                                                                                                 // LINE: 452
+Reference* Find_Entity(Entity* entity, Entity_Root_Node* storage, Game_State* game_state, Entity_Node** out_node = 0);                                                                      // LINE: 465
+Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Reference space, String name_or_reference_number, Game_State* game_state, Verbose::T verbose = Verbose::T(1));               // LINE: 491
+Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_State* game_state, Verbose::T verbose = Verbose::T(1));                                                         // LINE: 503
+Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Entity* space, String name_or_reference_number, Game_State* game_state, Verbose::T verbose = Verbose::T(1));                 // LINE: 527
+Reference Make_Reference(Entity* entity, Game_State* game_state);                                                                                                                           // LINE: 577
+Entity* Dereference(Reference* reference, Game_State* game_state);                                                                                                                          // LINE: 586
+Entity* Dereference(Reference reference, Game_State* game_state);                                                                                                                           // LINE: 606
+Entity_Iterator Make_Iterator(Entity_Root_Node* root, Game_State* game_state);                                                                                                              // LINE: 613
+Entity_Iterator Make_Iterator(Entity* entity, Game_State* game_state);                                                                                                                      // LINE: 636
+Effects_Iterator Make_Iterator(Effects_Root* root, Game_State* game_state);                                                                                                                 // LINE: 644
+Reference* Next(Entity_Iterator* iter);                                                                                                                                                     // LINE: 663
+Entity* Next_Entity(Entity_Iterator* iter);                                                                                                                                                 // LINE: 693
+u64 Count(Entity_Root_Node* root_node, Game_State* game_state);                                                                                                                             // LINE: 707
+bool Memory_Snapshot_Save(String file_path, Game_State* game_state);                                                                                                                        // LINE: 720
+bool Memory_Snapshot_Restore(String file_path, Game_State* game_state);                                                                                                                     // LINE: 729
+Effect_Instance* Next_Effect_Instance(Effects_Iterator* iter);                                                                                                                              // LINE: 761
+_inline Effect_Instance* Next(Effects_Iterator* iter);                                                                                                                                      // LINE: 794
+Effect* Next_Effect(Effects_Iterator* iter);                                                                                                                                                // LINE: 801
+Backwards_Iterator Make_Backwards_Iterator(Entity_Root_Node* root, Game_State* game_state);                                                                                                 // LINE: 815
+Reference* Previous(Backwards_Iterator* back_iter);                                                                                                                                         // LINE: 829
+u32 Roll(u32 range, Game_State* game_state);                                                                                                                                                // LINE: 874
+s32 Roll(Dice dice, Game_State* game_state);                                                                                                                                                // LINE: 886
+s32* Roll_With_Record(Dice dice, Game_State* game_state);                                                                                                                                   // LINE: 902
+f32 Random_F32(Game_State* game_state);                                                                                                                                                     // LINE: 916
+Roll_Result Stat_Roll(s32 value, Stats::T stat, Game_State* game_state);                                                                                                                    // LINE: 926
+s32 Value(Roll_Result rr);                                                                                                                                                                  // LINE: 942
+Roll_Result Stat_Roll(Entity* entity, Stats::T stat, Game_State* game_state);                                                                                                               // LINE: 949
+_inline bool Is_Rolled(Roll_Result rr);                                                                                                                                                     // LINE: 960
+void Print_Dice(Dice dice, s32 result);                                                                                                                                                     // LINE: 967
+void Print_Roll_Result(Roll_Result rr);                                                                                                                                                     // LINE: 973
+void Print_Attack_Record(Attack_Record* ar, Game_State* game_state);                                                                                                                        // LINE: 986
+_inline String Name(Entity* entity, Game_State* game_state);                                                                                                                                // LINE: 1163
+char* Action_Name(AT::T action);                                                                                                                                                            // LINE: 1170
+void Print_Required_Equipment_Slots(Entity* item);                                                                                                                                          // LINE: 1197
+void Push_Generic_Apply_Effect_Message(Effect_Instance* source_effect, Entity* target, Effect_Instance new_effect, Apply_Effect_Result apply, Game_State* game_state);                      // LINE: 1221
+void Remove_From_Residence(Entity* entity, Game_State* game_state);                                                                                                                         // LINE: 1278
+void Release_Entity_Node(Entity_Root_Node* root, Game_State* game_state);                                                                                                                   // LINE: 1311
+Entity_Node* Request_Entity_Node(Game_State* game_state);                                                                                                                                   // LINE: 1333
+Effect* _Request_Effect(Game_State* game_state, u64 tag);                                                                                                                                   // LINE: 1350
+void Release_Effect(Effect* effect, Game_State* game_state);                                                                                                                                // LINE: 1373
+Entity* Request_Entity(Game_State* game_state);                                                                                                                                             // LINE: 1387
+void Release_Entity(Entity* entity, Game_State* game_state);                                                                                                                                // LINE: 1409
+Effects_Node* Request_Effects_Node(Game_State* game_state);                                                                                                                                 // LINE: 1417
+void Release_Effects_Node(Effects_Node* node, Game_State* game_state);                                                                                                                      // LINE: 1434
+void Insert(Entity* entity, Entity_Root_Node* storage, Game_State* game_state);                                                                                                             // LINE: 1442
+void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_state);                                                                                                           // LINE: 1479
+void Remove_All_Effects(Entity* entity, Game_State* game_state);                                                                                                                            // LINE: 1489
+void Delete_Entity(Entity* entity, Game_State* game_state);                                                                                                                                 // LINE: 1547
+bool Has_Content(Entity_Root_Node* root);                                                                                                                                                   // LINE: 1554
+bool Is_Empty(Entity_Root_Node* root);                                                                                                                                                      // LINE: 1561
+s32 Get_Stat_Value(Entity* entity, Stats::T stat, Game_State* game_state, u64* out_effect_count = 0);                                                                                       // LINE: 1574
+s32 Exp_To_Level_Up(s32 _lvl);                                                                                                                                                              // LINE: 1621
+_inline s32 Exp_To_Level_Up(Entity* entity);                                                                                                                                                // LINE: 1629
+s16 Calculate_Level(Entity* entity);                                                                                                                                                        // LINE: 1636
+void Set_Level_Based_On_Stats(Entity* entity);                                                                                                                                              // LINE: 1650
+s16 Level(Entity* entity);                                                                                                                                                                  // LINE: 1657
+s32 Max_Health(Entity* entity, Game_State* game_state);                                                                                                                                     // LINE: 1664
+f32 Critical_Multiplier(Entity* entity, Game_State* game_state);                                                                                                                            // LINE: 1677
+s32 Carry_Capacity(Entity* entity, Game_State* game_state);                                                                                                                                 // LINE: 1684
+s32 Exp_Reward(Entity* entity);                                                                                                                                                             // LINE: 1704
+s32 Carrying_Amount(Entity* entity, Game_State* game_state);                                                                                                                                // LINE: 1717
+Critical_Ranges_Result Critical_Ranges(Entity* entity, Game_State* game_state, u32* out_success_effecting_count = 0, u32* out_failure_effecing_count = 0);                                  // LINE: 1730
+void Full_Heal(Entity* entity, Game_State* game_state);                                                                                                                                     // LINE: 1772
+bool Is_Item(Entity* entity);                                                                                                                                                               // LINE: 1778
+bool Is_Alive(Entity* entity);                                                                                                                                                              // LINE: 1785
+bool Is_Hostile_Against(Entity* A, Entity* B);                                                                                                                                              // LINE: 1792
+bool Is_Living_Enemy_Of(Entity* actor, Entity* target);                                                                                                                                     // LINE: 1799
+s32 Give_Temporary_Health(Entity* entity, s32 amount, String source_name, Verbose::T verbose, Game_State* game_state);                                                                      // LINE: 1806
+Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose::T verbose, Game_State* game_state);                                                                            // LINE: 1827
+Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String source_name, s32 dmg, Damage_Type type, Game_State* game_state, Verbose::T verbose);                            // LINE: 1897
+_inline Deal_Damage_Result Deal_Damage(Entity* defender, Entity* attacker, String dmg_src_name, s32 dmg, Damage_Type type, Game_State* game_state, Verbose::T verbose);                     // LINE: 2041
+void Proc_Effects(u64 offset, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state);                                                                               // LINE: 2049
+void Proc_Effects(u64 offset, Entity* target, Game_State* game_state);                                                                                                                      // LINE: 2066
+String Effect_Name(Effect_Instance* instance, Game_State* game_state);                                                                                                                      // LINE: 2082
+u64 Count_Effect_Instances(Effects_Root* root, Effect_Instance cmp, Game_State* game_state, Effect_Instance** out_shortest_duration = 0);                                                   // LINE: 2102
+void Delete_Effect_Slot(Effects_Root* root, Effects_Node* node, u64 *idx, u64* count, Game_State* game_state);                                                                              // LINE: 2132
+Effect_Instance* New_Effect_Slot(Effects_Root* root, Game_State* game_state);                                                                                                               // LINE: 2172
+Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, Game_State* game_state);                                                                                         // LINE: 2218
+void Remove_Effects_From_Source(Entity* actor, Entity* source, Game_State* game_state);                                                                                                     // LINE: 2275
+u64 Remove_Effects_Of_Type(Entity* actor, Effect_Type::T type_to_remove, Game_State* game_state, Verbose::T verbose);                                                                       // LINE: 2300
+void Inspect(Entity* target, Game_State* game_state);                                                                                                                                       // LINE: 2486
+bool Is_Equipped(Entity* actor, Entity* item, Game_State* game_state);                                                                                                                      // LINE: 2525
+bool Unequip(Entity* actor, Entity* item, Game_State* game_state);                                                                                                                          // LINE: 2548
+bool Unequip(Entity* item, Game_State* game_state);                                                                                                                                         // LINE: 2572
+bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T verbose);                                                                                                          // LINE: 2580
+bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T verbose = Verbose::T(0));                                                                                      // LINE: 2620
+void Print_Uses(Entity* entity);                                                                                                                                                            // LINE: 2841
+void Open(Entity* actor, Game_State* game_state);                                                                                                                                           // LINE: 2861
+u64 Longest_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_state, u64* out_count = 0);                                                                                        // LINE: 2887
+u64 Longest_Entity_Name_In_Actor_Inventory(Entity* actor, Game_State* game_state, u64* out_count = 0, s16* out_heaviest_weight = 0);                                                        // LINE: 2912
+bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status::T report_turn_taken_status = Report_Turn_Taken_Status::T(1));                                                  // LINE: 2939
+void Remove_Random_Effect(Entity* entity, String source_name, Game_State* game_state);                                                                                                      // LINE: 3017
+s32 Damage_Modifier_From_Effects(Entity* attacker, Attack_Record* ar, Game_State* game_state);                                                                                              // LINE: 3056
+u64 Attack_Modifier_Mask(Attack_Mod::T modifier);                                                                                                                                           // LINE: 3147
+u64 Class_Mask(Class::T _class);                                                                                                                                                            // LINE: 3154
+bool Can_Use_Attack_Modifier(Entity* entity, Attack_Mod::T modifier);                                                                                                                       // LINE: 3161
+void Apply_Or_Describe_Attak_Modifier(Entity** attacker_ptr, Entity** defender_ptr, Attack_Mod::T modifier, Game_State* game_state);                                                        // LINE: 3172
+void Attack(Entity* attacker, Entity* defender, Game_State* game_state, Attack_Mod::T modifier = Attack_Mod::T(0));                                                                         // LINE: 3314
+void Player_Action(Entity* actor, String actor_name, Game_State* game_state);                                                                                                               // LINE: 3389
+Entity* Redirected_Target(Entity* actor, String actor_name, Game_State* game_state);                                                                                                        // LINE: 3474
+Entity* Random_Entity_That_Matches_Criteria(Entity_Root_Node* storage, bool(*conditional)(Entity* entity, void* user_ptr, Game_State* game_state), void* user_ptr, Game_State* game_state); // LINE: 3512
+Entity* Find_Attack_Target(Entity* actor, Game_State* game_state);                                                                                                                          // LINE: 3551
+void NPC_Action(Entity* actor, String actor_name, Game_State* game_state);                                                                                                                  // LINE: 3580
+void Take_Action(Entity* actor, Game_State* game_state);                                                                                                                                    // LINE: 3640
+bool Roll_Initiative(Entity* entity, Game_State* game_state);                                                                                                                               // LINE: 3712
+void Sort_Iniative_Order(Reference* refs, Game_State* game_state);                                                                                                                          // LINE: 3746
+void Sort_Space(Entity_Root_Node* space, Game_State* game_state);                                                                                                                           // LINE: 3878
+u64 Count_Longest_Round_Effect_Duration(Entity* actor, Game_State* game_state);                                                                                                             // LINE: 3954
+void Tick_Down_Effect_Durations(Entity* actor, Duration_Type type, Game_State* game_state);                                                                                                 // LINE: 3969
+_inline void Enter_A_Room_Printout(Entity* player, Entity* room, Game_State* game_state);                                                                                                   // LINE: 4043
+Room_Generator_Element Pick_Room_Generator(Room_Generator_Element_Array array, u32 selector, Game_State* game_state);                                                                       // LINE: 4066
+Room_Generator_Element Pick_Room_Generator(Room_Generator_Element_Array array, Game_State* game_state);                                                                                     // LINE: 4087
+void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 count, void* user_ptr, Game_State* game_state);                                                                  // LINE: 4101
+void Create_Player_Charater(Game_State* game_state);                                                                                                                                        // LINE: 4195
+void Tick_Active_Effects_Down_To_Zero(Entity* actor, Game_State* game_state);                                                                                                               // LINE: 4286
+Entity* Proceed_To_Next_Room(Game_State* game_state);                                                                                                                                       // LINE: 4311
+void Prepare_Game_Round(Game_State* game_state);                                                                                                                                            // LINE: 4381
+void Excecute_Game_Round(Game_State* game_state);                                                                                                                                           // LINE: 4495
+void Exit_Handling(Game_State* game_state);                                                                                                                                                 // LINE: 4533
+bool Play_Game(Game_State* game_state);                                                                                                                                                     // LINE: 4565
+void Reset_Game_State(Game_State* game_state);                                                                                                                                              // LINE: 4596
+Game_State* Create_Game_State();                                                                                                                                                            // LINE: 4642
+CMD_Result::T Kill_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 4673
+CMD_Result::T Toggle_Dramatic_Pause(Entity* actor, String args, Game_State* game_state);                                                                                                    // LINE: 4700
+CMD_Result::T Toggle_Godmode(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 4724
+CMD_Result::T Help_Command(Entity* entity, String args, Game_State* game_state);                                                                                                            // LINE: 4743
+CMD_Result::T Attacks_Command(Entity* entity, String args, Game_State* game_state);                                                                                                         // LINE: 4783
+CMD_Result::T Pickup_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 4836
+CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game_state);                                                                                                        // LINE: 4885
+CMD_Result::T Proceed_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 4962
+CMD_Result::T Equipment_Command(Entity* actor, String args, Game_State* game_state);                                                                                                        // LINE: 5059
+CMD_Result::T Drop_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5094
+CMD_Result::T Use_Command(Entity* actor, String args, Game_State* game_state);                                                                                                              // LINE: 5124
+CMD_Result::T Equip_Command(Entity* actor, String args, Game_State* game_state);                                                                                                            // LINE: 5148
+CMD_Result::T Unequip_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 5171
+CMD_Result::T Stats_Command(Entity* actor, String args, Game_State* game_state);                                                                                                            // LINE: 5200
+CMD_Result::T Status_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 5315
+CMD_Result::T Inspect_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 5370
+CMD_Result::T Pass_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5412
+CMD_Result::T Glance_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 5428
+CMD_Result::T Restart_Command(Entity* actor, String args, Game_State* game_state);                                                                                                          // LINE: 5452
+CMD_Result::T Save_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5487
+CMD_Result::T Load_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5513
+CMD_Result::T Exit_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5539
+CMD_Result::T Loot_Command(Entity* actor, String args, Game_State* game_state);                                                                                                             // LINE: 5577
+CMD_Result::T Attack_Command(Entity* actor, String args, Game_State* game_state);                                                                                                           // LINE: 5633
+CMD_Result::T Set_Seed_Command(Entity* actor, String args, Game_State* game_state);                                                                                                         // LINE: 5696
+void Get_Character_Creator_Commands(Game_State* game_state, Command** out_commands, u64* out_count);                                                                                        // LINE: 5726
