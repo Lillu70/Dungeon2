@@ -125,14 +125,14 @@ SIG f32 Round_Up(f32 v)
 }
 
 
-SIG s32 Digits(s32 v)
+SIG s32 Digits(s32 v, s32 base DEF(10))
 {
     u64 x = (u64)Abs(v);
     u64 exp = 0;
     for(;;)
     {
         exp += 1;
-        u64 p = Power(10, exp);
+        u64 p = Power(base, exp);
         if(x < p)
         {
             break;

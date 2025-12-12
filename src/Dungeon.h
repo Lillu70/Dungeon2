@@ -488,10 +488,11 @@ struct Entity
             
             Effect_Offset on_equip_effect_offset;
             u64 known_attack_modifiers;
-            u64 dublicate_identifier;
 
             Interactable interactable;
             Initiative initiative;
+            
+            u64 dublicate_identifier;
             s32 _temp_health;
             s32 _health;
             s32 exp;

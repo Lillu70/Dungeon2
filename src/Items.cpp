@@ -825,7 +825,7 @@ SIG Entity* Create_Wooden_Shield(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
-    entity->name_offset = Offset(STR("Wooden Shield"), game_state);
+    entity->name_offset = Offset(STR("Reckless Wooden Shield"), game_state);
     entity->description_offset = Offset(STR("A Shield made out of wooden planks. It does not seem very effective."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     

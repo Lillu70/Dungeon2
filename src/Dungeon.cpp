@@ -36,6 +36,10 @@
 #define Print printf
 #define Terminate(MSG) Print("[FATAL ERROR]: %s\nAborting... FILE: %s  LINE: %lu\n", MSG, __FILE__, __LINE__); *((s32*)0) = 666 
 #define Warn(MSG) Print("\n[WARNING]: %s FILE:%s LINE:%lu", MSG, __FILE__, __LINE__)
+#define BASE_ALHABET 'Z' - '@'
+#define BASE_ALHABET_ZERO 'A'
+static_assert(BASE_ALHABET == 26);
+
 
 #include "LibPrimordial\Primitives.h"
 
@@ -231,6 +235,56 @@ SIG bool User_Query_Yes_No(Game_State* game_state)
     while(again);
     
     return result;
+}
+
+
+SIG u64 Base_Alphabet_Digits(u64 v)
+{
+    constexpr u64 MAX_ATTEMPTS = 10000;
+    u64 m = 0;
+
+    for(u64 i = 0; i < MAX_ATTEMPTS; ++i)
+    {
+        m += 1;
+        u64 x = Power(BASE_ALHABET, m);
+        if(x > v)
+        {
+            break;
+        }
+    }
+    Assert(m < MAX_ATTEMPTS);
+
+    return m;
+}
+
+
+SIG u64 Encode_Base_Alphabet(u64 identity, char character)
+{
+    u64 x = u64(character) - BASE_ALHABET_ZERO;
+    u64 d = Base_Alphabet_Digits(identity);
+    u64 p = Power(BASE_ALHABET, d);
+    u64 v = x * p;
+    u64 result = identity + v;
+    return result;
+}
+
+
+SIG U64_To_String_Memory Decode_Base_Aplhabet(u64 identity)
+{
+    U64_To_String_Memory memory = {};
+
+    u64 d = Base_Alphabet_Digits(identity) - 1;
+    for(u64 i = 0; i <= d; ++i)
+    {
+        u64 p = Power(BASE_ALHABET, d - i);
+        u64 x = identity / p;
+        u64 m = x * p;
+        identity = identity - m;
+        char c = char(BASE_ALHABET_ZERO + x);
+        memory.b[i] = c;
+    }
+
+    return memory;
 }
 
 
@@ -510,16 +564,23 @@ SIG Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_
 {
     Entity* target = 0;
 
+    Arena_Snapshot snapshot = Snapshot(&game_state->messages_buffer);
     Entity_Iterator iter = Make_Iterator(space, game_state);
     while(Entity* entity = Next_Entity(&iter))
     {
-        String entity_name = Get_String(entity->name_offset, game_state);
-        if(entity != actor && Match_Case_Insensitive(entity_name, name))
+        if(entity != actor)
         {
-            target = entity;
-            break;
+            String entity_name = Name(entity, game_state);
+            String entity_true_name = Get_String(entity->name_offset, game_state);
+
+            if(Match_Case_Insensitive(entity_name, name) || Match_Case_Insensitive(entity_true_name, name))
+            {
+                target = entity;
+                break;
+            }
         }
     }
+    Restore(&game_state->messages_buffer, snapshot);
     
     if(!target && verbose)
     {
@@ -1265,7 +1326,9 @@ SIG String Name(Entity* entity, Game_State* game_state)
     String name = Get_String(entity->name_offset, game_state);
     if(entity->dublicate_identifier)
     {
-        name = Format_Message(game_state, "%s (%d)", name.ptr, entity->dublicate_identifier);
+        U64_To_String_Memory base_aphabet_rep = Decode_Base_Aplhabet(entity->dublicate_identifier - 1);
+
+        name = Format_Message(game_state, "%s (%s)", name.ptr, base_aphabet_rep.b);
     }
 
     return name;
@@ -1593,6 +1656,62 @@ SIG void Insert(Entity* entity, Entity_Root_Node* storage, Game_State* game_stat
 }
 
 
+SIG void Assign_Dublicate_Name_Identifier(Entity* entity_to_insert, Entity* storage, Game_State* game_state)
+{
+    Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
+    
+    Entity** dublicate_name_entities = (Entity**)Push(&game_state->scratch_buffer, 0);
+    u64 dublicate_name_entities_count = 0;
+
+    String entity_to_insert_true_name = Get_String(entity_to_insert->name_offset, game_state);
+    
+    Entity_Iterator iter = Make_Iterator(storage, game_state);
+
+    while(Entity* contained_entity = Next_Entity(&iter))
+    {
+        String contained_entity_true_name = Get_String(contained_entity->name_offset, game_state);
+        if(Match_Case_Sensitive(entity_to_insert_true_name, contained_entity_true_name))
+        {
+            *Push_Struct(&game_state->scratch_buffer, Entity*) = contained_entity;
+            dublicate_name_entities_count += 1;
+        }
+    }
+    
+    if(dublicate_name_entities_count)
+    {
+        Entity* other = *dublicate_name_entities;
+        if(dublicate_name_entities_count == 1 && other->dublicate_identifier == 0)
+        {
+            other->dublicate_identifier = 1;
+            entity_to_insert->dublicate_identifier = 2;
+        }
+        else
+        {
+            // Find first available character in the dublicate array.
+            bool taken = true;
+            u64 num = 0;
+            while(taken)
+            {
+                num += 1;
+                taken = false;
+                for(u64 i = 0; i < dublicate_name_entities_count; ++i)
+                {
+                    Entity* entity = dublicate_name_entities[i];
+                    if(entity->dublicate_identifier == num)
+                    {
+                        taken = true;
+                    }
+                }
+            }
+
+            entity_to_insert->dublicate_identifier = num;
+        }
+    }
+
+    Restore(&game_state->scratch_buffer, snapshot);
+}
+
+
 SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_state)
 {
     if(storage_entity)
@@ -1600,37 +1719,7 @@ SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_st
         Remove_From_Residence(entity, game_state);
         entity->residence = Make_Reference(storage_entity, game_state);
 
-        // Assign a unique identifier for the entities inside.
-        {
-            Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
-            Entity** matching_names = (Entity**)Push(&game_state->scratch_buffer, 0);
-            u64 matching_name_count = 0;
-
-            String entity_true_name = Get_String(entity->name_offset, game_state);
-            Entity_Iterator iter = Make_Iterator(storage_entity, game_state);
-            while(Entity* e = Next_Entity(&iter))
-            {
-                String target_true_name = Get_String(e->name_offset, game_state);
-                if(Match_Case_Sensitive(entity_true_name, target_true_name))
-                {
-                    *Push_Struct(&game_state->scratch_buffer, Entity*) = e;
-                    matching_name_count += 1;
-                }
-            }
-            
-            if(matching_name_count)
-            {
-                *Push_Struct(&game_state->scratch_buffer, Entity*) = entity;
-                matching_name_count += 1;
-                for(u64 i = 0; i < matching_name_count; ++i)
-                {
-                    Entity* e = matching_names[i];
-                    e->dublicate_identifier = (i + 1);
-                }
-            }
-
-            Restore(&game_state->scratch_buffer, snapshot);
-        }
+        Assign_Dublicate_Name_Identifier(entity, storage_entity, game_state);
 
         Entity_Root_Node* storage = &storage_entity->inventory;
         Insert(entity, storage, game_state);
@@ -5186,7 +5275,7 @@ SIG Game_State* Create_Game_State()
 s32 main(s32 argc, char** argv)
 {
     Game_State* game_state = Create_Game_State();
-    
+
     while(Play_Game(game_state));
     
     return 0;

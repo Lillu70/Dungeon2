@@ -314,8 +314,8 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
 
     //Create_Magma_Hammer(room, game_state);
     //Create_Boss_Spider(room, game_state);
-
-    LOOP(4) Create_Giant_Rat(room, game_state);
+    LOOP(1000) Create_Wooden_Shield(room, game_state);
+    //LOOP(4) Create_Giant_Rat(room, game_state);
 }
 
 
