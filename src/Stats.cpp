@@ -8,12 +8,11 @@ namespace Stats
 {
     #define STATS(X)    \
     X(might),           \
-    X(accuracy),        \
-    X(dodge),           \
-    X(vitality),        \
     X(speed),           \
-    X(perception),      \
-    X(resistance),      \
+    X(dodge),           \
+    X(accuracy),        \
+    X(vitality),        \
+    X(armor),           \
     
     enum T
     {
@@ -29,6 +28,5 @@ namespace Stats
     
     #undef STATS
 
-    constexpr s16 starting_value = 5;
-    constexpr s16 points_per_lvl = 10;
+    constexpr s16 points_per_lvl = 5;
 };

@@ -54,6 +54,20 @@ constexpr u8 Full_Action = AT::normal | AT::bonus;
 constexpr s16 Base_Dice = 10;
 
 
+namespace Rarity
+{
+    enum T : u8
+    {
+        common = 0,
+        rare,
+        magical,
+        epic,
+        legendary,
+        COUNT
+    };  
+}
+
+
 namespace EFlags
 {
     enum T : u64
@@ -86,7 +100,7 @@ struct Entity_Offset
 struct Effect_Offset
 {
     u64 v;
-    u64 tag;
+    u64 ID;
 };
 
 
@@ -99,7 +113,6 @@ struct Effects_Node_Offset
         bool result = v == other.v;
         return result;
     }
-
 };
 
 
@@ -220,6 +233,19 @@ namespace Effect_Flags
 }
 
 
+struct Effect_Hash_Key
+{
+    u32 line;
+    u32 file;
+
+    bool operator == (Effect_Hash_Key& other)
+    {
+        bool result = line == other.line && file == other.file;
+        return result;
+    }
+};
+
+
 struct Effect
 {
     Effect_Type::T type;
@@ -231,6 +257,8 @@ struct Effect
     s16 carry_capacity_modifier;
     s16 max_health_modifier;
     s16 raw_damage_modifier;
+    s16 thorns_damage;
+    s16 pierce;
     
     u8 bonus_stacks; // NOTE: Denotes how many times this effect can stack. Default is 1 and this is added on top (ZII).
     s8 critical_success_range;
@@ -243,6 +271,7 @@ struct Effect
     PROTOTYPE_EFFINST_ENT_GS_Offset /*-------------------*/ on_turn_end_fn_offset;
     PROTOTYPE_EFFINST_ENT_GS_Offset /*-------------------*/ on_turn_start_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_attack_fn_offset;
+    PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_being_attacked_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_miss_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_hit_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_dodge_fn_offset;
@@ -251,7 +280,12 @@ struct Effect
     PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS_Offset /**/ on_get_stat_value_fn_offset;
 
     Effect_Offset next;
-    u64 tag;
+    
+    union
+    {
+        Effect_Hash_Key key;
+        u64 ID;
+    };
 };
 
 
@@ -432,6 +466,7 @@ enum class Faction : u8
     COUNT
 };
 
+
 struct Entity
 {
     u64 flags;
@@ -453,18 +488,20 @@ struct Entity
             
             Effect_Offset on_equip_effect_offset;
             u64 known_attack_modifiers;
+            u64 dublicate_identifier;
 
             Interactable interactable;
             Initiative initiative;
             s32 _temp_health;
             s32 _health;
             s32 exp;
-            
+
             f32 burst_change;
             u32 required_equipment_slots;
             
             u8 actions;
             u8 stunned;
+            Rarity::T rarity;
             Faction faction;
 
             s16 _stats[Stats::COUNT];
@@ -478,12 +515,20 @@ struct Entity
 };
 
 
+struct Damage_Modifiers_Result
+{
+    s32 damage;
+    s32 pierce;
+};
+
+
 struct Damage_Modifier
 {
     Bonus_Dice damage_die;
     s32** results_control_block;
     s32 raw_damage_modifier;
     f32 damage_multiplier;
+    s32 pierce;
     bool has_damage_multiplier;
     Effect_Instance* source;
 };
@@ -503,7 +548,9 @@ struct Healing_Result
 struct Deal_Damage_Result
 {
     Roll_Result resistance_roll;
-    s32 mitigation;
+    s32 pierce;
+    s32 true_mitigation;
+    s32 mitigation_after_pierce;
     s32 damage_after_mitigation;
     s32 damage_to_true_health;
     s32 damage_to_temp_health;
@@ -543,23 +590,17 @@ struct Attack_Record
     Roll_Result accuracy_roll;
     Roll_Result dodge_roll;
     Roll_Result might_roll;
-    
-    #if 0
-    String* messages;
-    u64 message_count;
-    #endif
 
     Damage_Modifier* damage_modifiers;
     u64 damage_modifier_count;
+    
+    Deal_Damage_Result deal_damage_result;
 
-    s32 damage;
     s32 target_pre_attack_health;
 
     Critical_Ranges_Result crit_ranges;
-
-    Deal_Damage_Result deal_damage_result;
-
     s8 crit_dice_result;
+
     bool is_hit;
     bool is_critical_success;
     bool is_critical_failure;
@@ -649,38 +690,19 @@ struct Effects_Iterator
 };
 
 
-struct Permanent_Effects_Table
+struct Effect_Hash_Table_Entry
 {
-    Effect might;
-    Effect critical;
-    
-    Effect poison;
-    Effect weak_grip;
-    Effect burning;
-    Effect vampirism;
-    Effect enraged;
-    
-    Effect vampiric_attack;
-    Effect change_attack_fumple;
-    Effect change_attack_apply_burn;
-    Effect blessed_attack;
-    Effect berserking_attack;
-    Effect redirecting_attack;
-    Effect thieving_attack;
-    Effect stylish_attack;
-    
-    Effect giant_rat_blight_fangs;
-    Effect backpack;
-    Effect cape_of_avoidance;
-    Effect cape_of_dashing;
-    Effect great_sword;
-    Effect poison_dagger;
-    Effect ring_of_giants;
-    Effect ring_of_regenaration;
-    Effect ring_of_strange_fortunes;
-    Effect ring_of_rebirth;
-    Effect gloves_of_brutality;
-    Effect wooden_shield;
+    Effect_Offset first_offset;
+    u64 chain_length;
+};
+
+
+struct Effect_Hash_Table
+{
+    Effect_Hash_Table_Entry entries[64];
+    u64 unique_collision_count;
+    u64 collision_count;
+    u64 insertions;
 };
 
 
@@ -698,8 +720,8 @@ struct Game_State
     Effect_Offset free_effect_offset;
     Effects_Node_Offset free_effects_offset;
     
-    Permanent_Effects_Table effects_table;
-    
+    Effect_Hash_Table permanent_effects;
+
     u64 round;
     u64 initiative_count;
     u64 active_initiative_index;
@@ -712,7 +734,6 @@ struct Game_State
     u32 random_state;
     u64 prev_entity_ID;
 
-
     Reference player;
 
     Message_Pipe messages;
@@ -720,6 +741,10 @@ struct Game_State
     ANSI_Color_Buffer default_color;
     ANSI_Color_Buffer ally_color;
     ANSI_Color_Buffer enemy_color;
+    ANSI_Color_Buffer damage_color;
+    ANSI_Color_Buffer temp_health_color;
+    ANSI_Color_Buffer exp_color;
+    ANSI_Color_Buffer rarity_colors[Rarity::COUNT];
 
     // CONSIDER: Change to flags... "better", but is it worth it for something like this? that is only stored once.
     // There is only the one game_state.
@@ -739,6 +764,31 @@ struct Character_Creator
     u64 template_count;
     u64 selected_idx;
     bool running;
+};
+
+
+struct Loot_Table_Entry
+{
+    GENERATE_ENTITY_FN* fn;
+    f32 change;
+    Rarity::T rarity;
+};
+
+
+struct Loot_Table
+{
+    Loot_Table_Entry* array;
+    u64 count;
+    bool filled;
+};
+
+
+enum class Rarity_Mode
+{
+    minimum,
+    maximum,
+    between,
+    guaranteed,
 };
 
 
@@ -965,3 +1015,5 @@ HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_ENT_AR_GS(Effect_Instance*, Entity*,
 HEADACHE(typedef void PROTOTYPE_EFFINST_REF_ENT_DDR_GS(Effect_Instance*, Reference, Entity*, Deal_Damage_Result*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS(Effect_Instance*, Entity*, s32*, String, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS(Effect_Instance*, Entity*, Stats::T, s32*, s16*, Game_State*);)
+
+HEADACHE(typedef Entity* GENERATE_ENTITY_FN(Entity*, Game_State*);)

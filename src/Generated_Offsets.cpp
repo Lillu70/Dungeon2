@@ -7,6 +7,29 @@
 // --- This is a generated file. Do not edit manually! ---
 
 
+// ---- GENERATE_ENTITY_FN ----
+SIG _inline GENERATE_ENTITY_FN_Offset Offset(GENERATE_ENTITY_FN* pointer, Game_State* game_state)
+{
+    Assert(game_state->executable_base_address);
+    GENERATE_ENTITY_FN_Offset offset = {};
+    if(pointer)
+    {
+        offset = {u64((char*)pointer - game_state->executable_base_address) + 1};
+    }
+    return offset;
+}
+
+SIG _inline GENERATE_ENTITY_FN* Pointer(GENERATE_ENTITY_FN_Offset offset, Game_State* game_state)
+{
+    GENERATE_ENTITY_FN* pointer = {};
+    if(offset.v)
+    {
+        pointer = (GENERATE_ENTITY_FN*)(game_state->executable_base_address + offset.v - 1);
+    }
+    return pointer;
+}
+// -------- 
+
 // ---- PROTOTYPE_ENT_GS ----
 SIG _inline PROTOTYPE_ENT_GS_Offset Offset(PROTOTYPE_ENT_GS* pointer, Game_State* game_state)
 {

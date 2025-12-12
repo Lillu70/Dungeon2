@@ -7,6 +7,11 @@
 // --- This is a generated file. Do not edit manually! ---
 
 
+struct GENERATE_ENTITY_FN_Offset
+{
+    u64 v;
+};
+
 struct PROTOTYPE_ENT_GS_Offset
 {
     u64 v;

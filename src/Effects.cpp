@@ -7,21 +7,19 @@
 
 // NOTE: Macro for implicit tagging. And automated Assertions. I know... I know macros bad, but I feel this even though harder to read,
 // does prevent making easy copy paste mistakes.
-#define EFFECT_TAG Weld(Random_PCG(__LINE__), Random_PCG(u32(u64(__FILE__))))
-#define EFFECT(TARGET) Effect effect = {}; effect.tag = EFFECT_TAG; Effect* target = (TARGET); if(!target->tag)
-#define EFFECT_GET_OFFSET_AND_VERIFY_TAG(GS) Offset(target, (GS)); Assert(effect.tag == target->tag)
+#define EFFECT_KEY Effect_Hash_Key{__LINE__, u32(u64(__FILE__))};
 
 
 SIG Effect_Offset Get_Critical_Effect_Offset(Game_State* game_state)
 {
-    EFFECT(&game_state->effects_table.critical)
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
     {
+        Effect effect = {};
         effect.name_offset = Offset(STR("Critical"), game_state);
-        
-        *target = effect;
+        result = Insert_Effect(effect, key, game_state);
     }
-
-    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
 
     return result;
 }
@@ -29,14 +27,14 @@ SIG Effect_Offset Get_Critical_Effect_Offset(Game_State* game_state)
 
 SIG Effect_Offset Get_Might_Effect_Offset(Game_State* game_state)
 {
-    EFFECT(&game_state->effects_table.might)
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
     {
+        Effect effect = {};
         effect.name_offset = Offset(STR("Might"), game_state);
-        
-        *target = effect;
+        result = Insert_Effect(effect, key, game_state);
     }
-
-    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
 
     return result;
 }
@@ -99,17 +97,18 @@ SIG Effect_Offset Get_Enraged_Effect_Offset(Game_State* game_state)
         }
     };
 
-    EFFECT(&game_state->effects_table.enraged)
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
     {
+        Effect effect = {};
         effect.name_offset = Offset(STR("Enraged"), game_state);
         effect.type = Effect_Type::physical;
         effect.on_turn_start_fn_offset = Offset(local::Enrage_On_Turn_Start, game_state);
         effect.on_hit_fn_offset = Offset(local::Enrage_On_Hit, game_state);
-
-        *target = effect;
+        result = Insert_Effect(effect, key, game_state);
     }
 
-    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
     return result;
 }
 
@@ -156,16 +155,17 @@ SIG Effect_Offset Get_Vampirism_Effect_Offset(Game_State* game_state)
         }
     };
 
-    EFFECT(&game_state->effects_table.vampirism)
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
     {
+        Effect effect = {};
         effect.name_offset = Offset(STR("Vampirism"), game_state);
         effect.on_heal_fn_offset = Offset(local::Vampirisim_On_Heal_Effect, game_state);
         effect.on_apply_fn_offset = Offset(local::Vampirism_On_Apply_Effect, game_state);
         effect.type = Effect_Type::curse;
-        *target = effect;
+        result = Insert_Effect(effect, key, game_state);
     }
-
-    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
 
     return result;
 }
@@ -186,7 +186,7 @@ SIG void Poison_On_Turn_End_FN(Effect_Instance* instance, Entity* target, Game_S
     {
         s16 dmg = (s16)Roll(dice, game_state);
         String name = Effect_Name(instance, game_state);
-        Deal_Damage(target, instance->source, name, dmg, Damage_Type::magical, game_state, Verbose::yes);
+        Deal_Damage(target, instance->source, name, dmg, 0, Damage_Type::magical, game_state, Verbose::yes);
     }
     else
     {
@@ -197,15 +197,16 @@ SIG void Poison_On_Turn_End_FN(Effect_Instance* instance, Entity* target, Game_S
 
 SIG Effect_Offset Get_Poison_Effect_Offset(Game_State* game_state)
 {
-    EFFECT(&game_state->effects_table.poison)
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
     {
+        Effect effect = {};
         effect.name_offset = Offset(STR("Poison"), game_state);
         effect.on_turn_end_fn_offset = Offset(Poison_On_Turn_End_FN, game_state);
         effect.type = Effect_Type::poison;
-        *target = effect;
+        result = Insert_Effect(effect, key, game_state);
     }
-
-    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
 
     return result;
 }
@@ -217,12 +218,12 @@ SIG Effect_Offset Get_Burning_Effect_Offset(Game_State* game_state)
     {
         static void Burning_On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
         {
-            Dice dice = {4, 2};
+            Dice dice = {2, 4};
             if(instance)
             {
                 s16 dmg = (s16)Roll(dice, game_state);
                 String name = Effect_Name(instance, game_state);
-                Deal_Damage(target, instance->source, name, dmg, Damage_Type::magical, game_state, Verbose::yes);
+                Deal_Damage(target, instance->source, name, dmg, 0, Damage_Type::magical, game_state, Verbose::yes);
             }
             else
             {
@@ -231,15 +232,16 @@ SIG Effect_Offset Get_Burning_Effect_Offset(Game_State* game_state)
         }
     };
 
-    EFFECT(&game_state->effects_table.burning)
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
     {
+        Effect effect = {};
         effect.name_offset = Offset(STR("Burning"), game_state);
         effect.type = Effect_Type::magic;
         effect.on_turn_end_fn_offset = Offset(local::Burning_On_Turn_End, game_state);
-        *target = effect;
+        result = Insert_Effect(effect, key, game_state);
     }
-
-    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
 
     return result;
 }
@@ -283,16 +285,16 @@ SIG Effect_Offset Get_Weak_Grip_Offset(Game_State* game_state)
         }
     };
 
-    EFFECT(&game_state->effects_table.weak_grip)
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
     {
+        Effect effect = {};
         effect.name_offset = Offset(STR("Weak Grip"), game_state);
         effect.type = Effect_Type::physical;
         effect.on_get_stat_value_fn_offset = Offset(local::Weak_Grip_On_Get_Stat_Effect, game_state);
-
-        *target = effect;
+        result = Insert_Effect(effect, key, game_state);
     }
-
-    Effect_Offset result = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
 
     return result;
 }
@@ -329,8 +331,8 @@ SIG Effect_Instance Reckless_Attack(Entity* attacker, Game_State* game_state)
         effect->type = Effect_Type::physical;
 
         s16 v = Level(attacker);
-        effect->raw_damage_modifier                 += v;
-        effect->stat_modifiers[Stats::resistance]   -= v;
+        effect->raw_damage_modifier             += v;
+        effect->stat_modifiers[Stats::armor]    -= v;
 
         instance.effect_offset = Offset(effect, game_state);
         instance.duration = 1;
@@ -443,7 +445,7 @@ SIG Effect_Instance Guarding_Attack(Entity* attacker, Game_State* game_state)
         effect->type = Effect_Type::physical;
 
         s16 v = Level(attacker);
-        effect->stat_modifiers[Stats::resistance]   += v;
+        effect->stat_modifiers[Stats::armor]   += v;
         effect->raw_damage_modifier                 -= v;
         
         instance.effect_offset = Offset(effect, game_state);
@@ -470,7 +472,7 @@ SIG Effect_Instance Evasive_Attack(Entity* attacker, Game_State* game_state)
         effect->type = Effect_Type::physical;
 
         s16 v = Level(attacker);
-        effect->stat_modifiers[Stats::resistance]   -= v;
+        effect->stat_modifiers[Stats::armor]   -= v;
         effect->stat_modifiers[Stats::dodge]        += v;
         
         instance.effect_offset = Offset(effect, game_state);
@@ -657,17 +659,17 @@ SIG Effect_Instance Vampiric_Attack(Entity* attacker, Game_State* game_state)
     Effect_Instance instance = {};
     if(attacker)
     {
-        EFFECT(&game_state->effects_table.vampiric_attack)
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &instance.effect_offset, game_state))
         {
+            Effect effect = {};
             effect.name_offset = Offset(STR("Vampiric attack"), game_state);
             effect.type = Effect_Type::physical;
-
             effect.on_attack_fn_offset = Offset(local::Vampiric_Attack_On_Attack, game_state);
             effect.critical_failure_range += fumple_boost;
-            *target = effect;
+            instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
 
-        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
         instance.source = Make_Reference(attacker, game_state);
@@ -713,7 +715,8 @@ SIG Effect_Instance Blessed_Attack(Entity* attacker, Game_State* game_state)
                     attacker, 
                     Make_Reference(attacker, game_state), 
                     Effect_Name(instance, game_state), 
-                    amount, 
+                    amount,
+                    0,
                     Damage_Type::magical, 
                     game_state, 
                     Verbose::yes
@@ -730,17 +733,17 @@ SIG Effect_Instance Blessed_Attack(Entity* attacker, Game_State* game_state)
     Effect_Instance instance = {};
     if(attacker)
     {
-        EFFECT(&game_state->effects_table.blessed_attack)
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &instance.effect_offset, game_state))
         {
+            Effect effect = {};
             effect.name_offset = Offset(STR("Blessed attack"), game_state);
             effect.type = Effect_Type::physical;
-
             effect.on_apply_fn_offset = Offset(local::Blessed_Attack_On_Apply, game_state);
             effect.on_miss_fn_offset = Offset(local::Blessed_Attack_On_Miss, game_state);
-            *target = effect;
+            instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
 
-        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
         instance.source = Make_Reference(attacker, game_state);
@@ -768,6 +771,7 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
                     Make_Reference(attacker, game_state), 
                     Effect_Name(instance, game_state), 
                     Round_To_S32(f32(ar->deal_damage_result.damage_after_mitigation) / 2.f),
+                    0,
                     Damage_Type::magical, 
                     game_state, 
                     Verbose::yes
@@ -803,16 +807,17 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
     Effect_Instance instance = {};
     if(attacker)
     {
-        EFFECT(&game_state->effects_table.berserking_attack)
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &instance.effect_offset, game_state))
         {
+            Effect effect = {};
             effect.name_offset = Offset(STR("Berserking attack"), game_state);
             effect.type = Effect_Type::physical;
             effect.on_hit_fn_offset = Offset(local::Berserking_Attack_On_Hit, game_state);
             effect.on_apply_fn_offset = Offset(local::Berserking_Attack_On_Apply, game_state);
-            *target = effect;
+            instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
 
-        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
         instance.source = Make_Reference(attacker, game_state);
@@ -850,20 +855,20 @@ SIG Effect_Instance Redirect_Attack(Entity* attacker, Game_State* game_state)
     Effect_Instance instance = {};
     if(attacker)
     {
-        EFFECT(&game_state->effects_table.redirecting_attack)
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &instance.effect_offset, game_state))
         {
+            Effect effect = {};
             effect.name_offset = Offset(STR("Redirect attack"), game_state);
             effect.type = Effect_Type::physical;
             effect.flags = Effect_Flags::has_damage_multiplier;
             effect.on_hit_fn_offset = Offset(local::Redirect_Attack_On_Hit, game_state);
-            *target = effect;
+            instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
 
-        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
         instance.source = Make_Reference(attacker, game_state);
-
 
         attacker->flags |= EFlags::goes_last;
         String message = Format_Message(game_state, "%s goes last on next initiative.", Name(attacker, game_state).ptr);
@@ -930,15 +935,16 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
 
             case 2:
             {
-                EFFECT(&game_state->effects_table.change_attack_apply_burn)
+                Effect_Hash_Key key = EFFECT_KEY;
+                if(!Retrive_Effect(key, &instance.effect_offset, game_state))
                 {
+                    Effect effect = {};
                     effect.name_offset = Offset(STR("Change attack"), game_state);
                     effect.type = Effect_Type::physical;
                     effect.on_attack_fn_offset = Offset(local::Change_Attack_Apply_Burn_On_Attack, game_state);
-                    *target = effect;
+                    instance.effect_offset = Insert_Effect(effect, key, game_state);
                 }
 
-                instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
                 instance.source = Make_Reference(attacker, game_state);
                 instance.duration_type = Duration_Type::attack;
                 instance.duration = 1;
@@ -946,15 +952,16 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
 
             case 3:
             {
-                EFFECT(&game_state->effects_table.change_attack_fumple)
+                Effect_Hash_Key key = EFFECT_KEY;
+                if(!Retrive_Effect(key, &instance.effect_offset, game_state))
                 {
+                    Effect effect = {};
                     effect.name_offset = Offset(STR("Change attack"), game_state);
                     effect.type = Effect_Type::physical;
                     effect.critical_failure_range += local::Fumple_Boost();
-                    *target = effect;
+                    instance.effect_offset = Insert_Effect(effect, key, game_state);
                 }
 
-                instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
                 instance.source = Make_Reference(attacker, game_state);
                 instance.duration_type = Duration_Type::attack;
                 instance.duration = 1;
@@ -1046,17 +1053,18 @@ SIG Effect_Instance Thieving_Attack(Entity* attacker, Game_State* game_state)
     Effect_Instance instance = {};
     if(attacker)
     {
-        EFFECT(&game_state->effects_table.thieving_attack)
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &instance.effect_offset, game_state))
         {
+            Effect effect = {};
             effect.name_offset = Offset(STR("Thieving attack"), game_state);
             effect.type = Effect_Type::physical;
             effect.flags = Effect_Flags::has_damage_multiplier;
             effect.on_get_stat_value_fn_offset = Offset(local::Thieving_Attack_On_Get_Stat, game_state);
             effect.on_hit_fn_offset = Offset(local::Thieving_Attack_On_Hit, game_state);
-            *target = effect;
+            instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
 
-        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
         instance.zero_ticked = true;
         instance.duration = 1;
         instance.source = Make_Reference(attacker, game_state);
@@ -1156,16 +1164,17 @@ SIG Effect_Instance Stylish_Attack(Entity* attacker, Game_State* game_state)
     Effect_Instance instance = {};
     if(attacker)
     {
-        EFFECT(&game_state->effects_table.stylish_attack)
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &instance.effect_offset, game_state))
         {
+            Effect effect = {};
             effect.name_offset = Offset(STR("Stylish attack"), game_state);
             effect.type = Effect_Type::physical;
             effect.on_miss_fn_offset = Offset(local::Stylish_Attack_On_Miss, game_state);
             effect.on_hit_fn_offset = Offset(local::Stylish_Attack_On_Hit, game_state);
-            *target = effect;
+            instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
 
-        instance.effect_offset = EFFECT_GET_OFFSET_AND_VERIFY_TAG(game_state);
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
         instance.source = Make_Reference(attacker, game_state);
