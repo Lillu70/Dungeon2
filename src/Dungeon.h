@@ -662,7 +662,7 @@ struct Entity_Iterator
     
     Game_State* game_state;
 
-    #if SLOW
+    #if 1
     Entity_Root_Node* root;
     u64 count_snapshot;
     #endif
@@ -773,6 +773,14 @@ struct Loot_Table_Entry
     GENERATE_ENTITY_FN* fn;
     f32 change;
     Rarity::T rarity;
+    u32 required_slots;
+};
+
+
+struct Loot_Table_Pick_Result
+{
+    GENERATE_ENTITY_FN** fns;
+    u64 count;
 };
 
 
@@ -781,6 +789,16 @@ struct Loot_Table
     Loot_Table_Entry* array;
     u64 count;
     bool filled;
+};
+
+
+struct Pick_From_Table_Rules
+{
+    Rarity_Mode mode;
+    Rarity::T target_rarity_A;
+    Rarity::T target_rarity_B;
+    u32* equipment_slot_filters;
+    u64 equipment_slot_filter_count;
 };
 
 

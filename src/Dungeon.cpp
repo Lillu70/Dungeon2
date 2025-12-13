@@ -10,7 +10,7 @@
 // TODO: Make room picking based on a range. 20% up and and down from distance travelled.
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
-// TODO: Visualise apply poison rolls, also make it integer check not a float so it can be represented by a "dice".
+// TODO: Visualise apply poison rolls, also make it integer check not a float so it can be represented by a "dice". Bring back resistance as anti effect stat.
 // TODO: Level up / Rest mechanic.
 // TODO: Make Loot command usable on items in the inventory.
 // TODO: Consumable with a CD. Currenty acrhitecture does not support this. Large sacale effort?
@@ -23,8 +23,8 @@
 
 
 #define DEVMODE      1
-#define SEED         0
-#define RANDOM_SEED  0
+#define SEED         1
+#define RANDOM_SEED  1
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
@@ -38,8 +38,6 @@
 #define Warn(MSG) Print("\n[WARNING]: %s FILE:%s LINE:%lu", MSG, __FILE__, __LINE__)
 #define BASE_ALHABET 'Z' - '@'
 #define BASE_ALHABET_ZERO 'A'
-static_assert(BASE_ALHABET == 26);
-
 
 #include "LibPrimordial\Primitives.h"
 
@@ -684,15 +682,10 @@ SIG Entity_Iterator Make_Iterator(Entity_Root_Node* root, Game_State* game_state
     {
         iter.node = Pointer(root->node_offset, game_state);
         iter.count = root->count;
-        
         iter.game_state = game_state;
-        
-        #if SLOW
         iter.root = root;
         iter.count_snapshot = root->count;
-        #endif
     }
-    
     
     Assert((iter.node && iter.count > 0 && iter.count <= Array_Length(iter.node->entities)) || (!iter.node && iter.count == 0));
 
@@ -1314,22 +1307,25 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
 }
 
 
-SIG _inline String Name_(Entity* entity, Game_State* game_state)
-{
-    String name = Get_String(entity->name_offset, game_state);
-    return name;
-}
-
-
 SIG String Name(Entity* entity, Game_State* game_state)
 {
     String name = Get_String(entity->name_offset, game_state);
+    
+    #if 1
     if(entity->dublicate_identifier)
     {
         U64_To_String_Memory base_aphabet_rep = Decode_Base_Aplhabet(entity->dublicate_identifier - 1);
 
         name = Format_Message(game_state, "%s (%s)", name.ptr, base_aphabet_rep.b);
     }
+    #endif
+
+    #if 0
+    if(entity->dublicate_identifier)
+    {
+        name = Format_Message(game_state, "%s (%d)", name.ptr, entity->dublicate_identifier);
+    }
+    #endif
 
     return name;
 }
@@ -1341,7 +1337,7 @@ SIG String Colored_Name(Entity* entity, Game_State* game_state)
     char* cend = game_state->default_color.data;
     String name = Name(entity, game_state);
     String result = Format_Message(game_state, "%s%s%s", cstart, name.ptr, cend);
-    result.length = name.length;
+    //result.length = name.length;
     return result;
 }
 
@@ -1658,57 +1654,35 @@ SIG void Insert(Entity* entity, Entity_Root_Node* storage, Game_State* game_stat
 
 SIG void Assign_Dublicate_Name_Identifier(Entity* entity_to_insert, Entity* storage, Game_State* game_state)
 {
-    Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
-    
-    Entity** dublicate_name_entities = (Entity**)Push(&game_state->scratch_buffer, 0);
-    u64 dublicate_name_entities_count = 0;
-
     String entity_to_insert_true_name = Get_String(entity_to_insert->name_offset, game_state);
     
-    Entity_Iterator iter = Make_Iterator(storage, game_state);
+    u64 largest_matching_identifier = 0;
+    Entity* first_matching_entity = 0;
 
+    Entity_Iterator iter = Make_Iterator(storage, game_state);
     while(Entity* contained_entity = Next_Entity(&iter))
     {
         String contained_entity_true_name = Get_String(contained_entity->name_offset, game_state);
         if(Match_Case_Sensitive(entity_to_insert_true_name, contained_entity_true_name))
         {
-            *Push_Struct(&game_state->scratch_buffer, Entity*) = contained_entity;
-            dublicate_name_entities_count += 1;
-        }
-    }
-    
-    if(dublicate_name_entities_count)
-    {
-        Entity* other = *dublicate_name_entities;
-        if(dublicate_name_entities_count == 1 && other->dublicate_identifier == 0)
-        {
-            other->dublicate_identifier = 1;
-            entity_to_insert->dublicate_identifier = 2;
-        }
-        else
-        {
-            // Find first available character in the dublicate array.
-            bool taken = true;
-            u64 num = 0;
-            while(taken)
+            if(!first_matching_entity)
             {
-                num += 1;
-                taken = false;
-                for(u64 i = 0; i < dublicate_name_entities_count; ++i)
-                {
-                    Entity* entity = dublicate_name_entities[i];
-                    if(entity->dublicate_identifier == num)
-                    {
-                        taken = true;
-                    }
-                }
+                first_matching_entity = contained_entity;
             }
 
-            entity_to_insert->dublicate_identifier = num;
+            largest_matching_identifier = Max(largest_matching_identifier, contained_entity->dublicate_identifier);
         }
     }
 
-    Restore(&game_state->scratch_buffer, snapshot);
+    if(first_matching_entity && largest_matching_identifier == 0)
+    {
+        first_matching_entity->dublicate_identifier = 1;
+        entity_to_insert->dublicate_identifier = 2;
+    }
+    else if(largest_matching_identifier > 0)
+    {
+        entity_to_insert->dublicate_identifier = largest_matching_identifier + 1;
+    }
 }
 
 
@@ -1923,7 +1897,7 @@ SIG f32 Critical_Multiplier(Entity* entity, Game_State* game_state)
 
 SIG s32 Carry_Capacity(Entity* entity, Game_State* game_state)
 {
-    s32 result = 50;
+    s32 result = 70;
     s32 mod = 0;
     Effects_Iterator iter = Make_Iterator(&entity->active_effects, game_state);
     while(Effect* effect = Next_Effect(&iter))
@@ -2096,7 +2070,7 @@ SIG Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose:
         if(verbose)
         {
             String message = {};
-            String entity_name = Name(entity, game_state);
+            String entity_name = Colored_Name(entity, game_state);
 
             if(result.health_snapshot == result.max_health)
             {
@@ -2788,6 +2762,44 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
 }
 
 
+SIG void Print_Equiped_Weapons(Entity* target, bool preamble, Game_State* game_state)
+{
+    Entity* weapon = Dereference(target->equipment[Equipment_Slots::primary_hand], game_state); 
+    Entity* offhand = Dereference(target->equipment[Equipment_Slots::secondary_hand], game_state);
+    if(weapon == offhand)
+    {
+        offhand = 0;
+    }
+    if(!weapon && offhand)
+    {
+        weapon = offhand;
+        offhand = 0;
+    }
+
+    if(weapon)
+    {
+        Arena_Snapshot snapshot = Snapshot(&game_state->messages_buffer);
+        String weapon_name = Colored_Name(weapon, game_state);
+        if(preamble)
+        {
+            Print("\nHe is wielding a");
+        }
+        Print(" [%s", weapon_name.ptr);
+        if(offhand)
+        {
+            String offhand_name = Colored_Name(offhand, game_state);
+            Print(" and %s", offhand_name.ptr);
+        }
+        Print("]");
+        if(preamble)
+        {
+            Print(".");
+        }
+        Restore(&game_state->messages_buffer, snapshot);
+    }
+}
+
+
 SIG void Inspect(Entity* target, Game_State* game_state)
 {
     String target_name = Colored_Name(target, game_state);
@@ -2829,6 +2841,8 @@ SIG void Inspect(Entity* target, Game_State* game_state)
         Print("\n");
         Print_Uses(target);
     }
+
+    Print_Equiped_Weapons(target, true, game_state);
 }
 
 
@@ -2894,8 +2908,6 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
     
     if(result)
     {
-        String item_name = Name(item, game_state);
-
         if(interactable->uses_count)
         {
             Flush_Messages(game_state);
@@ -2908,6 +2920,7 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
             
                 if(interactable->uses_count == 0)
                 {
+                    String item_name = Colored_Name(item, game_state);
                     Print("\n%s is now out of usages.", item_name.ptr);
 
                     if(PROTOTYPE_ENT_GS* on_empty_fn = Pointer(interactable->on_empty_fn_offset, game_state))
@@ -2919,6 +2932,7 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
         }
         else
         {
+            String item_name = Colored_Name(item, game_state);
             Print("\n%s is empty, so it can't be used anymore...", item_name.ptr);
         }
     }
@@ -3180,7 +3194,7 @@ SIG void Open(Entity* actor, Game_State* game_state)
 
             Deep_Insert(entity, residence, game_state);
             
-            Print("\n\t- %s", Name(entity, game_state).ptr);
+            Print("\n| - %s", Colored_Name(entity, game_state).ptr);
         }
         else
         {
@@ -3272,6 +3286,7 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                     first = false;
                 }
 
+                Wait(0.1, game_state);
                 Print
                 (
                     "\n| - %-*d %s%*s%s", 
@@ -3282,7 +3297,6 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                     Name(entity, game_state).ptr, 
                     game_state->default_color.data
                 );
-                Wait(0.1, game_state);
 
                 if(entity->flags & EFlags::actor && !(entity->flags & EFlags::hidden_iniative))
                 {
@@ -3303,6 +3317,8 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                     }
                 }
                 
+                Print_Equiped_Weapons(entity, false, game_state);
+
                 if(report_turn_taken_status && !(entity->actions & AT::normal) && Is_Alive(entity) && !(entity->flags & EFlags::hidden_iniative))
                 {
                     // TODO: Ask Nyxm what was the word!!! spent? used? ... i dunno. Just ask.
@@ -4127,8 +4143,116 @@ SIG Effect_Offset Insert_Effect(Effect effect, Effect_Hash_Key key, Game_State* 
 }
 
 
-SIG void Generate_From_Loot_Table(Entity* storage, Loot_Table table, u64 count, Rarity_Mode mode, Rarity::T target_rarity_A, Rarity::T target_rarity_B, Game_State* game_state)
+bool Is_Compliant(Loot_Table_Entry entry, Pick_From_Table_Rules rules)
 {
+    bool matches_rarity = false;
+    switch(rules.mode)
+    {
+        case Rarity_Mode::minimum:
+        {
+            matches_rarity = entry.rarity >= rules.target_rarity_A;
+        }break;
+
+        case Rarity_Mode::maximum:
+        {
+            matches_rarity = entry.rarity <= rules.target_rarity_A;
+        }break;
+
+        case Rarity_Mode::between:
+        {
+            matches_rarity = entry.rarity >= rules.target_rarity_A && entry.rarity <= rules.target_rarity_B;
+        }break;
+
+        case Rarity_Mode::guaranteed:
+        {
+            matches_rarity = entry.rarity == rules.target_rarity_A;
+        }break;
+    }
+
+    bool matches_equipment_filters = true;
+    if(rules.equipment_slot_filter_count)
+    {
+        matches_equipment_filters = false;
+
+        u32* begin = rules.equipment_slot_filters;
+        u32* end = begin + rules.equipment_slot_filter_count;
+        for(u32* slots = begin; slots < end && !matches_equipment_filters; ++slots)
+        {
+            if(entry.required_slots == *slots)
+            {
+                matches_equipment_filters = true;
+            }
+        }
+    }
+
+    bool result = matches_rarity && matches_equipment_filters;
+    return result;
+}
+
+
+SIG Loot_Table_Pick_Result Pick_From_Loot_Table(Loot_Table table, u64 count, Pick_From_Table_Rules rules, Game_State* game_state)
+{
+    Loot_Table_Pick_Result result = {};
+
+    if(count)
+    {
+        Loot_Table_Entry* compliant_entries = Push_Array(&game_state->scratch_buffer, Loot_Table_Entry, 0);
+        u64 compliant_count = 0;
+
+        f32 suitable_total_change = 0;
+        {
+            Loot_Table_Entry* end = table.array + table.count;
+            for(Loot_Table_Entry* entry = table.array; entry < end; ++entry)
+            {
+                if(Is_Compliant(*entry, rules))
+                {
+                    suitable_total_change += entry->change;
+
+                    *Push_Struct(&game_state->scratch_buffer, Loot_Table_Entry) = *entry;
+                    compliant_count += 1;
+                }
+            }
+        }
+        
+        if(suitable_total_change > 0 && compliant_count)
+        {
+            result.fns = (GENERATE_ENTITY_FN**)Push(&game_state->scratch_buffer,0);
+
+            LOOP(count)
+            {
+                f32 selector = Random_F32(game_state) * suitable_total_change;
+                f32 accumilator = 0;
+
+                Loot_Table_Entry* end = compliant_entries + compliant_count;
+                for(Loot_Table_Entry* entry = compliant_entries; entry < end; ++entry)
+                {
+                    accumilator += entry->change;
+                    if(selector <= accumilator)
+                    {
+                        *Push_Struct(&game_state->scratch_buffer, GENERATE_ENTITY_FN*) = entry->fn;
+                        result.count += 1;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+
+SIG GENERATE_ENTITY_FN* Pick_From_Loot_Table(Loot_Table table, Pick_From_Table_Rules rules, Game_State* game_state)
+{
+    Loot_Table_Pick_Result pick = Pick_From_Loot_Table(table, 1, rules, game_state);
+    return *pick.fns;
+}
+
+
+SIG Loot_Table_Pick_Result Pick_From_Loot_Table(Loot_Table table, u64 count, Rarity_Mode mode, Rarity::T target_rarity_A, Rarity::T target_rarity_B, Game_State* game_state)
+{
+    Loot_Table_Pick_Result result = {(GENERATE_ENTITY_FN**)Push(&game_state->scratch_buffer,0)};
+
     struct local
     {
         static bool Is_Suitable(Rarity::T entry_rarity, Rarity::T target_rarity_A, Rarity::T target_rarity_B, Rarity_Mode mode)
@@ -4188,7 +4312,8 @@ SIG void Generate_From_Loot_Table(Entity* storage, Loot_Table table, u64 count, 
                         accumilator += entry->change;
                         if(selector <= accumilator)
                         {
-                            entry->fn(storage, game_state);
+                            *Push_Struct(&game_state->scratch_buffer, GENERATE_ENTITY_FN*) = entry->fn;
+                            result.count += 1;
                             break;
                         }
                     }
@@ -4196,6 +4321,38 @@ SIG void Generate_From_Loot_Table(Entity* storage, Loot_Table table, u64 count, 
             }
         }
     }
+
+    // NOTE: nukes the ptr if there was no allocations.
+    if(!result.count)
+    {
+        result = {};
+    }
+
+    return result;
+}
+
+
+SIG void Generate_From_Loot_Table(Entity* storage, Loot_Table table, u64 count, Rarity_Mode mode, Rarity::T target_rarity_A, Rarity::T target_rarity_B, Game_State* game_state)
+{
+    Loot_Table_Pick_Result pick_result = Pick_From_Loot_Table(table, count, mode, target_rarity_A, target_rarity_B, game_state);
+    for(u64 i = 0; i < pick_result.count; ++i)
+    {
+        pick_result.fns[i](storage, game_state);
+    }
+}
+
+
+SIG Loot_Table Merge_Loot_Tables(Loot_Table* tables, u64 count, Arena* arena)
+{
+    Loot_Table A = tables[0];
+    
+    for(u64 i = 1; i < count; ++i)
+    {
+        Loot_Table B = tables[i];
+        A = Merge_Loot_Tables(A, B, arena);
+    }
+
+    return A;
 }
 
 
@@ -4298,6 +4455,7 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
                 {
                     Entity* entity = entry->fn(0, game_state);
                     entry->rarity = entity->rarity;
+                    entry->required_slots = entity->required_equipment_slots;
                     Delete_Entity(entity, game_state);
                 }
 
@@ -4908,6 +5066,26 @@ SIG void Tick_Active_Effects_Down_To_Zero(Entity* actor, Game_State* game_state)
 
         Tick_Down_Effect_Durations(actor, Duration_Type::round, game_state);
     }
+}
+
+
+SIG Entity* Proceed2(Game_State* game_state)
+{
+    Loot_Table sections[] = 
+    {
+        Caves_Wildlife_Section(game_state), 
+        Caves_Bandit_Section(game_state), 
+        Caves_Spider_Section(game_state), 
+        Caves_Boss(game_state)
+    };
+
+    Loot_Table table = Merge_Loot_Tables(sections, Array_Length(sections), &game_state->scratch_buffer);
+
+
+    Entity* ether = Request_Entity(game_state);
+    Generate_From_Loot_Table(ether, table, 1, Rarity_Mode::minimum, {}, {}, game_state);
+    Assert(ether->inventory.count == 1);
+    return 0;
 }
 
 
@@ -5743,7 +5921,7 @@ SIG CMD_Result::T Use_Command(Entity* actor, String args, Game_State* game_state
     
     if(target)
     {
-        String target_name = Name(target, game_state);
+        String target_name = Colored_Name(target, game_state);
         Print("\nYou attempt to use %s.", target_name.ptr);
         if(!Use(actor, target, game_state, Verbose::yes))
         {
@@ -5998,7 +6176,6 @@ SIG CMD_Result::T Inspect_Command(Entity* actor, String args, Game_State* game_s
         space = actor;
     }
     
-
     if(space)
     {
         

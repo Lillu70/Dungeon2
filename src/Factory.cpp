@@ -99,10 +99,41 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     stats[Stats::accuracy]  = 5;
     stats[Stats::vitality]  = 5;
 
-
     Finalize_Entity(entity, room, game_state);
 
-    Equip(entity, Create_Greate_Sword(entity, game_state), game_state, Verbose::no);
+    u32 slot_filters[] = 
+    {
+        {Equipment_Slots::flag[Equipment_Slots::primary_hand]},
+        {Equipment_Slots::flag[Equipment_Slots::primary_hand] | Equipment_Slots::flag[Equipment_Slots::secondary_hand]},
+    };
+    
+    Pick_From_Table_Rules rules = {};
+    rules.mode = Rarity_Mode::maximum;
+    rules.target_rarity_A = Rarity::rare;
+    rules.equipment_slot_filters = slot_filters;
+    rules.equipment_slot_filter_count = Array_Length(slot_filters);
+
+    if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules, game_state)) 
+    { 
+        Entity* weapon = weapon_gen_fn(entity, game_state);
+        Equip(entity, weapon, game_state);
+
+        bool is_1h_weapon = weapon->required_equipment_slots == Equipment_Slots::flag[Equipment_Slots::primary_hand];
+        u32 roll = Roll(5, game_state);
+
+        if(is_1h_weapon && roll >= 3)
+        {
+            u32 offhand_slot = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+            rules.equipment_slot_filters = &offhand_slot;
+            rules.equipment_slot_filter_count = 1;
+
+            if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules, game_state))
+            {
+                Entity* offhand = offhand_gen_fn(entity, game_state);
+                Equip(entity, offhand, game_state);
+            }
+        }
+    }
 
     return entity;
 }
@@ -298,7 +329,6 @@ SIG Entity* Create_Boss_Spider(Entity* room, Game_State* game_state)
 }
 
 
-
 SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
 {
     char room_description[] = 
@@ -312,10 +342,192 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
 
+    LOOP(3) Create_Bandit(room, game_state);
     //Create_Magma_Hammer(room, game_state);
     //Create_Boss_Spider(room, game_state);
-    LOOP(1000) Create_Wooden_Shield(room, game_state);
+    //Create_Wooden_Shield(room, game_state);
     //LOOP(4) Create_Giant_Rat(room, game_state);
+}
+
+
+SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
+{
+    struct local
+    {
+        static Entity* Opening(Entity* ether, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(ether)
+            {
+                room->name_offset = Offset(STR("a wide opening"), game_state);
+                char room_description[] = 
+                "The stone walls extend into the unseeable darkness.\n"
+                "The ceiling must be very far away.\n" 
+                "In the black you can see bright glowing eyes moving towards you.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+
+                LOOP(1 + Roll(2, game_state))   Create_Giant_Rat(room, game_state);
+                if(Roll(3, game_state) == 1)    Create_Rat_Mound(room, game_state);
+            }
+
+            return room;
+        }
+
+        static Entity* Altar(Entity* ether, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::rare;
+            if(ether)
+            {
+                room->name_offset = Offset(STR("a circular room"), game_state);
+                char room_description[] = 
+                "The walls in this room feel un-naturally smooth. Perhaps dwarwen make?\n"
+                "In the center there is what appears to be an altar to a God unknown to you.\n"
+                "You can \"use\" the altar to seek a blessing from this deity.";
+                room->description_offset = Offset(STR(room_description), game_state);
+            }
+
+            return room;
+        }
+
+        static Entity* Beast_Lair(Entity* ether, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::magical;
+            if(ether)
+            {
+                room->name_offset = Offset(STR("a beasts lair"), game_state);
+                char room_description[] = 
+                "In the middle of the room there is what looks to you to be a \"bed\" of sorts.\n"
+                "It's made of tree branches and leaves. Around it there are many half eaten carcasses.\n"
+                "Some of them animals, others human... or humanoid. You can not tell.";
+                room->description_offset = Offset(STR(room_description), game_state);
+            }
+
+            return room;
+        }
+    };
+
+
+    local_storage Loot_Table_Entry entries[] = 
+    {
+        {local::Opening},
+        {local::Altar},
+        {local::Beast_Lair},
+    };
+
+    local_storage Loot_Table table = {entries, Array_Length(entries)};
+    Fill_Loot_Table_Changes_And_Item_Rarity(&table, game_state);
+
+    return table;
+}
+
+SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
+{
+    struct local
+    {
+        static Entity* Camp(Entity* ether, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(ether)
+            {
+                room->name_offset = Offset(STR("a camp"), game_state);
+                #if 0
+                char room_description[] = 
+                "The stone walls extend into the unseeable darkness.\n"
+                "The ceiling must be very far away.\n" 
+                "In the black you can see bright glowing eyes moving towards you.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                #endif
+
+                Create_Bandit(room, game_state);
+            }
+
+            return room;
+        }
+    };
+
+
+    local_storage Loot_Table_Entry entries[] = 
+    {
+        {local::Camp},
+    };
+
+    local_storage Loot_Table table = {entries, Array_Length(entries)};
+    Fill_Loot_Table_Changes_And_Item_Rarity(&table, game_state);
+
+    return table;
+}
+
+
+SIG Loot_Table Caves_Spider_Section(Game_State* game_state)
+{
+    struct local
+    {
+        static Entity* Ravine(Entity* ether, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(ether)
+            {
+                room->name_offset = Offset(STR("a ravine"), game_state);
+                
+                char room_description[] = 
+                "A deep ravine cuts through the path, but there is bridge made of spider web that crosses it.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                Create_Spider(room, game_state);
+            }
+
+            return room;
+        }
+    };
+
+
+    local_storage Loot_Table_Entry entries[] = 
+    {
+        {local::Ravine},
+    };
+
+    local_storage Loot_Table table = {entries, Array_Length(entries)};
+    Fill_Loot_Table_Changes_And_Item_Rarity(&table, game_state);
+
+    return table;
+}
+
+
+SIG Loot_Table Caves_Boss(Game_State* game_state)
+{
+    struct local
+    {
+        static Entity* Boss_Chamber(Entity* ether, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(ether)
+            {
+                room->name_offset = Offset(STR("the Boss chamber!"), game_state);
+                
+                char room_description[] = 
+                "";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                Create_Spider(room, game_state);
+            }
+
+            return room;
+        }
+    };
+
+
+    local_storage Loot_Table_Entry entries[] = 
+    {
+        {local::Boss_Chamber},
+    };
+
+    local_storage Loot_Table table = {entries, Array_Length(entries)};
+    Fill_Loot_Table_Changes_And_Item_Rarity(&table, game_state);
+
+    return table;
 }
 
 
@@ -378,7 +590,7 @@ SIG Room_Generator_Element_Array Caves()
 
                 static void Altar(Entity* room, Game_State* game_state)
                 {
-                    room->name_offset = Offset(STR("a circular"), game_state);
+                    room->name_offset = Offset(STR("a circular room"), game_state);
                     
                     char room_description[] = 
                     "The walls in this room feel un-naturally smooth, perhaps dwarwen make? "
@@ -386,7 +598,6 @@ SIG Room_Generator_Element_Array Caves()
                     "You can \"use\" the altar to seek a blessing from this deity.";
                     room->description_offset = Offset(STR(room_description), game_state);
 
-                    
                     Warn("Unimplemented room");
                 }
 

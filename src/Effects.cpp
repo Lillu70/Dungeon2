@@ -341,7 +341,7 @@ SIG Effect_Instance Reckless_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("gives a raw damage bonus equal to user level, but until the begining of the next round reduces resistance by the same amount.");
+        Print("gives a raw damage bonus equal to user level, but until the begining of the next round reduces armor by the same amount.");
     }
     
     return instance;
@@ -455,7 +455,7 @@ SIG Effect_Instance Guarding_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("gives a bonus to resistance equal to user level until the begining of next round, but reduces damage done by the same amount.");
+        Print("gives a bonus to armor equal to user level until the begining of next round, but reduces damage done by the same amount.");
     }
     
     return instance;
@@ -482,7 +482,7 @@ SIG Effect_Instance Evasive_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("gives a bonus to dodge equal to user level, but until the begining of the next round reduces resistance by the same amount.");
+        Print("gives a bonus to dodge equal to user level, but until the begining of the next round reduces armor by the same amount.");
     }
     
     return instance;

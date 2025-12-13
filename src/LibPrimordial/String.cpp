@@ -238,12 +238,15 @@ SIG bool Match_Case_Insensitive(String str, String comp)
     
     if(str.length == comp.length)
     {
-        for(u64 i = 0; i < comp.length; ++i)
+        if(str.ptr != comp.ptr)
         {
-            if(To_Lowercase(str.ptr[i]) != To_Lowercase(comp.ptr[i]))
+            for(u64 i = 0; i < comp.length; ++i)
             {
-                result = false;
-                break;
+                if(To_Lowercase(str.ptr[i]) != To_Lowercase(comp.ptr[i]))
+                {
+                    result = false;
+                    break;
+                }
             }
         }
     }
@@ -262,12 +265,15 @@ SIG bool Match_Case_Sensitive(String str, String comp)
     
     if(str.length == comp.length)
     {
-        for(u64 i = 0; i < comp.length; ++i)
+        if(str.ptr != comp.ptr)
         {
-            if(str.ptr[i] != comp.ptr[i])
+            for(u64 i = 0; i < comp.length; ++i)
             {
-                result = false;
-                break;
+                if(str.ptr[i] != comp.ptr[i])
+                {
+                    result = false;
+                    break;
+                }
             }
         }
     }
@@ -287,12 +293,15 @@ SIG bool Match_Beginning_Case_Insensitive(String str, String comp)
     
     if(str.length >= comp.length)
     {
-        for(u64 i = 0; i < comp.length; ++i)
+        if(str.ptr != comp.ptr)
         {
-            if(To_Lowercase(str.ptr[i]) != To_Lowercase(comp.ptr[i]))
+            for(u64 i = 0; i < comp.length; ++i)
             {
-                result = false;
-                break;
+                if(To_Lowercase(str.ptr[i]) != To_Lowercase(comp.ptr[i]))
+                {
+                    result = false;
+                    break;
+                }
             }
         }
     }
@@ -312,12 +321,15 @@ SIG bool Match_Beginning_Case_Sensitive(String str, String comp)
     
     if(str.length >= comp.length)
     {
-        for(u64 i = 0; i < comp.length; ++i)
+        if(str.ptr != comp.ptr)
         {
-            if(str.ptr[i] != comp.ptr[i])
+            for(u64 i = 0; i < comp.length; ++i)
             {
-                result = false;
-                break;
+                if(str.ptr[i] != comp.ptr[i])
+                {
+                    result = false;
+                    break;
+                }
             }
         }
     }
