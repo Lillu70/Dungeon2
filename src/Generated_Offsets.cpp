@@ -122,11 +122,11 @@ SIG _inline PROTOTYPE_EFFINST_ENT_ENT_AR_GS* Pointer(PROTOTYPE_EFFINST_ENT_ENT_A
 }
 // -------- 
 
-// ---- PROTOTYPE_EFFINST_REF_ENT_DDR_GS ----
-SIG _inline PROTOTYPE_EFFINST_REF_ENT_DDR_GS_Offset Offset(PROTOTYPE_EFFINST_REF_ENT_DDR_GS* pointer, Game_State* game_state)
+// ---- PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS ----
+SIG _inline PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS_Offset Offset(PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS* pointer, Game_State* game_state)
 {
     Assert(game_state->executable_base_address);
-    PROTOTYPE_EFFINST_REF_ENT_DDR_GS_Offset offset = {};
+    PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS_Offset offset = {};
     if(pointer)
     {
         offset = {u64((char*)pointer - game_state->executable_base_address) + 1};
@@ -134,12 +134,12 @@ SIG _inline PROTOTYPE_EFFINST_REF_ENT_DDR_GS_Offset Offset(PROTOTYPE_EFFINST_REF
     return offset;
 }
 
-SIG _inline PROTOTYPE_EFFINST_REF_ENT_DDR_GS* Pointer(PROTOTYPE_EFFINST_REF_ENT_DDR_GS_Offset offset, Game_State* game_state)
+SIG _inline PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS* Pointer(PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS_Offset offset, Game_State* game_state)
 {
-    PROTOTYPE_EFFINST_REF_ENT_DDR_GS* pointer = {};
+    PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS* pointer = {};
     if(offset.v)
     {
-        pointer = (PROTOTYPE_EFFINST_REF_ENT_DDR_GS*)(game_state->executable_base_address + offset.v - 1);
+        pointer = (PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS*)(game_state->executable_base_address + offset.v - 1);
     }
     return pointer;
 }

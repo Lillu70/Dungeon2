@@ -32,7 +32,7 @@ struct PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset
     u64 v;
 };
 
-struct PROTOTYPE_EFFINST_REF_ENT_DDR_GS_Offset
+struct PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS_Offset
 {
     u64 v;
 };

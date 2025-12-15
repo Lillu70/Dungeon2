@@ -5,7 +5,7 @@
 // All rights reserved.
 // ===================================
 
-// TODO: Collapse entity_offset and reference... why do I have both?
+// TODO: Loot table caching! ... for computer reasons and for my sanity.
 // TODO: Test equipping the same ring twice.
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
@@ -20,10 +20,9 @@
 // TODO: Implement More attack modifiers
 // TODO: Make help command describe common effects.
 
-
 #define DEVMODE      1
 #define SEED         1
-#define RANDOM_SEED  1
+#define RANDOM_SEED  0
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
@@ -49,7 +48,7 @@
 #include "LibPrimordial\Win32.cpp"
 
 #include "Dungeon.h"
-#include "Generated_Offsets.cpp"
+#include "Generated_Offsets.cpp" // NOTE: Generated file!
 
 #include "Effects.cpp"
 #include "Items.cpp"
@@ -94,7 +93,7 @@ SIG char* Entity_Color(Entity* entity, Game_State* game_state)
     {
         if(entity->faction != Faction::none)
         {
-            Entity* player = Dereference(game_state->player, game_state);
+            Entity* player = Pointer(game_state->player, game_state);
             if(entity->faction == player->faction)
             {
                 result = game_state->ally_color.data;
@@ -285,20 +284,23 @@ SIG U64_To_String_Memory Decode_Base_Aplhabet(u64 identity)
 }
 
 
-SIG Reference* Find_Empty_Slot(Entity_Node* node)
+SIG Entity_Offset* Find_Empty_Slot(Entity_Node* node)
 {
-    Reference* result = 0;
+    // TODO: The fuck is this function? There are no empty slots in random nodes... Just take the root and use the count to access the head + 1...
+    // that is your "empty slot"... ... ....... ...
+
+    Entity_Offset* result = 0;
     
-    Reference* first = node->entities;
-    Reference* last = first + Array_Length(node->entities);
+    Entity_Offset* first = node->entities;
+    Entity_Offset* last = first + Array_Length(node->entities);
     
-    for(Reference* ref = first; ref < last; ++ref)
+    for(Entity_Offset* off = first; off < last; ++off)
     {
-        if(!ref->offset)
+        if(!off->v)
         {
-            Assert(ref->ID == 0);
+            Assert(off->ID == 0);
             
-            result = ref;
+            result = off;
             break;
         }
     }
@@ -306,13 +308,50 @@ SIG Reference* Find_Empty_Slot(Entity_Node* node)
     return result;
 }
 
+#if 0
+SIG Reference Make_Reference(Entity* entity, Game_State* game_state)
+{
+    Assert(entity->ID);
+    u64 offset = Storage_Offset(entity, game_state);
+    Reference result = {offset, entity->ID};
+    return result;
+}
+
+
+SIG Entity* Dereference(Reference* reference, Game_State* game_state) 
+{
+    Entity* result = 0;
+    if(reference->ID)
+    {
+        Assert(reference->offset);
+        u64 offset = reference->offset - 1;
+
+        result = (Entity*)(game_state->permanent_storage.memory + offset);
+
+        if(result->ID != reference->ID)
+        {
+            result = 0;
+        }
+    }
+    
+    return result;
+};
+
+
+SIG Entity* Dereference(Reference reference, Game_State* game_state)
+{
+    Entity* result = Dereference(&reference, game_state);
+    return result;
+};
+#endif
+
 
 SIG _inline Entity_Offset Offset(Entity* entity, Game_State* game_state)
 {
     Entity_Offset offset = {};
     if(entity)
     {
-        offset = {Storage_Offset(entity, game_state)};
+        offset = {Storage_Offset(entity, game_state), entity->ID};
     }
 
     return offset;
@@ -325,6 +364,10 @@ SIG _inline Entity* Pointer(Entity_Offset offset, Game_State* game_state)
     if(offset.v)
     {
         pointer = (Entity*)Pull_From_Storage_Offset(offset.v, game_state);
+        if(pointer->ID != offset.ID)
+        {
+            pointer = {};
+        }
     }
 
     return pointer;
@@ -519,25 +562,26 @@ SIG _inline void* Pull_From_Storage_Offset(u64 offset, Game_State* game_state)
 }
 
 
-SIG Reference* Find_Entity(Entity* entity, Entity_Root_Node* storage, Game_State* game_state, Entity_Node** out_node DEF(0))
+SIG Entity_Offset* Find_Entity(Entity* entity, Entity_Root_Node* storage, Game_State* game_state, Entity_Node** out_node DEF(0))
 {
-    Reference* result = 0;
+    Entity_Offset* result = 0;
     
     Entity_Iterator iter = Make_Iterator(storage, game_state);
 
     u64 entity_offset = Storage_Offset(entity, game_state);
 
-    while(Reference* ref = Next(&iter))
+    while(Entity_Offset* offset = Next(&iter))
     {
-        if(ref->offset == entity_offset)
+        if(offset->v == entity_offset)
         {
-            Assert(Dereference(ref, game_state));
+            Assert(Pointer(*offset, game_state));
             
             if(out_node)
             {
                 *out_node = iter.node;
             }
-            result = ref;
+            result = offset;
+            break;
         }
     }
     
@@ -545,10 +589,10 @@ SIG Reference* Find_Entity(Entity* entity, Entity_Root_Node* storage, Game_State
 }
 
 
-SIG Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Reference space, String name_or_reference_number, Game_State* game_state, Verbose::T verbose DEF(Verbose::T(1)))
+SIG Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Entity_Offset space, String name_or_reference_number, Game_State* game_state, Verbose::T verbose DEF(Verbose::T(1)))
 {
     Entity* result = 0;
-    if(Entity* room = Dereference(space, game_state))
+    if(Entity* room = Pointer(space, game_state))
     {
         result = Find_Entity_By_Name_Or_Reference_Number(actor, room, name_or_reference_number, game_state, verbose);
     }
@@ -565,7 +609,7 @@ SIG Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_
     Entity_Iterator iter = Make_Iterator(space, game_state);
     while(Entity* entity = Next_Entity(&iter))
     {
-        if(entity != actor)
+        if(entity != actor && Is_Visible(entity))
         {
             String entity_name = Name_Without_Color(entity, game_state);
             String entity_true_name = Get_String(entity->name_offset, game_state);
@@ -603,15 +647,11 @@ SIG Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Entity* space
             u64 target_idx = To_U64(name_or_reference_number);
             if(target_idx)
             {
-                // Because the actor it self does not "count" we have to do the dumb thing and iterate through the bucket to find the actor.
-                // Sort of would have to anyway because the storage does not support random access, but you could something smarter than
-                // actual full iteration. Like walk the link list until you're in the right bucket and then jump to the right one.
-                
                 u64 entity_count = 0;
                 Entity_Iterator iter = Make_Iterator(space, game_state);
                 while(Entity* entity = Next_Entity(&iter))
                 {
-                    if(entity != actor)
+                    if(entity != actor && Is_Visible(entity))
                     {
                         entity_count += 1;
                         if(target_idx == entity_count)
@@ -636,42 +676,6 @@ SIG Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Entity* space
     
     return target;
 }
-
-
-SIG Reference Make_Reference(Entity* entity, Game_State* game_state)
-{
-    Assert(entity->ID);
-    u64 offset = Storage_Offset(entity, game_state);
-    Reference result = {offset, entity->ID};
-    return result;
-}
-
-
-SIG Entity* Dereference(Reference* reference, Game_State* game_state) 
-{
-    Entity* result = 0;
-    if(reference->ID)
-    {
-        Assert(reference->offset);
-        u64 offset = reference->offset - 1;
-
-        result = (Entity*)(game_state->permanent_storage.memory + offset);
-
-        if(result->ID != reference->ID)
-        {
-            result = 0;
-        }
-    }
-    
-    return result;
-};
-
-
-SIG Entity* Dereference(Reference reference, Game_State* game_state)
-{
-    Entity* result = Dereference(&reference, game_state);
-    return result;
-};
 
 
 SIG Entity_Iterator Make_Iterator(Entity_Root_Node* root, Game_State* game_state)
@@ -719,9 +723,9 @@ SIG Effects_Iterator Make_Iterator(Effects_Root* root, Game_State* game_state)
 }
 
 
-SIG Reference* Next(Entity_Iterator* iter)
+SIG Entity_Offset* Next(Entity_Iterator* iter)
 {
-    Reference* element = {};
+    Entity_Offset* element = {};
     if(iter->root)
     {
         Assert(iter->root->count == iter->count_snapshot); // Iterator invalidated!
@@ -752,11 +756,11 @@ SIG Reference* Next(Entity_Iterator* iter)
 SIG Entity* Next_Entity(Entity_Iterator* iter)
 {
     Entity* result = 0;
-    Reference* ref = Next(iter);
-    if(ref)
+    Entity_Offset* off = Next(iter);
+    if(off)
     {
-        result = Dereference(ref, iter->game_state);
-        Assert(result);
+        result = Pointer(*off, iter->game_state);
+        Assert(result); // CONSIDER: ?
     }
     
     return result;
@@ -767,7 +771,7 @@ SIG u64 Count(Entity_Root_Node* root_node, Game_State* game_state)
 {
     u64 c = 0;
     Entity_Iterator iter = Make_Iterator(root_node, game_state);
-    while(Reference* entity = Next(&iter))
+    while(Next(&iter))
     {
         c += 1;
     }
@@ -885,7 +889,7 @@ SIG Backwards_Iterator Make_Backwards_Iterator(Entity_Root_Node* root, Game_Stat
 }
 
 
-SIG Reference* Previous(Backwards_Iterator* back_iter)
+SIG Entity_Offset* Previous(Backwards_Iterator* back_iter)
 {
     // TODO: Rewrite this. This version of the function was quickly hacked together to get offset based nodes to compile, but...
     // it really should be done with more thought.
@@ -894,10 +898,10 @@ SIG Reference* Previous(Backwards_Iterator* back_iter)
 
     Assert(game_state);
 
-    Reference* ref = 0;
+    Entity_Offset* off = 0;
     if(back_iter->node)
     {
-        ref = back_iter->node->entities + back_iter->index;
+        off = back_iter->node->entities + back_iter->index;
         if(back_iter->index == 0)
         {
             Entity_Root_Node* root = back_iter->root;
@@ -925,7 +929,7 @@ SIG Reference* Previous(Backwards_Iterator* back_iter)
         back_iter->index -= 1;
     }
     
-    return ref;
+    return off;
 }
 
 
@@ -1080,7 +1084,6 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
             Print("\nTo hit: [crit dice]: %d (fumble: <= %d | crit: >= %d)  ", ar->crit_dice_result, ar->crit_ranges.failure, ar->crit_ranges.success);
             if(!ar->is_critical_success && !ar->is_critical_failure)
             {
-                Wait(0.4, game_state);
                 Print_Roll_Result(ar->accuracy_roll);
                 Print(", VS ");
                 Print_Roll_Result(ar->dodge_roll);
@@ -1088,8 +1091,8 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
         }
     };
 
-    Entity* attacker = Dereference(ar->attacker, game_state);
-    Entity* defender = Dereference(ar->defender, game_state);
+    Entity* attacker = ar->attacker;
+    Entity* defender = ar->defender;
     
     String attacker_name = Name(attacker, game_state);
     String defender_name = Name(defender, game_state);
@@ -1451,7 +1454,7 @@ SIG void Push_Generic_Apply_Effect_Message(Effect_Instance* source_effect, Entit
 
 SIG void Remove_From_Residence(Entity* entity, Game_State* game_state)
 {
-    if(Entity* residence = Dereference(entity->residence, game_state))
+    if(Entity* residence = Pointer(entity->residence, game_state))
     {
         Unequip(entity, game_state);
         
@@ -1462,14 +1465,14 @@ SIG void Remove_From_Residence(Entity* entity, Game_State* game_state)
         // - Move the top item into into it's place.
         // - If this results in an empty node. Release that node back in to the system.
         
-        Reference* ref = Find_Entity(entity, root, game_state);
-        Assert(ref); // <- You have to find your self in your residence container!!!
+        Entity_Offset* offset_ptr = Find_Entity(entity, root, game_state);
+        Assert(offset_ptr); // <- You have to find your self in your residence container!!!
         
         root->count -= 1;
         Entity_Node* root_node = Pointer(root->node_offset, game_state);
-        Reference* head = root_node->entities + root->count;
+        Entity_Offset* head = root_node->entities + root->count;
         
-        *ref = *head;
+        *offset_ptr = *head;
         *head = {};
         
         if(!root->count)
@@ -1616,7 +1619,7 @@ SIG void Release_Effects_Node(Effects_Node* node, Game_State* game_state)
 
 SIG void Insert(Entity* entity, Entity_Root_Node* storage, Game_State* game_state)
 {
-    Reference* ref = 0;
+    Entity_Offset* offset_ptr = 0;
     
     // - Does the root have a node?
     if(!storage->node_offset.v)
@@ -1624,14 +1627,14 @@ SIG void Insert(Entity* entity, Entity_Root_Node* storage, Game_State* game_stat
         // - If NOT request node.
         Entity_Node* node = Request_Entity_Node(game_state);
         storage->node_offset = Offset(node, game_state);
-        ref = Find_Empty_Slot(node);
+        offset_ptr = Find_Empty_Slot(node);
     }
     else
     {
         // - Does the root node have space?
         Entity_Node* root_node = Pointer(storage->node_offset, game_state);
-        ref = Find_Empty_Slot(root_node);
-        if(!ref)
+        offset_ptr = Find_Empty_Slot(root_node);
+        if(!offset_ptr)
         {
             // - If NOT request a node. Link the node into the chain.
             Entity_Node* node = Request_Entity_Node(game_state);
@@ -1641,12 +1644,12 @@ SIG void Insert(Entity* entity, Entity_Root_Node* storage, Game_State* game_stat
             storage->node_offset = Offset(node, game_state);
             storage->count = 0;
             
-            ref = Find_Empty_Slot(node);
-            Assert(ref); // <- a fresh node should always have space!
+            offset_ptr = Find_Empty_Slot(node);
+            Assert(offset_ptr); // <- a fresh node should always have space!
         } 
     }
     
-    *ref = Make_Reference(entity, game_state);
+    *offset_ptr = Offset(entity, game_state);
     storage->count += 1;
 }
 
@@ -1690,7 +1693,7 @@ SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_st
     if(storage_entity)
     {
         Remove_From_Residence(entity, game_state);
-        entity->residence = Make_Reference(storage_entity, game_state);
+        entity->residence = Offset(storage_entity, game_state);
 
         Assign_Dublicate_Name_Identifier(entity, storage_entity, game_state);
 
@@ -1743,8 +1746,10 @@ void _Delete_Entity_Internal(Entity* entity, Game_State* game_state)
     {
         for(u64 i = 0; i < entity->inventory.count; ++i)
         {
-            Entity* e = Dereference(node->entities + i, game_state);
-            if(Dereference(e->residence, game_state) == entity)
+            Entity* e = Pointer(node->entities[i], game_state);
+            Assert(e);
+
+            if(Pointer(e->residence, game_state) == entity)
             {
                 _Delete_Entity_Internal(e, game_state);
             }
@@ -1852,7 +1857,7 @@ SIG s16 Calculate_Level(Entity* entity)
     s64 total_stats = 0;
     for(u64 i = 0; i < Stats::COUNT; ++i)
     {
-        total_stats += entity->_stats[i];
+        total_stats += entity->_stats[i] - 1;
     }
 
     s16 lvl = Max(s16(1), s16(f32(total_stats / f32(Stats::points_per_lvl) + 0.5f)));
@@ -1995,6 +2000,13 @@ SIG bool Is_Item(Entity* entity)
 }
 
 
+SIG bool Is_Visible(Entity* entity)
+{
+    bool result = entity->flags & (EFlags::visible | EFlags::actor);
+    return result;
+}
+
+
 SIG bool Is_Alive(Entity* entity)
 {
     bool result = entity->_health > 0 && entity->flags & EFlags::actor;
@@ -2107,7 +2119,7 @@ SIG Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose:
 }
 
 
-SIG Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String source_name, s32 dmg, s32 pierce, Damage_Type type, Game_State* game_state, Verbose::T verbose)
+SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offset, String source_name, s32 dmg, s32 pierce, Damage_Type type, Game_State* game_state, Verbose::T verbose)
 {
     Deal_Damage_Result ddr = {};
 
@@ -2153,21 +2165,23 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String 
                     {
                         Effect* effect = Pointer(instance->effect_offset, game_state);
 
-                        if(PROTOTYPE_EFFINST_REF_ENT_DDR_GS* on_damage_taken_fn = Pointer(effect->on_damage_taken_fn_offset, game_state))
+                        if(PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS* on_damage_taken_fn = Pointer(effect->on_damage_taken_fn_offset, game_state))
                         {
-                            on_damage_taken_fn(instance, attacker, defender, &ddr, game_state);
+                            on_damage_taken_fn(instance, attacker_offset, defender, &ddr, game_state);
                         }
                     }
                 }
                 
-                if(Entity* e = Dereference(attacker, game_state))
+                if(Entity* e = Pointer(attacker_offset, game_state))
                 {
                     e->exp += ddr.exp_reward;
                 }
 
                 // If this entity is an item equipped on someone... unequip it.
+                // TODO: TODO: TODO:!!!! This is a crash bug!!!
+                // Can't just blidly en-equip stuff... will break effect iterator unless I fix that.
                 {
-                    Entity* residence = Dereference(defender->residence, game_state);
+                    Entity* residence = Pointer(defender->residence, game_state);
                     if(residence && defender->_health <= 0)
                     {
                         Unequip(residence, defender, game_state);
@@ -2217,7 +2231,7 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String 
                     Push_Message(message, game_state);
 
                     char* attacker_name_ptr = 0;
-                    if(Entity* e = Dereference(attacker, game_state))
+                    if(Entity* e = Pointer(attacker_offset, game_state))
                     {
                         attacker_name_ptr = Name(e, game_state).ptr;
                     }
@@ -2281,8 +2295,8 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String 
 
 SIG _inline Deal_Damage_Result Deal_Damage(Entity* defender, Entity* attacker, String dmg_src_name, s32 dmg, s32 pierce, Damage_Type type, Game_State* game_state, Verbose::T verbose)
 {
-    Reference atref = Make_Reference(attacker, game_state);
-    Deal_Damage_Result ddr = Deal_Damage(defender, atref, dmg_src_name, dmg, pierce, type, game_state, verbose);
+    Entity_Offset attacker_offset = Offset(attacker, game_state);
+    Deal_Damage_Result ddr = Deal_Damage(defender, attacker_offset, dmg_src_name, dmg, pierce, type, game_state, verbose);
     return ddr;
 }
 
@@ -2331,7 +2345,7 @@ SIG String Effect_Name(Effect_Instance* instance, Game_State* game_state)
     {
         result = effect_name;
     }
-    else if(Entity* source = Dereference(instance->source, game_state))
+    else if(Entity* source = Pointer(instance->source, game_state))
     {
         result = Name(source, game_state);
     }
@@ -2468,7 +2482,7 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
 
     if(target && instance.effect_offset.v)
     {
-        Assert(Dereference(instance.source, game_state)); // Do you have to have source?
+        Assert(Pointer(instance.source, game_state)); // Do you have to have source?
         Assert(effect->type < Effect_Type::COUNT);       
 
         if(Is_Alive(target))
@@ -2526,7 +2540,7 @@ SIG void Remove_Effects_From_Source(Entity* actor, Entity* source, Game_State* g
         {
             Effect_Instance* instance = node->instances + idx;
             
-            if(Dereference(instance->source, game_state) == source)
+            if(Pointer(instance->source, game_state) == source)
             {
                 Delete_Effect_Slot(root, node, &idx, &count, game_state);
             }
@@ -2737,7 +2751,7 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
             on_dodge_fn(0, 0, 0, 0, 0);
         }
         
-        if(PROTOTYPE_EFFINST_REF_ENT_DDR_GS* on_damage_taken_fn = Pointer(effect->on_damage_taken_fn_offset, game_state))
+        if(PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS* on_damage_taken_fn = Pointer(effect->on_damage_taken_fn_offset, game_state))
         {
             local::Line(depth);
             Print("[On damage taken]: ");
@@ -2763,8 +2777,8 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
 
 SIG void Print_Equiped_Weapons(Entity* target, bool preamble, Game_State* game_state)
 {
-    Entity* weapon = Dereference(target->equipment[Equipment_Slots::primary_hand], game_state); 
-    Entity* offhand = Dereference(target->equipment[Equipment_Slots::secondary_hand], game_state);
+    Entity* weapon = Pointer(target->equipment[Equipment_Slots::primary_hand], game_state); 
+    Entity* offhand = Pointer(target->equipment[Equipment_Slots::secondary_hand], game_state);
     if(weapon == offhand)
     {
         offhand = 0;
@@ -2853,7 +2867,7 @@ SIG bool Is_Equipped(Entity* actor, Entity* item, Game_State* game_state)
 
     for(u64 i = 0; i < Equipment_Slots::COUNT; ++i)
     {
-        if(Entity* equiped_entity = Dereference(actor->equipment[i], game_state))
+        if(Entity* equiped_entity = Pointer(actor->equipment[i], game_state))
         {
             Entity_Offset equipped_offset = Offset(equiped_entity, game_state);
             if(item_offset.v == equipped_offset.v)
@@ -2871,12 +2885,12 @@ SIG bool Is_Equipped(Entity* actor, Entity* item, Game_State* game_state)
 SIG bool Unequip(Entity* actor, Entity* item, Game_State* game_state)
 {
     bool result = false;
-    Entity* item_residence = Dereference(item->residence, game_state);
+    Entity* item_residence = Pointer(item->residence, game_state);
     if(actor == item_residence)
     {
         for(u64 i = 0; i < Array_Length(actor->equipment); ++i)
         {
-            Entity* equiped_item = Dereference(actor->equipment + i, game_state);
+            Entity* equiped_item = Pointer(actor->equipment[i], game_state);
             if(item == equiped_item)
             {
                 Remove_Effects_From_Source(actor, equiped_item, game_state);
@@ -2894,7 +2908,7 @@ SIG bool Unequip(Entity* actor, Entity* item, Game_State* game_state)
 
 SIG bool Unequip(Entity* item, Game_State* game_state)
 {
-    Entity* actor = Dereference(item->residence, game_state);
+    Entity* actor = Pointer(item->residence, game_state);
     bool result = Unequip(actor, item, game_state);
     return result;
 }
@@ -2975,18 +2989,16 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
     {
         if(!Is_Equipped(actor, target, game_state))
         {
-            Reference target_ref = Make_Reference(target, game_state);
-            
             Arena* scratch_buffer = &game_state->scratch_buffer;
             
             Arena_Snapshot snapshot = Snapshot(scratch_buffer);
             
             // CONSIDER: Use the stack for storage? These arrays are small and the size is known at compile time.
             
-            Reference** slots_to_use    = Push_Array(scratch_buffer, Reference*, Equipment_Slots::COUNT);
-            u64 slots_to_use_count      = 0;
-            Reference** blocking_slots  = Push_Array(scratch_buffer, Reference*, Equipment_Slots::COUNT);
-            u64 blocking_slots_count    = 0;
+            Entity_Offset** slots_to_use    = Push_Array(scratch_buffer, Entity_Offset*, Equipment_Slots::COUNT);
+            u64 slots_to_use_count          = 0;
+            Entity_Offset** blocking_slots  = Push_Array(scratch_buffer, Entity_Offset*, Equipment_Slots::COUNT);
+            u64 blocking_slots_count        = 0;
             
             // Find out if the slots are available?
             u32 slots_required = target->required_equipment_slots;
@@ -2997,8 +3009,8 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                 u32 flag = Equipment_Slots::flag[i];
                 if(flag & slots_required)
                 {
-                    Reference* slot = actor->equipment + i;
-                    Entity* object = Dereference(slot, game_state);
+                    Entity_Offset* slot = actor->equipment + i;
+                    Entity* object = Pointer(*slot, game_state);
                     
                     if(object)
                     {
@@ -3029,8 +3041,7 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                 
                 for(u64 i = 0; i < slots_to_use_count; ++i)
                 {
-                    Reference* slot = slots_to_use[i];
-                    *slot = target_ref;
+                    *slots_to_use[i] = Offset(target, game_state);
                 }
             }
             
@@ -3042,7 +3053,7 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                 
                 for(u64 i = 0; i < blocking_slots_count; ++i)
                 {
-                    Entity* entity = Dereference(blocking_slots[i], game_state);
+                    Entity* entity = Pointer(*blocking_slots[i], game_state);
                     
                     bool unique = true;
                     
@@ -3115,14 +3126,12 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                     
                     for(u64 i = 0; i < blocking_slots_count; ++i)
                     {
-                        Reference* slot = blocking_slots[i];
-                        *slot = target_ref;
+                        *blocking_slots[i] = {};
                     }
                     
                     for(u64 i = 0; i < slots_to_use_count; ++i)
                     {
-                        Reference* slot = slots_to_use[i];
-                        *slot = target_ref;
+                        *slots_to_use[i] = Offset(target, game_state);
                     }
                 }
                 else
@@ -3140,7 +3149,7 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                 {
                     UNLIMITED_DURATION,
                     target->on_equip_effect_offset,
-                    target_ref
+                    Offset(target, game_state)
                 };
                 
                 Apply_Effect_Result apply = Apply_Effect(actor, on_equip_effect_instance, game_state);
@@ -3186,10 +3195,11 @@ SIG void Open(Entity* actor, Game_State* game_state)
     
     while(Has_Content(inventory))
     {
+        Entity* residence = Pointer(actor->residence, game_state);
         if(Entity_Node* inv = Pointer(inventory->node_offset, game_state))
         {
-            Entity* entity = Dereference(inv->entities, game_state);
-            Entity* residence = Dereference(actor->residence, game_state);
+            Entity* entity = Pointer(*inv->entities, game_state);
+            entity->flags |= EFlags::visible;
 
             Deep_Insert(entity, residence, game_state);
             
@@ -3206,7 +3216,7 @@ SIG void Open(Entity* actor, Game_State* game_state)
 
 SIG u64 Longest_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_state, u64* out_count DEF(0))
 {
-    Entity* storage = Dereference(actor->residence, game_state);
+    Entity* storage = Pointer(actor->residence, game_state);
 
     u64 count = 0;
     u64 result = 0;
@@ -3258,7 +3268,7 @@ SIG u64 Longest_Entity_Name_In_Actor_Inventory(Entity* actor, Game_State* game_s
 
 SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status::T report_turn_taken_status DEF(Report_Turn_Taken_Status::T(1)))
 {
-    Entity* actor_residence = Dereference(actor->residence, game_state);
+    Entity* actor_residence = Pointer(actor->residence, game_state);
     
     Assert(actor_residence);
 
@@ -3274,7 +3284,7 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
         Entity_Iterator iter = Make_Iterator(actor_residence, game_state);
         while(Entity* entity = Next_Entity(&iter))
         {
-            if(entity != actor)
+            if(entity != actor && Is_Visible(entity))
             {
                 entity_count += 1;
 
@@ -3324,7 +3334,7 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                     Print(" *EXHAUSTED*");
                 }
                 
-                if(entity->flags & (EFlags::container & EFlags::is_open) && Is_Empty(&entity->inventory))
+                if(entity->flags & EFlags::is_open && Is_Empty(&entity->inventory))
                 {
                     Print(" [EMPTY]");
                 }
@@ -3678,8 +3688,8 @@ SIG void Attack(Entity* attacker, Entity* defender, Game_State* game_state, Atta
     {
         Attack_Record ar = {};
 
-        ar.attacker = Make_Reference(attacker, game_state);
-        ar.defender = Make_Reference(defender, game_state);
+        ar.attacker = attacker;
+        ar.defender = defender;
         ar.attack_modifier = modifier;
 
         ar.target_pre_attack_health = defender->_health;
@@ -3831,8 +3841,8 @@ SIG void Player_Action(Entity* actor, String actor_name, Game_State* game_state)
 SIG Entity* Redirected_Target(Entity* actor, String actor_name, Game_State* game_state)
 {
     Entity* target = 0;
-    Entity* space_entity = Dereference(actor->residence, game_state);
-    Entity* player = Dereference(game_state->player, game_state);
+    Entity* space_entity = Pointer(actor->residence, game_state);
+    Entity* player = Pointer(game_state->player, game_state);
     if(player && space_entity)
     {
         struct local
@@ -3910,7 +3920,7 @@ SIG Entity* Find_Attack_Target(Entity* actor, Game_State* game_state)
     Entity* result = 0;
 
     u32 count = 0;
-    Entity* room = Dereference(actor->residence, game_state);
+    Entity* room = Pointer(actor->residence, game_state);
     if(room)
     {
         struct local
@@ -3973,16 +3983,34 @@ SIG void NPC_Action(Entity* actor, String actor_name, Game_State* game_state)
             bool bursts_open = v <= actor->burst_change;
             if(bursts_open)
             {
-                if(Entity* outside_entity = Dereference(actor->residence, game_state))
+                if(Entity* outside_entity = Pointer(actor->residence, game_state))
                 {
-                    Entity_Root_Node* outside = &outside_entity->inventory;
-                
-                    // "%s bursts open releasing its conents:\n"
-                    String str = Get_String(actor->burst_message_offset, game_state);
-                    char* msg = (str.ptr)? str.ptr : "opens releasing it's contents";
+                    bool contains_actor = false;
+                    Entity_Iterator iter = Make_Iterator(actor, game_state);
+                    while(Entity* entity = Next_Entity(&iter))
+                    {
+                        if(entity->flags & EFlags::actor)
+                        {
+                            contains_actor = true;
+                            break;
+                        }
+                    }
 
-                    Print("\n\n%s %s:", actor_name.ptr, msg);
-                    Open(actor, game_state);
+                    if(contains_actor)
+                    {
+                        Entity_Root_Node* outside = &outside_entity->inventory;
+                    
+                        // "%s bursts open releasing its conents:\n"
+                        String str = Get_String(actor->burst_message_offset, game_state);
+                        char* msg = (str.ptr)? str.ptr : "opens releasing it's contents";
+
+                        Print("\n\n%s %s:", actor_name.ptr, msg);
+                        Open(actor, game_state);
+                    }
+                    else
+                    {
+                        // CONSIDER: Turn off the burst container?
+                    }
                 }
                 else
                 {
@@ -4182,9 +4210,10 @@ SIG bool Compare(s64 X, Comparison type, s64 A, s64 B DEF(0))
 SIG bool Is_Compliant(Loot_Table_Entry entry, Pick_From_Table_Rules rules)
 {
     bool matches_rarity = Compare(entry.rarity, rules.rarity_comparison, rules.target_rarity_A, rules.target_rarity_B);
+    bool matches_weight = Compare(entry.weight, rules.weight_comparison, rules.target_weight_A, rules.target_weight_B);
 
     bool matches_equipment_filters = true;
-    if(matches_rarity && rules.equipment_slot_filter_count)
+    if(rules.equipment_slot_filter_count)
     {
         matches_equipment_filters = false;
 
@@ -4199,7 +4228,7 @@ SIG bool Is_Compliant(Loot_Table_Entry entry, Pick_From_Table_Rules rules)
         }
     }
 
-    bool result = matches_rarity && matches_equipment_filters;
+    bool result = matches_rarity && matches_weight && matches_equipment_filters;
     return result;
 }
 
@@ -4385,6 +4414,7 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
                 Entity* entity = entry->fn(0, game_state);
                 entry->rarity = entity->rarity;
                 entry->required_slots = entity->required_equipment_slots;
+                entry->weight = entity->weight;
                 Delete_Entity(entity, game_state);
             }
 
@@ -4422,7 +4452,7 @@ SIG bool Roll_Initiative(Entity* entity, Game_State* game_state)
             initative = Stat_Roll(entity, Stats::speed, game_state);
         }
         
-        entity->initiative = {Make_Reference(entity, game_state), initative, visible};
+        entity->initiative = {Offset(entity, game_state), initative, visible};
         result = true;
         
         entity->flags &= ~EFlags::goes_last;
@@ -4432,7 +4462,7 @@ SIG bool Roll_Initiative(Entity* entity, Game_State* game_state)
 }
 
 
-SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
+SIG void Sort_Iniative_Order(Entity_Offset* offs, Game_State* game_state)
 {
     struct local
     {
@@ -4441,9 +4471,8 @@ SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
             bool result = true;
             s64 last_initiative = S64_MAX;
             Entity_Iterator iter = Make_Iterator(&game_state->initiative_order, game_state);
-            while(Reference* ref = Next(&iter))
+            while(Entity* entity = Next_Entity(&iter))
             {
-                Entity* entity = Dereference(ref, game_state);
                 s64 initiative = entity->initiative.value.total_result;
                 if(last_initiative < initiative)
                 {
@@ -4458,17 +4487,17 @@ SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
         }
 
 
-        static bool Is_Sorted(Reference* refs, u64 count, Game_State* game_state)
+        static bool Is_Sorted(Entity_Offset* offs, u64 count, Game_State* game_state)
         {
             bool result = true;
             
             for(u64 i = 0; i < count - 1; ++i)
             {
-                Reference* A = refs + i;
-                Reference* B = A + 1;
+                Entity_Offset A = offs[i];
+                Entity_Offset B = offs[i + 1];
 
-                Entity* EA = Dereference(A, game_state);
-                Entity* EB = Dereference(B, game_state);
+                Entity* EA = Pointer(A, game_state);
+                Entity* EB = Pointer(B, game_state);
 
                 s32 a = local::Init(EA);
                 s32 b = local::Init(EB);
@@ -4483,12 +4512,12 @@ SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
             return result;
         }
 
-        static bool Content_is_Valid(Reference* refs, u64 count, Game_State* game_state)
+        static bool Content_is_Valid(Entity_Offset* offs, u64 count, Game_State* game_state)
         {
             bool result = true;
             for(u64 i = 0; i < count; ++i)
             {
-                if(Dereference(refs + i, game_state) == 0)
+                if(Pointer(offs[i], game_state) == 0)
                 {
                     result = false;
                     break;
@@ -4503,9 +4532,9 @@ SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
             return result;
         }
 
-        static _inline void Swap(Reference* a, Reference* b)
+        static _inline void Swap(Entity_Offset* a, Entity_Offset* b)
         {
-            Reference copy = *a;
+            Entity_Offset copy = *a;
             *a = *b;
             *b = copy;
         }
@@ -4517,7 +4546,7 @@ SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
     Assert(count);
     if(count)
     {
-        Assert(local::Content_is_Valid(refs, count, game_state));
+        Assert(local::Content_is_Valid(offs, count, game_state));
 
         bool swapped = true;
         for(u64 i = 0; i < count - 1 && swapped; ++i)
@@ -4525,11 +4554,11 @@ SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
             swapped = false;
             for(u64 j = 0; j < count - 1; ++j)
             {
-                Reference* A = refs + j;
-                Reference* B = A + 1;
+                Entity_Offset* A = offs + j;
+                Entity_Offset* B = A + 1;
 
-                Entity* EA = Dereference(A, game_state);
-                Entity* EB = Dereference(B, game_state);
+                Entity* EA = Pointer(*A, game_state);
+                Entity* EB = Pointer(*B, game_state);
                 
                 Assert(EA);
                 Assert(EB);
@@ -4543,19 +4572,19 @@ SIG void Sort_Iniative_Order(Reference* refs, Game_State* game_state)
                     swapped = true;
                 }
 
-                Assert(Dereference(A, game_state));
-                Assert(Dereference(B, game_state));
+                Assert(Pointer(*A, game_state));
+                Assert(Pointer(*B, game_state));
             }
         }
         
-        Assert(local::Is_Sorted(refs, count, game_state));
+        Assert(local::Is_Sorted(offs, count, game_state));
 
         Entity_Iterator iter = Make_Iterator(&game_state->initiative_order, game_state);
         
         u64 i = 0;
-        while(Reference* reference = Next(&iter))
+        while(Entity_Offset* offset = Next(&iter))
         {
-            *reference = refs[i++];
+            *offset = offs[i++];
         }
 
         Assert(local::Is_Sorted(game_state));
@@ -4588,7 +4617,7 @@ SIG void Sort_Space(Entity_Root_Node* space, Game_State* game_state)
         if the last living thing is after the dead thing. Swap them and continue.
     */
     
-    Entity* player = Dereference(game_state->player, game_state);
+    Entity* player = Pointer(game_state->player, game_state);
     if(player)
     {
         u64 count = Count(space, game_state);
@@ -4596,17 +4625,17 @@ SIG void Sort_Space(Entity_Root_Node* space, Game_State* game_state)
         
         Entity_Iterator iter = Make_Iterator(space, game_state);
         
-        while(Reference* A = Next(&iter))
+        while(Entity_Offset* A = Next(&iter))
         {
-            Entity* entity = Dereference(A, game_state);
+            Entity* entity = Pointer(*A, game_state);
             
             if(!Is_Living_Enemy_Of(entity, player))
             {
                 // Find last living
                 Backwards_Iterator back_iter = Make_Backwards_Iterator(space, game_state);
-                while(Reference* B = Previous(&back_iter))
+                while(Entity_Offset* B = Previous(&back_iter))
                 {
-                    Entity* other = Dereference(B, game_state);
+                    Entity* other = Pointer(*B, game_state);
                     
                     if(entity == other)
                     {
@@ -4619,7 +4648,7 @@ SIG void Sort_Space(Entity_Root_Node* space, Game_State* game_state)
                         if(Is_Living_Enemy_Of(other, player))
                         {
                             // Swap!
-                            Reference temp = *A;
+                            Entity_Offset temp = *A;
                             *A = *B;
                             *B = temp;
                         }
@@ -4948,7 +4977,7 @@ SIG void Create_Player_Charater(Game_State* game_state)
         player->faction = Faction::player;    
         player->weight = 100;
 
-        game_state->player = Make_Reference(player, game_state);
+        game_state->player = Offset(player, game_state);
         Full_Heal(player, game_state);
 
         #if !QUICKSTART
@@ -5055,7 +5084,7 @@ SIG void Proceed(Game_State* game_state)
     game_state->initiative_count = 0;
     game_state->next_room = false;
 
-    Entity* player = Dereference(game_state->player, game_state);
+    Entity* player = Pointer(game_state->player, game_state);
     if(Is_Alive(player))
     {
         Flush_Messages(game_state);
@@ -5074,16 +5103,28 @@ SIG void Proceed(Game_State* game_state)
             }
         }
 
-        if(Entity* prev_room = Dereference(player->residence, game_state))
+        if(Entity* prev_room = Pointer(player->residence, game_state))
         {
             Remove_From_Residence(player, game_state);
-            Assert(Dereference(player->residence, game_state) == 0);
+            Assert(Pointer(player->residence, game_state) == 0);
             Delete_Entity(prev_room, game_state);
         }
 
         if(!you_win)
         {
-            Entity* room = Next_Room(levels[game_state->level % Array_Length(levels)], game_state);
+            Entity* room = 0;
+            if(PROTOTYPE_ENT_GS* override = Pointer(game_state->room_generation_override_fn_offset, game_state))
+            {
+                // TODO: I want these paths to operate uniformly.
+                room = Request_Entity(game_state);
+                override(room, game_state);
+
+                game_state->room_generation_override_fn_offset = {};
+            }
+            else
+            {
+                room = Next_Room(levels[game_state->level % Array_Length(levels)], game_state);
+            }
 
             Deep_Insert(player, room, game_state);
             Sort_Space(&room->inventory, game_state);
@@ -5105,8 +5146,8 @@ SIG void Prepare_Game_Round(Game_State* game_state)
         game_state->initiative_count = 0;
         game_state->active_initiative_index = 0;
 
-        Entity* player = Dereference(&game_state->player, game_state);
-        Entity* room = Dereference(player->residence, game_state);
+        Entity* player = Pointer(game_state->player, game_state);
+        Entity* room = Pointer(player->residence, game_state);
 
         Entity_Root_Node* space = &room->inventory;
         Assert(space);
@@ -5121,10 +5162,10 @@ SIG void Prepare_Game_Round(Game_State* game_state)
         
         u64 visible_initiative_count = 0;
         Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
-        Reference* refs_base = (Reference*)Push(&game_state->scratch_buffer, 0);
+        Entity_Offset* offsets_base = (Entity_Offset*)Push(&game_state->scratch_buffer, 0);
         
         #if SLOW
-        Reference* expected_next = refs_base;
+        Entity_Offset* expected_next = offsets_base;
         u64 counter = 0;
         #endif
         
@@ -5132,9 +5173,9 @@ SIG void Prepare_Game_Round(Game_State* game_state)
         s32 longest_digit_count = 0;
         {
             Entity_Iterator iter = Make_Iterator(space, game_state);
-            while(Reference* ref = Next(&iter))
+            while(Entity_Offset* off = Next(&iter))
             {
-                Entity* entity = Dereference(ref, game_state);
+                Entity* entity = Pointer(*off, game_state);
                 Assert(entity);
 
                 if(Roll_Initiative(entity, game_state))
@@ -5149,10 +5190,10 @@ SIG void Prepare_Game_Round(Game_State* game_state)
 
                     Insert(entity, &game_state->initiative_order, game_state);
                     
-                    Reference* array_entry = Push_Struct(&game_state->scratch_buffer, Reference);
-                    *array_entry = *ref;
+                    Entity_Offset* array_entry = Push_Struct(&game_state->scratch_buffer, Entity_Offset);
+                    *array_entry = *off;
                     
-                    Assert(Dereference(*array_entry, game_state));
+                    Assert(Pointer(*array_entry, game_state));
                     Assert(array_entry == (expected_next++));
                 }
             }
@@ -5161,7 +5202,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
         Assert(game_state->initiative_count);
         if(game_state->initiative_count)
         {
-            Sort_Iniative_Order(refs_base, game_state);
+            Sort_Iniative_Order(offsets_base, game_state);
 
             if(visible_initiative_count > 1)
             {
@@ -5171,14 +5212,14 @@ SIG void Prepare_Game_Round(Game_State* game_state)
                 Print("\nInitiative order is:");
                 
                 Entity_Iterator iter = Make_Iterator(&game_state->initiative_order, game_state);
-                while(Reference* ref = Next(&iter))
+                while(Entity_Offset* off = Next(&iter))
                 {
-                    Entity* entity = Dereference(ref, game_state);
+                    Entity* entity = Pointer(*off, game_state);
                     Initiative* init = &entity->initiative;
 
                     if(init->visible)
                     {
-                        Wait(0.4, game_state);
+                        Wait(0.8, game_state);
 
                         s32 npadding = s32(longest_entity_name_lenght + 1);
                         s32 dpadding = s32(longest_digit_count);
@@ -5198,8 +5239,6 @@ SIG void Prepare_Game_Round(Game_State* game_state)
                         Print("]");
                     }
                 }
-
-                Wait(1, game_state);
             }
         }
         else
@@ -5224,7 +5263,7 @@ SIG void Excecute_Game_Round(Game_State* game_state)
         {
             if(i == game_state->active_initiative_index)
             {
-                Entity* entity = Dereference(node->entities[j], game_state);
+                Entity* entity = Pointer(node->entities[j], game_state);
                 Take_Action(entity, game_state);
 
                 if(!game_state->running || game_state->restart || game_state->loaded || game_state->next_room)
@@ -5261,7 +5300,7 @@ SIG void Exit_Handling(Game_State* game_state)
         }
         else if(game_state->running)
         {
-            Entity* player = Dereference(&game_state->player, game_state);
+            Entity* player = Pointer(game_state->player, game_state);
             if(!Is_Alive(player))
             {
                 game_state->running = false;
@@ -5452,7 +5491,7 @@ SIG CMD_Result::T Toggle_Dramatic_Pause(Entity* actor, String args, Game_State* 
 
 SIG CMD_Result::T Toggle_Godmode(Entity* actor, String args, Game_State* game_state)
 {
-    Entity* player = Dereference(&game_state->player, game_state);
+    Entity* player = Pointer(game_state->player, game_state);
     player->flags ^= EFlags::godmode;
     if(player->flags & EFlags::godmode)
     {
@@ -5696,7 +5735,7 @@ SIG CMD_Result::T Proceed_Command(Entity* actor, String args, Game_State* game_s
     
     if(args.length == 0)
     {
-        Entity* room = Dereference(actor->residence, game_state);
+        Entity* room = Pointer(actor->residence, game_state);
         if(room)
         {
             struct Catch_Attempt
@@ -5803,7 +5842,7 @@ SIG CMD_Result::T Equipment_Command(Entity* actor, String args, Game_State* game
         for(u64 i = 0; i < Equipment_Slots::COUNT; ++i)
         {
             Print("\n| %*s:", s32(longest_equipment_slot_name_length), Equipment_Slots::name[i].ptr);
-            if(Entity* entity = Dereference(actor->equipment + i, game_state))
+            if(Entity* entity = Pointer(actor->equipment[i], game_state))
             {
                 Print(" %s", Name(entity, game_state).ptr);
             }
@@ -5837,7 +5876,7 @@ SIG CMD_Result::T Drop_Command(Entity* actor, String args, Game_State* game_stat
             Print("\n%s unequiped.", target_name.ptr);
         }
         
-        if(Entity* room = Dereference(actor->residence, game_state))
+        if(Entity* room = Pointer(actor->residence, game_state))
         {
             Deep_Insert(target, room, game_state);
         }
@@ -6100,7 +6139,7 @@ SIG CMD_Result::T Inspect_Command(Entity* actor, String args, Game_State* game_s
 {
     CMD_Result::T result = CMD_Result::abort;
 
-    Entity* space = Dereference(actor->residence, game_state);
+    Entity* space = Pointer(actor->residence, game_state);
     
     String inv = STR("inventory");
     
@@ -6137,6 +6176,22 @@ SIG CMD_Result::T Inspect_Command(Entity* actor, String args, Game_State* game_s
 }
 
 
+SIG CMD_Result::T What_Is_Seed_Command(Entity* entity, String args, Game_State* game_state)
+{
+    CMD_Result::T result = CMD_Result::success;
+    if(args.length == 0)
+    {
+        Print("\nSeed is: %d", game_state->initial_seed);
+    }
+    else
+    {
+        result = CMD_Result::invalid_args;
+    }
+    
+    return result;
+}
+
+
 SIG CMD_Result::T Pass_Command(Entity* actor, String args, Game_State* game_state)
 {
     CMD_Result::T result = CMD_Result::success;
@@ -6166,6 +6221,49 @@ SIG CMD_Result::T Glance_Command(Entity* actor, String args, Game_State* game_st
             Print("\nYou glance around the room... ");
             Wait(1, game_state);
             Print("but nothing catches your eye.");
+        }
+    }
+    else
+    {
+        result = CMD_Result::invalid_args;
+    }
+
+    return result;
+}
+
+
+SIG CMD_Result::T Search_Command(Entity* actor, String args, Game_State* game_state)
+{
+    Assert(actor);
+    
+    CMD_Result::T result = CMD_Result::success;
+    
+    if(args.length == 0)
+    {
+        bool first = true;
+
+        Entity_Iterator iter = Make_Iterator(Pointer(actor->residence, game_state), game_state);
+        while(Entity* entity = Next_Entity(&iter))
+        {
+            if(!Is_Visible(entity))
+            {
+                entity->flags |= EFlags::visible;
+                if(Is_Visible(entity))
+                {
+                    if(first)
+                    {
+                        first = false;
+                        Print("\nYou find:");
+                    }
+
+                    Print("\n| %s", Name(entity, game_state).ptr);
+                }
+            }
+        }
+
+        if(first)
+        {
+            Print("\nYou search around, but you don't find anything new.");
         }
     }
     else

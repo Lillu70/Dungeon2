@@ -257,8 +257,8 @@ SIG Effect_Offset Get_Weak_Grip_Offset(Game_State* game_state)
             {
                 if(stat == Stats::might)
                 {
-                    Reference item_equiped_in_primary_hand = actor->equipment[Equipment_Slots::primary_hand];
-                    if(Entity* item = Dereference(item_equiped_in_primary_hand, game_state))
+                    Entity_Offset item_equiped_in_primary_hand = actor->equipment[Equipment_Slots::primary_hand];
+                    if(Entity* item = Pointer(item_equiped_in_primary_hand, game_state))
                     {
                         if(Effect* effect = Pointer(item->on_equip_effect_offset, game_state))
                         {
@@ -337,7 +337,7 @@ SIG Effect_Instance Reckless_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration = 1;
         instance.zero_ticked = true;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -367,7 +367,7 @@ SIG Effect_Instance Careful_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration = 1;
         instance.duration_type = Duration_Type::attack;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -394,7 +394,7 @@ SIG Effect_Instance Weakspot_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration = 1;
         instance.duration_type = Duration_Type::attack;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -424,7 +424,7 @@ SIG Effect_Instance Allin_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration = 1;
         instance.duration_type = Duration_Type::attack;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -451,7 +451,7 @@ SIG Effect_Instance Guarding_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration = 1;
         instance.zero_ticked = true;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -478,7 +478,7 @@ SIG Effect_Instance Evasive_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration = 1;
         instance.zero_ticked = true;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -543,7 +543,7 @@ SIG Effect_Instance Execute_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -564,10 +564,10 @@ SIG Effect_Instance Disarming_Attack(Entity* attacker, Game_State* game_state)
             {
                 if(ar->is_critical_success)
                 {
-                    if(Entity* weapon = Dereference(defender->equipment[Equipment_Slots::primary_hand], game_state))
+                    if(Entity* weapon = Pointer(defender->equipment[Equipment_Slots::primary_hand], game_state))
                     {
                         // Internals
-                        Entity* room = Dereference(defender->residence, game_state);
+                        Entity* room = Pointer(defender->residence, game_state);
                         Assert(room);
                         Deep_Insert(weapon, room, game_state);
 
@@ -586,7 +586,7 @@ SIG Effect_Instance Disarming_Attack(Entity* attacker, Game_State* game_state)
                     Effect_Instance weak_grip_instance = {};
                     weak_grip_instance.effect_offset = Get_Weak_Grip_Offset(game_state);
                     weak_grip_instance.duration = 1;
-                    weak_grip_instance.source = Make_Reference(attacker, game_state);
+                    weak_grip_instance.source = Offset(attacker, game_state);
 
                     Apply_Effect_Result apply = Apply_Effect(defender, weak_grip_instance, game_state);
                     Push_Generic_Apply_Effect_Message(instance, defender, weak_grip_instance, apply, game_state);
@@ -614,7 +614,7 @@ SIG Effect_Instance Disarming_Attack(Entity* attacker, Game_State* game_state)
         instance.effect_offset = Offset(effect, game_state);
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -643,7 +643,7 @@ SIG Effect_Instance Vampiric_Attack(Entity* attacker, Game_State* game_state)
 
                 Effect_Instance vampirism_effect_instance = {};
                 vampirism_effect_instance.effect_offset = Get_Vampirism_Effect_Offset(game_state);
-                vampirism_effect_instance.source = Make_Reference(attacker, game_state);
+                vampirism_effect_instance.source = Offset(attacker, game_state);
 
                 Apply_Effect_Result apply = Apply_Effect(attacker, vampirism_effect_instance, game_state);
                 Push_Generic_Apply_Effect_Message(instance, attacker, vampirism_effect_instance, apply, game_state);
@@ -672,7 +672,7 @@ SIG Effect_Instance Vampiric_Attack(Entity* attacker, Game_State* game_state)
 
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -713,7 +713,7 @@ SIG Effect_Instance Blessed_Attack(Entity* attacker, Game_State* game_state)
                 Deal_Damage
                 (
                     attacker, 
-                    Make_Reference(attacker, game_state), 
+                    Offset(attacker, game_state), 
                     Effect_Name(instance, game_state), 
                     amount,
                     0,
@@ -746,7 +746,7 @@ SIG Effect_Instance Blessed_Attack(Entity* attacker, Game_State* game_state)
 
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -768,7 +768,7 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
                 Deal_Damage
                 (
                     attacker, 
-                    Make_Reference(attacker, game_state), 
+                    Offset(attacker, game_state), 
                     Effect_Name(instance, game_state), 
                     Round_To_S32(f32(ar->deal_damage_result.damage_after_mitigation) / 2.f),
                     0,
@@ -820,7 +820,7 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
 
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -868,7 +868,7 @@ SIG Effect_Instance Redirect_Attack(Entity* attacker, Game_State* game_state)
 
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
 
         attacker->flags |= EFlags::goes_last;
         String message = Format_Message(game_state, "%s goes last on next initiative.", Name(attacker, game_state).ptr);
@@ -945,7 +945,7 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
                     instance.effect_offset = Insert_Effect(effect, key, game_state);
                 }
 
-                instance.source = Make_Reference(attacker, game_state);
+                instance.source = Offset(attacker, game_state);
                 instance.duration_type = Duration_Type::attack;
                 instance.duration = 1;
             }break;
@@ -962,7 +962,7 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
                     instance.effect_offset = Insert_Effect(effect, key, game_state);
                 }
 
-                instance.source = Make_Reference(attacker, game_state);
+                instance.source = Offset(attacker, game_state);
                 instance.duration_type = Duration_Type::attack;
                 instance.duration = 1;
             }break;
@@ -1067,7 +1067,7 @@ SIG Effect_Instance Thieving_Attack(Entity* attacker, Game_State* game_state)
 
         instance.zero_ticked = true;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {
@@ -1095,7 +1095,7 @@ SIG Effect_Instance Stylish_Attack(Entity* attacker, Game_State* game_state)
                 enraged_instance.effect_offset = Get_Enraged_Effect_Offset(game_state);
                 enraged_instance.duration = 1;
 
-                Entity* room = Dereference(attacker->residence, game_state);
+                Entity* room = Pointer(attacker->residence, game_state);
                 Entity_Iterator iter = Make_Iterator(room, game_state);
                 while(Entity* entity = Next_Entity(&iter))
                 {
@@ -1136,7 +1136,7 @@ SIG Effect_Instance Stylish_Attack(Entity* attacker, Game_State* game_state)
                 {
                     Package p = {attacker, defender};
 
-                    Entity* room = Dereference(attacker->residence, game_state);
+                    Entity* room = Pointer(attacker->residence, game_state);
                     if(Entity* target = Random_Entity_That_Matches_Criteria(&room->inventory, local::Conditional, &p, game_state))
                     {
                         String message = Format_Message
@@ -1177,7 +1177,7 @@ SIG Effect_Instance Stylish_Attack(Entity* attacker, Game_State* game_state)
 
         instance.duration_type = Duration_Type::attack;
         instance.duration = 1;
-        instance.source = Make_Reference(attacker, game_state);
+        instance.source = Offset(attacker, game_state);
     }
     else
     {

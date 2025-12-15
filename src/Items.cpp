@@ -129,7 +129,7 @@ SIG Entity* Create_Greate_Sword(Entity* room, Game_State* game_state)
         Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
         Equipment_Slots::flag[Equipment_Slots::secondary_hand];
     
-    entity->weight = 5;
+    entity->weight = 7;
     entity->_stats[Stats::vitality] = 3;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -194,7 +194,7 @@ SIG Entity* Create_Long_Spear(Entity* room, Game_State* game_state)
         Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
         Equipment_Slots::flag[Equipment_Slots::secondary_hand];
     
-    entity->weight = 7;
+    entity->weight = 6;
     entity->_stats[Stats::vitality] = 3;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -260,12 +260,12 @@ SIG Entity* Create_Magma_Hammer(Entity* room, Game_State* game_state)
                 Effect_Instance burning = {};
                 burning.effect_offset = Get_Burning_Effect_Offset(game_state);
                 burning.duration = burning_duration;
-                burning.source = Make_Reference(attacker, game_state);
+                burning.source = Offset(attacker, game_state);
 
                 Apply_Effect_Result apply = Apply_Effect(defender, burning, game_state);
                 Push_Generic_Apply_Effect_Message(instance, defender, burning, apply, game_state);
 
-                Entity_Iterator iter = Make_Iterator(Dereference(defender->residence, game_state), game_state);
+                Entity_Iterator iter = Make_Iterator(Pointer(defender->residence, game_state), game_state);
                 while(Entity* entity = Next_Entity(&iter))
                 {
                     if(entity != defender && Is_Living_Enemy_Of(entity, attacker))
@@ -358,7 +358,7 @@ SIG Entity* Create_Straightsword(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]  = + 2;
+        effect.stat_modifiers[Stats::might]  = + 4;
         Add_Dice(&effect, 1, 8);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -594,7 +594,7 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
                     {
                         poison_duration, 
                         poison_effect_offset, 
-                        Make_Reference(attacker, game_state)
+                        Offset(attacker, game_state)
                     };
 
                     Apply_Effect_Result apply = Apply_Effect(defender, poison_instance, game_state);
@@ -653,7 +653,7 @@ SIG Entity* Create_Cape_Of_Avoidance(Entity* room, Game_State* game_state)
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
-    entity->weight = 1;
+    entity->weight = 3;
     
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
@@ -679,7 +679,7 @@ SIG Entity* Create_Cape_Of_Dashing(Entity* room, Game_State* game_state)
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
-    entity->weight = 1;
+    entity->weight = 3;
     
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
@@ -734,7 +734,7 @@ SIG Entity* Create_Ring_Of_Giants(Entity* room, Game_State* game_state)
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
-    entity->weight = 50;
+    entity->weight = 30;
     entity->_stats[Stats::vitality] = 50;
 
     Effect_Hash_Key key = EFFECT_KEY;
@@ -781,11 +781,11 @@ SIG Entity* Create_Ring_Of_Rebirth(Entity* room, Game_State* game_state)
 {
     struct local
     {
-        static void Rebirth(Effect_Instance* instance, Reference attacker, Entity* defender, Deal_Damage_Result* ddr, Game_State* game_state)
+        static void Rebirth(Effect_Instance* instance, Entity_Offset attacker_offset, Entity* defender, Deal_Damage_Result* ddr, Game_State* game_state)
         {
             if(instance)
             {
-                Entity* ring = Dereference(instance->source, game_state);
+                Entity* ring = Pointer(instance->source, game_state);
                 if(ring && ring->interactable.uses_count && ddr->is_killing_blow)
                 {
                     Full_Heal(defender, game_state);
@@ -1544,15 +1544,15 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
 
             if(target)
             {
-                s16 base = Level(target);
-                Dice dice = {base, dice_faces};
+                s16 level = Level(target);
+                Dice dice = {1, level};
                 Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
 
                 s32* dice_results = Roll_With_Record(dice, game_state);
 
-                s32 potency = base + *dice_results;
+                s32 potency = level + *dice_results;
 
-                // Healing potion potency is: %d (%d + %dd%d = %d[%d, %d])
+                // Healing potion potency is: %d (%d + 1d%d = %d[%d, %d])
                 Arena* arena = &game_state->messages_buffer;
 
                 // NOTE: String construction in this language is rough... Would have been a bit easier in Python for instance.
@@ -1566,13 +1566,12 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
                 Push_String(arena, STR(" potency is: "), &length);
                 Push_String(arena, To_String(u64(potency), &m), &length);
                 Push_String(arena, STR(" ("), &length);
-                Push_String(arena, To_String(u64(base), &m), &length);
-                Push_String(arena, STR(" + "), &length);
-                Push_String(arena, To_String(u64(dice.count), &m), &length);
-                Push_String(arena, STR("d"), &length);
+                Push_String(arena, To_String(u64(level), &m), &length);
+                Push_String(arena, STR(" + 1d"), &length);
                 Push_String(arena, To_String(u64(dice.faces), &m), &length);
                 Push_String(arena, STR(" = "), &length);
                 Push_String(arena, To_String(u64(*dice_results), &m), &length);
+                #if 0
                 if(dice.count > 1)
                 {
                     Push_String(arena, STR("["), &length);
@@ -1586,6 +1585,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
                     }
                     Push_String(arena, STR("]"), &length);
                 }
+                #endif
                 Push_String(arena, STR(")"), &length);
 
                 Push(arena, 1); // null terminator!
@@ -1600,7 +1600,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
             }
             else
             {
-                Print("Heals the user by: (lvl) + (lvl)d%d.", dice_faces);
+                Print("Heals the user by: (lvl) + 1d(lvl).");
             }
         }
     };
@@ -1608,7 +1608,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Healing Potion"), game_state);
-    entity->description_offset = Offset(STR("Before The Fall these were very common, but now the magic that was used to create them is lost. Valued by all."), game_state);
+    entity->description_offset = Offset(STR("Produced in great numbers by the clergy, especially when preparing for war."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
     entity->rarity = Rarity::rare;
 

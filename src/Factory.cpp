@@ -23,12 +23,14 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     entity->flags |= EFlags::actor;
 
     s16* stats = entity->_stats;
-    stats[Stats::might]     = 7;
-    stats[Stats::speed]     = 7;
-    stats[Stats::dodge]     = 7;
-    stats[Stats::accuracy]  = 7;
-    stats[Stats::vitality]  = 7;
+    stats[Stats::might]     = 5;
+    stats[Stats::speed]     = 5;
+    stats[Stats::dodge]     = 5;
+    stats[Stats::accuracy]  = 5;
+    stats[Stats::vitality]  = 5;
     stats[Stats::armor]     = 1;
+    stats[Stats::arcane]    = 1;
+    stats[Stats::immunity]  = 1;
     Full_Heal(entity,  game_state);
 
     entity->known_attack_modifiers |= 
@@ -40,22 +42,20 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
 
     Set_Level_Based_On_Stats(entity);
     
-    Create_Leather_Cuirass(entity, game_state);
+    Equip(entity, Create_Straightsword(entity, game_state), game_state);
+    Equip(entity, Create_Wooden_Shield(entity, game_state), game_state);
 
-    Equip(entity, Create_Dagger(entity, game_state), game_state);
-    Equip(entity, Create_Shearing_Light(entity, game_state), game_state);
-    Equip(entity, Create_Backpack(entity, game_state), game_state);
-    Equip(entity, Create_Cape_Of_Avoidance(entity, game_state), game_state);
-    Equip(entity, Create_Cape_Of_Dashing(entity, game_state), game_state);
+    Equip(entity, Create_Leather_Cuirass(entity, game_state), game_state);
+    Equip(entity, Create_Arming_Cap(entity, game_state), game_state);
+    Entity* potion = Create_Healing_Potion(entity, game_state);
+    potion->interactable.uses_count = 5;
 
-    Create_Magma_Hammer(entity, game_state);
-
-    Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
-
-    Create_Antidote(entity, game_state);
-    Create_Healing_Potion(entity, game_state);
-    Create_Healing_Potion(entity, game_state);
-    Create_Healing_Potion(entity, game_state);
+    //Create_Magma_Hammer(entity, game_state);
+    //Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
+    // Create_Antidote(entity, game_state);
+    // 
+    // Create_Healing_Potion(entity, game_state);
+    // Create_Healing_Potion(entity, game_state);
 
     return entity;
 }
@@ -88,7 +88,7 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Bandit"), game_state);
     entity->description_offset = Offset(STR("A cave dwelling bandit, he looks to be up to no good."), game_state);
     
-    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->flags = EFlags::actor | EFlags::aggressive | EFlags::can_be_stolen_from;
     entity->faction = Faction::bandit;
     entity->weight = 100;
     
@@ -132,47 +132,213 @@ SIG Entity* Create_Giant_Rat(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
-    struct local
-    {
-        static void On_Hit_FN(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
-        {
-            f32 apply_poison_change = 0.5f;
-            u64 poison_duration = 4;
-            
-            if(attacker)
-            {
-                f32 r = Random_F32(game_state);
-                if(r <= apply_poison_change)
-                {
-                    // Apply poison!
-                    Effect_Offset poison_effect_offset = Get_Poison_Effect_Offset(game_state);
-                    Effect_Instance poison_instance = 
-                    {
-                        poison_duration, 
-                        poison_effect_offset, 
-                        Make_Reference(attacker, game_state)
-                    };
-                    
-                    Apply_Effect_Result apply = Apply_Effect(defender, poison_instance, game_state);
-                    Push_Generic_Apply_Effect_Message(instance, defender, poison_instance, apply, game_state);
-                }
-            }
-        }
-    };
-    
     entity->name_offset = Offset(STR("Giant rat"), game_state);
-    entity->description_offset = Offset(STR("An oversized feral rodent, with murder in its eyes and disease in its fangs."), game_state);
+    entity->description_offset = Offset(STR("An oversized feral rodent. It must have devoured many a traveler to become so large."), game_state);
 
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 60;
     
     s16* stats = entity->_stats;
-    stats[Stats::might]     = 2;
-    stats[Stats::dodge]     = 6;
-    stats[Stats::speed]     = 10;
-    stats[Stats::accuracy]  = 6;
+    stats[Stats::might]     = 8;
+    stats[Stats::dodge]     = 4;
+    stats[Stats::speed]     = 4;
+    stats[Stats::accuracy]  = 3;
     stats[Stats::vitality]  = 3;
+    stats[Stats::armor]     = 4;
+    
+    Finalize_Entity(entity, room, game_state);
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    
+    Effect_Offset effect_offset;
+    if(!Retrive_Effect(key, &effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Fangs"), game_state);
+        Add_Dice(&effect, 1, 5);
+        effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        effect_offset, 
+        Offset(entity, game_state)
+    };
+    
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state);
+    Assert(apply == Apply_Effect_Result::success);
+
+
+    Loot_Table table = Merge_Loot_Tables
+    (
+        Basic_Armors_Loot_Table(game_state), 
+        Basic_Trinkets_Loot_Table(game_state), 
+        Basic_Consumables_Loot_Table(game_state), 
+        &game_state->scratch_buffer
+    );
+
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::epic).Weight(Comparison::maximum, 3);
+    u64 count = 0;
+    for(u64 i = 0; i < 5; ++i) if(Roll(30, game_state) == 1) count += 1;
+    Generate_From_Loot_Table(entity, table, count, rules.Finish(), game_state);
+
+    return entity;
+}
+
+
+SIG Entity* Create_Enlarged_Ant(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Enlarged ant"), game_state);
+    entity->description_offset = Offset(STR("It's snapping its pinchers at you."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 10;
+    entity->bonus_exp_reward = -150;
+    
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 3;
+    stats[Stats::dodge]     = 2;
+    stats[Stats::speed]     = 2;
+    stats[Stats::accuracy]  = 2;
+    stats[Stats::vitality]  = 1;
+    stats[Stats::armor]     = 1;
+    
+    Finalize_Entity(entity, room, game_state);
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    
+    Effect_Offset effect_offset;
+    if(!Retrive_Effect(key, &effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Pinchers"), game_state);
+        Add_Dice(&effect, 1, 4);
+        effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        effect_offset, 
+        Offset(entity, game_state)
+    };
+    
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state);
+    Assert(apply == Apply_Effect_Result::success);
+
+    return entity;
+}
+
+
+SIG Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(Entity* space = Pointer(target->residence, game_state))
+                {
+                    String effect_name = Effect_Name(instance, game_state);
+                    for(u32 i = 0; i < 3; ++i)
+                    {
+                        if(Roll(Square(i + 2), game_state) == 1)
+                        {
+                            Entity* ant = Create_Enlarged_Ant(space, game_state);
+                            ant->bonus_exp_reward -= (s16)Exp_Reward(ant);
+                            String message = Format_Message(game_state, "%s birts an %s.", effect_name.ptr, Name(ant, game_state).ptr);
+                            Push_Message(message, game_state);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Print("Spawns 0-3 Enlarged ants.");
+            }
+        }
+    };
+
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Enlarged ant queen"), game_state);
+    entity->description_offset = Offset(STR("Its abdomen is so large that it can not move."), game_state);
+
+    entity->flags = EFlags::actor;
+    entity->faction = Faction::nature;
+    entity->weight = 300;
+    entity->bonus_exp_reward = + 500;
+    
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 1;
+    stats[Stats::dodge]     = 1;
+    stats[Stats::speed]     = 1;
+    stats[Stats::accuracy]  = 1;
+    stats[Stats::vitality]  = 12;
+    stats[Stats::armor]     = 8;
+    
+    Finalize_Entity(entity, room, game_state);
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    
+    Effect_Offset effect_offset;
+    if(!Retrive_Effect(key, &effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_turn_start_fn_offset = Offset(local::On_Turn_Start, game_state);
+        effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        effect_offset, 
+        Offset(entity, game_state)
+    };
+    
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state);
+    Assert(apply == Apply_Effect_Result::success);
+
+    Loot_Table table = Merge_Loot_Tables
+    (
+        Basic_Weapons_Loot_Table(game_state),
+        Basic_Armors_Loot_Table(game_state),
+        Basic_Trinkets_Loot_Table(game_state),
+        Basic_Consumables_Loot_Table(game_state),
+        &game_state->scratch_buffer
+    );
+
+    Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::minimum, Rarity::magical).Finish(), game_state);
+    Generate_From_Loot_Table(entity, table, Roll(3, game_state) - 1, Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), game_state);
+
+    return entity;
+}
+
+
+SIG Entity* Create_Bear_Cub(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Bear cub"), game_state);
+    entity->description_offset = Offset(STR("Small for a bear, but still quite formitable. Its mother is propably near by."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 80;
+    
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 8;
+    stats[Stats::dodge]     = 4;
+    stats[Stats::speed]     = 4;
+    stats[Stats::accuracy]  = 3;
+    stats[Stats::vitality]  = 8;
     stats[Stats::armor]     = 2;
     
     Finalize_Entity(entity, room, game_state);
@@ -183,9 +349,8 @@ SIG Entity* Create_Giant_Rat(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &effect_offset, game_state))
     {
         Effect effect = {};
-        effect.name_offset = Offset(STR("Blight Fangs"), game_state);
-        effect.on_hit_fn_offset = Offset(local::On_Hit_FN, game_state);
-        Add_Dice(&effect, 1, 4);
+        effect.name_offset = Offset(STR("Claws"), game_state);
+        Add_Dice(&effect, 1, 6);
         effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -193,11 +358,144 @@ SIG Entity* Create_Giant_Rat(Entity* room, Game_State* game_state)
     {
         UNLIMITED_DURATION, 
         effect_offset, 
-        Make_Reference(entity, game_state)
+        Offset(entity, game_state)
     };
     
     Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state);
     Assert(apply == Apply_Effect_Result::success);
+
+
+    Loot_Table table = Merge_Loot_Tables
+    (
+        Basic_Armors_Loot_Table(game_state), 
+        Basic_Trinkets_Loot_Table(game_state), 
+        Basic_Consumables_Loot_Table(game_state), 
+        &game_state->scratch_buffer
+    );
+
+    Pick_From_Table_Rules rules = Rules_Builder()
+    .Rarity(Comparison::maximum, Rarity::epic)
+    .Weight(Comparison::maximum, 5)
+    .Finish();
+    
+    u64 count = 0;
+    for(u64 i = 0; i < 5; ++i) if(Roll(30, game_state) == 1) count += 1;
+    Generate_From_Loot_Table(entity, table, count, rules, game_state);
+
+    return entity;
+}
+
+
+SIG Entity* Create_Mutant_Hedgehog(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Mutant hedgehog"), game_state);
+
+    char description[] = 
+    "Curled up in a ball of spikes, it only opens to strike at its pray.\n"
+    "Stuck in it's spikes you can see something that glimmers.\n"
+    "Likely from one of it's previous assailants.";
+
+    entity->description_offset = Offset(STR(description), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 60;
+    
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 4;
+    stats[Stats::dodge]     = 1;
+    stats[Stats::speed]     = 1;
+    stats[Stats::accuracy]  = 2;
+    stats[Stats::vitality]  = 6;
+    stats[Stats::armor]     = 7;
+    
+    Finalize_Entity(entity, room, game_state);
+    
+    {
+        Effect_Hash_Key key = EFFECT_KEY;
+        
+        Effect_Offset effect_offset;
+        if(!Retrive_Effect(key, &effect_offset, game_state))
+        {
+            Effect effect = {};
+            effect.name_offset = Offset(STR("Spike shell"), game_state);
+            effect.thorns_damage = 6;
+            effect_offset = Insert_Effect(effect, key, game_state);
+        }
+
+        Effect_Instance effect_instance = 
+        {
+            UNLIMITED_DURATION, 
+            effect_offset, 
+            Offset(entity, game_state)
+        };
+        
+        Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state);
+        Assert(apply == Apply_Effect_Result::success);
+    }
+
+    {
+        Effect_Hash_Key key = EFFECT_KEY;
+        
+        Effect_Offset effect_offset;
+        if(!Retrive_Effect(key, &effect_offset, game_state))
+        {
+            Effect effect = {};
+            effect.name_offset = Offset(STR("Claws"), game_state);
+            Add_Dice(&effect, 1, 4);
+            effect_offset = Insert_Effect(effect, key, game_state);
+        }
+
+        Effect_Instance effect_instance = 
+        {
+            UNLIMITED_DURATION, 
+            effect_offset, 
+            Offset(entity, game_state)
+        };
+        
+        Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state);
+        Assert(apply == Apply_Effect_Result::success);
+    }
+
+    
+    Loot_Table table = Merge_Loot_Tables
+    (
+        Basic_Armors_Loot_Table(game_state),
+        Basic_Weapons_Loot_Table(game_state),
+        Basic_Trinkets_Loot_Table(game_state), 
+        Basic_Consumables_Loot_Table(game_state), 
+        &game_state->scratch_buffer
+    );
+
+    Pick_From_Table_Rules rules = Rules_Builder().Weight(Comparison::maximum, 5).Finish();
+    u64 count = 1;
+    for(u64 i = 0; i < 4; ++i) if(Roll(5, game_state) == 1) count += 1;
+    Generate_From_Loot_Table(entity, table, count, rules, game_state);
+
+    return entity;
+}
+
+
+SIG Entity* Create_Training_Dummmy(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Training dummy"), game_state);
+    entity->description_offset = Offset(STR("Sturdy human shaped dummy, made for practising the usage of weapons."), game_state);
+
+    entity->weight = 100;
+    
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 0;
+    stats[Stats::dodge]     = 0;
+    stats[Stats::speed]     = 0;
+    stats[Stats::accuracy]  = 0;
+    stats[Stats::vitality]  = 100;
+    stats[Stats::armor]     = 5;
+    
+    Finalize_Entity(entity, room, game_state);
     return entity;
 }
 
@@ -231,13 +529,48 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
     
     entity->burst_message_offset = Offset(STR("bursts open releasing it's contents"), game_state);
     entity->burst_change = 0.3f;
-    
     entity->weight = 1000;
     
-    Create_Giant_Rat(entity, game_state);
-    
-    Finalize_Entity(entity, room, game_state);
+    Loot_Table table = Merge_Loot_Tables
+    (
+        Basic_Armors_Loot_Table(game_state), 
+        Basic_Trinkets_Loot_Table(game_state), 
+        Basic_Weapons_Loot_Table(game_state),
+        Basic_Consumables_Loot_Table(game_state), 
+        &game_state->scratch_buffer
+    );
 
+    Pick_From_Table_Rules rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::epic).Finish();
+
+    f32 total_change = 0;
+    for(u64 i = 0; i < table.count; ++i)
+    {
+        Loot_Table_Entry entry = table.array[i];
+        if(Is_Compliant(entry, rules))
+        {
+            total_change += entry.change;
+        }
+    }
+
+    Loot_Table_Entry rats[] =
+    {
+        {Create_Giant_Rat, total_change * 0.8f},
+    };
+
+    table = Merge_Loot_Tables(table, {rats, Array_Length(rats), true}, &game_state->scratch_buffer);
+
+    u64 count = Roll(2, game_state) - 1;
+    for(u32 i = 0; i < 5; ++i)
+    {
+        if(Roll(Square(i + 2), game_state) == 1)
+        {
+            count += 1;
+        }
+    }
+
+    Generate_From_Loot_Table(entity, table, count, rules, game_state);
+
+    Finalize_Entity(entity, room, game_state);
     return entity;
 }
 
@@ -248,7 +581,30 @@ SIG Entity* Create_Spider(Entity* room, Game_State* game_state)
 
     struct local
     {
-        
+        static void On_Hit_FN(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            f32 apply_poison_change = 0.5f;
+            u64 poison_duration = 4;
+            
+            if(attacker)
+            {
+                f32 r = Random_F32(game_state);
+                if(r <= apply_poison_change)
+                {
+                    // Apply poison!
+                    Effect_Offset poison_effect_offset = Get_Poison_Effect_Offset(game_state);
+                    Effect_Instance poison_instance = 
+                    {
+                        poison_duration, 
+                        poison_effect_offset, 
+                        Offset(attacker, game_state)
+                    };
+                    
+                    Apply_Effect_Result apply = Apply_Effect(defender, poison_instance, game_state);
+                    Push_Generic_Apply_Effect_Message(instance, defender, poison_instance, apply, game_state);
+                }
+            }
+        }
     };
     
     entity->name_offset = Offset(STR("Spider"), game_state);
@@ -331,7 +687,17 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
 
-    LOOP(3) Create_Bandit(room, game_state);
+    Create_Rat_Mound(room, game_state);
+
+    Create_Dagger(room, game_state);
+
+    //Create_Enlarged_Ant_Queen(room, game_state);
+    //LOOP(3) Create_Enlarged_Ant(room, game_state);
+    //Create_Bear_Cub(room, game_state);
+    //Create_Mutant_Hedgehog(room, game_state);
+    //LOOP(2) Create_Giant_Rat(room, game_state);
+    //Create_Training_Dummmy(room, game_state);
+    //LOOP(3) Create_Bandit(room, game_state);
     //Create_Magma_Hammer(room, game_state);
     //Create_Boss_Spider(room, game_state);
     //Create_Wooden_Shield(room, game_state);
@@ -356,25 +722,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 room->description_offset = Offset(STR(room_description), game_state);
 
 
-                LOOP(1 + Roll(2, game_state))   Create_Giant_Rat(room, game_state);
-                if(Roll(3, game_state) == 1)    Create_Rat_Mound(room, game_state);
-            }
-
-            return room;
-        }
-
-        static Entity* Altar(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
-        {
-            Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
-            if(fill_room_if_greater_than_zero)
-            {
-                room->name_offset = Offset(STR("a circular room"), game_state);
-                char room_description[] = 
-                "The walls in this room feel un-naturally smooth. Perhaps dwarwen make?\n"
-                "In the center there is what appears to be an altar to a God unknown to you.\n"
-                "You can \"use\" the altar to seek a blessing from this deity.";
-                room->description_offset = Offset(STR(room_description), game_state);
+                LOOP(Roll(2, game_state))    Create_Giant_Rat(room, game_state);
+                if(Roll(3, game_state) == 1) Create_Rat_Mound(room, game_state);
             }
 
             return room;
@@ -402,7 +751,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
     local_storage Loot_Table_Entry entries[] = 
     {
         {local::Opening},
-        {local::Altar},
         {local::Beast_Lair},
     };
 

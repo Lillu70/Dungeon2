@@ -13,7 +13,7 @@
 
 #define CRITICAL_DICE_RANGE 100
 
-#include "Generated_Offsets.h"
+#include "Generated_Offsets.h" // NOTE: Generated file!
 
 // NOTE: Why? Well... Headache does not output namespaces in the order they appear in code, 
 // and in the generated forward declartion file Stats::T has to be above PROTOTYPE_EFFINST_ENT_STAT_S32_GS.
@@ -78,22 +78,18 @@ namespace EFlags
         equippable          = u64(1) << 3,
         interactable        = u64(1) << 4,
         hidden_iniative     = u64(1) << 5,
-        container           = u64(1) << 6,
+        container           = u64(1) << 6, // do I need this?
         burst_container     = u64(1) << 7,
         is_open             = u64(1) << 8,
         goes_last           = u64(1) << 9,
         redirected          = u64(1) << 10,
+        can_be_stolen_from  = u64(1) << 11,
+        visible             = u64(1) << 12,
 
         started_turn        = u64(1) << 49,
         player_controlled   = u64(1) << 50,
         godmode             = u64(1) << 63, // Devmode thingy
     };
-};
-
-
-struct Entity_Offset
-{
-    u64 v;
 };
 
 
@@ -150,16 +146,16 @@ struct String_Table_Root
 };
 
 
-struct Reference
+struct Entity_Offset
 {
-    u64 offset;
+    u64 v;
     u64 ID;
 };
 
 
 struct Entity_Node
 {
-    Reference entities[16];
+    Entity_Offset entities[16];
     Entity_Node_Offset next;
 };
 
@@ -275,7 +271,7 @@ struct Effect
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_miss_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_hit_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_dodge_fn_offset;
-    PROTOTYPE_EFFINST_REF_ENT_DDR_GS_Offset /*-----------*/ on_damage_taken_fn_offset;
+    PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS_Offset /*--------*/ on_damage_taken_fn_offset;
     PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS_Offset /*--------*/ on_heal_fn_offset;
     PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS_Offset /**/ on_get_stat_value_fn_offset;
 
@@ -378,7 +374,7 @@ struct Effect_Instance
 {
     u64 duration;
     Effect_Offset effect_offset;
-    Reference source;
+    Entity_Offset source;
 
     u64 round_applied;
     Duration_Type duration_type;
@@ -442,7 +438,7 @@ struct Roll_Result
 
 struct Initiative
 {
-    Reference ref;
+    Entity_Offset offset;
     Roll_Result value;
     bool visible;
 };
@@ -480,8 +476,8 @@ struct Entity
             String_Offset description_offset;
             String_Offset burst_message_offset;
             
-            Reference residence;
-            Reference equipment[Equipment_Slots::COUNT];
+            Entity_Offset residence;
+            Entity_Offset equipment[Equipment_Slots::COUNT];
             
             Entity_Root_Node inventory;
             Effects_Root active_effects;
@@ -583,8 +579,8 @@ struct Message_Pipe
 
 struct Attack_Record
 {
-    Reference attacker;
-    Reference defender;
+    Entity* attacker;
+    Entity* defender;
     
     Attack_Mod::T attack_modifier;    
 
@@ -735,7 +731,7 @@ struct Game_State
     u32 random_state;
     u64 prev_entity_ID;
 
-    Reference player;
+    Entity_Offset player;
 
     Message_Pipe messages;
 
@@ -774,6 +770,7 @@ struct Loot_Table_Entry
     f32 change;
     Rarity::T rarity;
     u32 required_slots;
+    s16 weight;
 };
 
 
@@ -800,8 +797,8 @@ struct Pick_From_Table_Rules
     u32* equipment_slot_filters;
     u64 equipment_slot_filter_count;
     Comparison weight_comparison;
-    s32 target_weight_A;
-    s32 target_weight_B;
+    s16 target_weight_A;
+    s16 target_weight_B;
 };
 
 
@@ -831,7 +828,7 @@ struct Rules_Builder
         return *this;
     }
 
-    Rules_Builder Weight(Comparison comp, s32 A, s32 B = s32(0))
+    Rules_Builder Weight(Comparison comp, s16 A, s16 B = s32(0))
     {
         rules.weight_comparison = comp;
         rules.target_weight_A = A;
@@ -1033,6 +1030,9 @@ constexpr char* attacks_command_description =
 "provides a detailed description of said attack modifeir.";
 
 
+
+
+constexpr char* search_command_description      = "Thoroughly search through the space for anything of interest.";
 constexpr char* attack_command_description      = "Make an attempt to strike at a target.";
 constexpr char* loot_command_description        = "Everything inside the target will be moved into the room space.";
 constexpr char* pickup_command_description      = "Take the target and put in your inventory";
@@ -1055,6 +1055,7 @@ Game_Command Player_Actions[] =
 {
     { Help_Command,         AT::free,   0, STR("help"),         help_command_description,           help_command_arguments},
     { Proceed_Command,      AT::normal, 0, STR("proceed"),      proceed_command_description,        no_args},
+    { Search_Command,       AT::normal, 0, STR("search"),       search_command_description,         no_args},
     { Inspect_Command,      AT::free,   0, STR("inspect"),      inspect_command_description,        inspect_command_args},
     { Glance_Command,       AT::free,   0, STR("glance"),       glance_command_description,         no_args},
     { Attacks_Command,      AT::free,   0, STR("attacks"),      attacks_command_description,        attacks_command_args},
@@ -1080,6 +1081,7 @@ Game_Command Player_Actions[] =
     { Load_Command,         AT::free,   1, STR("load"),         "Loads the game.",                  no_args},
     { Toggle_Godmode,       AT::free,   0, STR("godmode"),      "Toggles godmode.",                 no_args},
     { Kill_Command,         AT::free,   0, STR("kill"),         "Kills the target.",                target_args},
+    { What_Is_Seed_Command, AT::free,   0, STR("what is seed?"),"Reveals the seed.",                target_args},
     { Set_Seed_Command,     AT::free,   0, STR("set seed"),     "Sets the random number generator seed.", "takes the new seed as the argument."},
     #endif
 };
@@ -1090,7 +1092,7 @@ HEADACHE(typedef void PROTOTYPE_ENT_GS(Entity*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_ENT_ENT_GS(Entity*, Entity*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_GS(Effect_Instance*, Entity*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_ENT_AR_GS(Effect_Instance*, Entity*, Entity*, Attack_Record*, Game_State*);)
-HEADACHE(typedef void PROTOTYPE_EFFINST_REF_ENT_DDR_GS(Effect_Instance*, Reference, Entity*, Deal_Damage_Result*, Game_State*);)
+HEADACHE(typedef void PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS(Effect_Instance*, Entity_Offset, Entity*, Deal_Damage_Result*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS(Effect_Instance*, Entity*, s32*, String, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS(Effect_Instance*, Entity*, Stats::T, s32*, s16*, Game_State*);)
 
