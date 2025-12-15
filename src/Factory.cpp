@@ -107,14 +107,10 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
         {Equipment_Slots::flag[Equipment_Slots::primary_hand] | Equipment_Slots::flag[Equipment_Slots::secondary_hand]},
     };
     
-    Pick_From_Table_Rules rules = {};
-    rules.mode = Rarity_Mode::maximum;
-    rules.target_rarity_A = Rarity::rare;
-    rules.equipment_slot_filters = slot_filters;
-    rules.equipment_slot_filter_count = Array_Length(slot_filters);
-
-    if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules, game_state)) 
-    { 
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
+    
+    if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
+    {
         Entity* weapon = weapon_gen_fn(entity, game_state);
         Equip(entity, weapon, game_state);
 
@@ -124,10 +120,9 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
         if(is_1h_weapon && roll >= 3)
         {
             u32 offhand_slot = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
-            rules.equipment_slot_filters = &offhand_slot;
-            rules.equipment_slot_filter_count = 1;
+            rules.Slot_Filters(&offhand_slot, 1);
 
-            if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules, game_state))
+            if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules.Finish(), game_state))
             {
                 Entity* offhand = offhand_gen_fn(entity, game_state);
                 Equip(entity, offhand, game_state);
@@ -319,9 +314,9 @@ SIG Entity* Create_Boss_Spider(Entity* room, Game_State* game_state)
         &game_state->scratch_buffer
     );
     
-    Generate_From_Loot_Table(entity, table, Roll(3, game_state), Rarity_Mode::guaranteed, Rarity::common, {}, game_state);
-    Generate_From_Loot_Table(entity, table, Roll(2, game_state), Rarity_Mode::between, Rarity::rare, Rarity::magical, game_state);
-    Generate_From_Loot_Table(entity, table, 1, Rarity_Mode::minimum, Rarity::epic, {}, game_state);
+    Generate_From_Loot_Table(entity, table, Roll(3, game_state), {Comparison::equal}, game_state);
+    Generate_From_Loot_Table(entity, table, Roll(2, game_state), {Comparison::between, Rarity::rare, Rarity::magical}, game_state);
+    Generate_From_Loot_Table(entity, table, 1, {Comparison::minimum, Rarity::epic}, game_state);
 
     Restore(&game_state->scratch_buffer, snapshot);
 
@@ -354,10 +349,10 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
 {
     struct local
     {
-        static Entity* Opening(Entity* ether, Game_State* game_state)
+        static Entity* Opening(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            if(ether)
+            if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a wide opening"), game_state);
                 char room_description[] = 
@@ -374,11 +369,11 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             return room;
         }
 
-        static Entity* Altar(Entity* ether, Game_State* game_state)
+        static Entity* Altar(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
             room->rarity = Rarity::rare;
-            if(ether)
+            if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a circular room"), game_state);
                 char room_description[] = 
@@ -391,11 +386,11 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             return room;
         }
 
-        static Entity* Beast_Lair(Entity* ether, Game_State* game_state)
+        static Entity* Beast_Lair(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
             room->rarity = Rarity::magical;
-            if(ether)
+            if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a beasts lair"), game_state);
                 char room_description[] = 
@@ -427,10 +422,10 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
 {
     struct local
     {
-        static Entity* Camp(Entity* ether, Game_State* game_state)
+        static Entity* Camp(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            if(ether)
+            if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a camp"), game_state);
                 #if 0
@@ -465,10 +460,10 @@ SIG Loot_Table Caves_Spider_Section(Game_State* game_state)
 {
     struct local
     {
-        static Entity* Ravine(Entity* ether, Game_State* game_state)
+        static Entity* Ravine(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            if(ether)
+            if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a ravine"), game_state);
                 
@@ -500,10 +495,10 @@ SIG Loot_Table Caves_Boss(Game_State* game_state)
 {
     struct local
     {
-        static Entity* Boss_Chamber(Entity* ether, Game_State* game_state)
+        static Entity* Boss_Chamber(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            if(ether)
+            if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("the Boss chamber!"), game_state);
                 
@@ -531,142 +526,16 @@ SIG Loot_Table Caves_Boss(Game_State* game_state)
 }
 
 
-SIG Room_Generator_Element_Array Caves()
+SIG _inline Level_Segments Caves(Game_State* game_state)
 {
-    struct local
+    local_storage Level_Segment segments[] = 
     {
-        static void Wildlife(Entity* room, Game_State* game_state)
-        {
-            struct local
-            {
-                static void Opening(Entity* room, Game_State* game_state)
-                {
-                    room->name_offset = Offset(STR("a wide opening"), game_state);
-                    
-                    char room_description[] = 
-                    "The stone walls extend into the unseeable darkness. "
-                    "The ceiling must be very far away. " 
-                    "In the black you can see bright glowing eyes moving towards you.";
-                    room->description_offset = Offset(STR(room_description), game_state);
-
-                    LOOP(1 + Roll(2, game_state))   Create_Giant_Rat(room, game_state);
-                    if(Roll(3, game_state) == 1)    Create_Rat_Mound(room, game_state);
-                }
-
-                static void Bear_Nest(Entity* room, Game_State* game_state)
-                {
-                    room->name_offset = Offset(STR("a foul smelling nest"), game_state);
-                    
-                    char room_description[] = 
-                    "In the middle of the room there is what looks to you to be a \"bed\" of sorts made by a large animal. "
-                    "It's made of tree branches and leaves. Around the bed there are many half eaten carcasses. "
-                    "Some of animals, others human... or humanoid";
-                    room->description_offset = Offset(STR(room_description), game_state);
-                    
-                    if(Roll(8, game_state) == 1)
-                    {
-
-                    }
-                    else
-                    {
-       
-                    }
-
-                    
-                    Warn("Unimplemented room");
-                }
-
-                static void Hallway(Entity* room, Game_State* game_state)
-                {
-                    room->name_offset = Offset(STR("a hallway"), game_state);
-                    
-                    char room_description[] = 
-                    "It appears to be a long corridor. The ceiling here is held up by pillars.";
-                    room->description_offset = Offset(STR(room_description), game_state);
-
-                    
-                    Warn("Unimplemented room");
-                }
-
-                static void Altar(Entity* room, Game_State* game_state)
-                {
-                    room->name_offset = Offset(STR("a circular room"), game_state);
-                    
-                    char room_description[] = 
-                    "The walls in this room feel un-naturally smooth, perhaps dwarwen make? "
-                    "In the center there is what appears to be an altar to God unknown to you. "
-                    "You can \"use\" the altar to seek a blessing from this deity.";
-                    room->description_offset = Offset(STR(room_description), game_state);
-
-                    Warn("Unimplemented room");
-                }
-
-                static void Safe_Room(Entity* room, Game_State* game_state)
-                {
-                    room->name_offset = Offset(STR("a small side room"), game_state);
-                    
-                    char room_description[] = 
-                    "A small well hidden room a little bit off the main path. "
-                    "There is hay pilled up on the floor. It looks like some has slept here.";
-                    room->description_offset = Offset(STR(room_description), game_state);
-
-                    
-                    Warn("Unimplemented room");
-                }
-
-                static void Rat_Nest(Entity* room, Game_State* game_state)
-                {
-                    room->name_offset = Offset(STR("a rat nest"), game_state);
-                    
-                    char room_description[] = 
-                    "A large room. The walls are covered in rat-sized holes. "
-                    "You can see movement every where, eyes flickering and tails slithering. "
-                    "The floor is filled with bones of mostly small creatures and rat droppings. "
-                    "You get a sensation that this is not a good place to be.";
-                    room->description_offset = Offset(STR(room_description), game_state);
-
-                    LOOP(2 + Roll(3, game_state))   Create_Giant_Rat(room, game_state);
-                    LOOP(1 + Roll(2, game_state))   Create_Rat_Mound(room, game_state);
-                }
-            };
-
-            Room_Generator_Element options[] = 
-            {
-                {local::Opening,        10},
-                {local::Hallway,        10},
-                {local::Safe_Room,      05},
-                {local::Rat_Nest,       03},
-                {local::Bear_Nest,      04},
-                {local::Altar,          07},
-            };
-            Pick_Room_Generator({options, Array_Length(options)}, game_state).fn(room, game_state);
-        }
-
-        static void Bandits(Entity* room, Game_State* game_state)
-        {
-            Create_Bandit(room, game_state);
-        }
-
-        static void Spiders(Entity* room, Game_State* game_state)
-        {
-            Create_Spider(room, game_state);
-        }
-
-        static void Boss(Entity* room, Game_State* game_state)
-        {
-            game_state->distance_travelled = -1;
-            Create_Boss_Spider(room, game_state);
-        }
+        {Caves_Wildlife_Section(game_state), 5}, 
+        {Caves_Bandit_Section(game_state),   5}, 
+        {Caves_Spider_Section(game_state),   5}, 
+        {Caves_Boss(game_state), 1}
     };
 
-    local_storage Room_Generator_Element rooms[] = 
-    {
-        {local::Wildlife,   12},
-        {local::Bandits,    8},
-        {local::Spiders,    8},
-        {local::Boss,       0}
-    };
-
-    Room_Generator_Element_Array result = {rooms, Array_Length(rooms)};
-    return result;
+    Level_Segments level = {segments, Array_Length(segments)};
+    return level;
 }

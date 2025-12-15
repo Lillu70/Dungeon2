@@ -13,11 +13,9 @@ namespace Stats
     X(accuracy),        \
     X(vitality),        \
     X(armor),           \
-    
-    // tolerance      ???
-    // arcane         <------
-    
-    // application, arcane, cunning, special, mystisim, occultism, ritual
+    X(immunity)         \
+    X(arcane)           \
+
 
     enum T
     {

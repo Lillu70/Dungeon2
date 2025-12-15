@@ -4143,34 +4143,42 @@ SIG Effect_Offset Insert_Effect(Effect effect, Effect_Hash_Key key, Game_State* 
 }
 
 
-bool Is_Compliant(Loot_Table_Entry entry, Pick_From_Table_Rules rules)
+SIG bool Compare(s64 X, Comparison type, s64 A, s64 B DEF(0))
 {
-    bool matches_rarity = false;
-    switch(rules.mode)
+    bool result = 0;
+    switch(type)
     {
-        case Rarity_Mode::minimum:
+        case Comparison::minimum:
         {
-            matches_rarity = entry.rarity >= rules.target_rarity_A;
+            result = X >= A;
         }break;
 
-        case Rarity_Mode::maximum:
+        case Comparison::maximum:
         {
-            matches_rarity = entry.rarity <= rules.target_rarity_A;
+            result = X <= A;
         }break;
 
-        case Rarity_Mode::between:
+        case Comparison::between:
         {
-            matches_rarity = entry.rarity >= rules.target_rarity_A && entry.rarity <= rules.target_rarity_B;
+            result = X >= A && X <= B;
         }break;
 
-        case Rarity_Mode::guaranteed:
+        case Comparison::equal:
         {
-            matches_rarity = entry.rarity == rules.target_rarity_A;
+            result = X == A;
         }break;
     }
 
+    return result;
+}
+
+
+SIG bool Is_Compliant(Loot_Table_Entry entry, Pick_From_Table_Rules rules)
+{
+    bool matches_rarity = Compare(entry.rarity, rules.rarity_comparison, rules.target_rarity_A, rules.target_rarity_B);
+
     bool matches_equipment_filters = true;
-    if(rules.equipment_slot_filter_count)
+    if(matches_rarity && rules.equipment_slot_filter_count)
     {
         matches_equipment_filters = false;
 
@@ -4249,92 +4257,9 @@ SIG GENERATE_ENTITY_FN* Pick_From_Loot_Table(Loot_Table table, Pick_From_Table_R
 }
 
 
-SIG Loot_Table_Pick_Result Pick_From_Loot_Table(Loot_Table table, u64 count, Rarity_Mode mode, Rarity::T target_rarity_A, Rarity::T target_rarity_B, Game_State* game_state)
+SIG void Generate_From_Loot_Table(Entity* storage, Loot_Table table, u64 count, Pick_From_Table_Rules rules, Game_State* game_state)
 {
-    Loot_Table_Pick_Result result = {(GENERATE_ENTITY_FN**)Push(&game_state->scratch_buffer,0)};
-
-    struct local
-    {
-        static bool Is_Suitable(Rarity::T entry_rarity, Rarity::T target_rarity_A, Rarity::T target_rarity_B, Rarity_Mode mode)
-        {
-            bool result = false;
-
-            switch(mode)
-            {
-                case Rarity_Mode::minimum:
-                {
-                    result = entry_rarity >= target_rarity_A;
-                }break;
-
-                case Rarity_Mode::maximum:
-                {
-                    result = entry_rarity <= target_rarity_A;
-                }break;
-
-                case Rarity_Mode::between:
-                {
-                    result = entry_rarity >= target_rarity_A && entry_rarity <= target_rarity_B;
-                }break;
-
-                case Rarity_Mode::guaranteed:
-                {
-                    result = entry_rarity == target_rarity_A;
-                }break;
-            }
-
-            return result;
-        }
-    };
-
-    if(count)
-    {
-        f32 suitable_total_change = 0;
-        Loot_Table_Entry* end = table.array + table.count;
-        for(Loot_Table_Entry* entry = table.array; entry < end; ++entry)
-        {
-            if(local::Is_Suitable(entry->rarity, target_rarity_A, target_rarity_B, mode))
-            {
-                suitable_total_change += entry->change;
-            }
-        }
-        
-        if(suitable_total_change > 0)
-        {
-            LOOP(count)
-            {
-                f32 selector = Random_F32(game_state) * suitable_total_change;
-                f32 accumilator = 0;
-
-                for(Loot_Table_Entry* entry = table.array; entry < end; ++entry)
-                {   
-                    if(local::Is_Suitable(entry->rarity, target_rarity_A, target_rarity_B, mode))
-                    {
-                        accumilator += entry->change;
-                        if(selector <= accumilator)
-                        {
-                            *Push_Struct(&game_state->scratch_buffer, GENERATE_ENTITY_FN*) = entry->fn;
-                            result.count += 1;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // NOTE: nukes the ptr if there was no allocations.
-    if(!result.count)
-    {
-        result = {};
-    }
-
-    return result;
-}
-
-
-SIG void Generate_From_Loot_Table(Entity* storage, Loot_Table table, u64 count, Rarity_Mode mode, Rarity::T target_rarity_A, Rarity::T target_rarity_B, Game_State* game_state)
-{
-    Loot_Table_Pick_Result pick_result = Pick_From_Loot_Table(table, count, mode, target_rarity_A, target_rarity_B, game_state);
+    Loot_Table_Pick_Result pick_result = Pick_From_Loot_Table(table, count, rules, game_state);
     for(u64 i = 0; i < pick_result.count; ++i)
     {
         pick_result.fns[i](storage, game_state);
@@ -4449,21 +4374,18 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
         Loot_Table_Entry* end = table->array + table->count;
         for(Loot_Table_Entry* entry = table->array; entry < end; ++entry)
         {
+            // Even if the user filled in a Rarity, the generation function is used to get the "True" rarity of the item.
+            {
+                Entity* entity = entry->fn(0, game_state);
+                entry->rarity = entity->rarity;
+                entry->required_slots = entity->required_equipment_slots;
+                Delete_Entity(entity, game_state);
+            }
+
+            // But the change can be pre filled in... for what ever the reason.
             if(entry->change <= 0)
             {
-                // Even if the user filled in a Rarity, the generation function is used to get the "True" rarity of the item.
-                {
-                    Entity* entity = entry->fn(0, game_state);
-                    entry->rarity = entity->rarity;
-                    entry->required_slots = entity->required_equipment_slots;
-                    Delete_Entity(entity, game_state);
-                }
-
-                // But the change can be pre filled in... for what ever the reason.
-                if(entry->change <= 0)
-                {
-                    entry->change = local::Standard_Drop_Change_Based_On_Rarity(entry->rarity);
-                }
+                entry->change = local::Standard_Drop_Change_Based_On_Rarity(entry->rarity);
             }
         }
     }
@@ -5069,93 +4991,104 @@ SIG void Tick_Active_Effects_Down_To_Zero(Entity* actor, Game_State* game_state)
 }
 
 
-SIG Entity* Proceed2(Game_State* game_state)
+SIG Entity* Next_Room(Level_Segments level, Game_State* game_state)
 {
-    Loot_Table sections[] = 
+    s32 level_size = 0;
+    
+    for(u64 i = 0; i < level.segment_count; ++i)
     {
-        Caves_Wildlife_Section(game_state), 
-        Caves_Bandit_Section(game_state), 
-        Caves_Spider_Section(game_state), 
-        Caves_Boss(game_state)
-    };
+        level_size += level.segments[i].size;
+    }
 
-    Loot_Table table = Merge_Loot_Tables(sections, Array_Length(sections), &game_state->scratch_buffer);
+    s32 selector_range = 3;
+    s32 selector_center = game_state->distance_travelled;
+    s32 selector_min = Max(0, selector_center - selector_range);
+    s32 selector_max = Min(level_size, selector_center + selector_range);
+    s32 selector_width = selector_max - selector_min + 1;
+    s32 selector_offset = Roll(selector_width, game_state) - 1;
+    s32 selector = selector_min + selector_offset;
+    s32 selection_idx = -1;
+    
+    s32 accumilator = 0;
+    for(s32 i = 0; i < level_size; ++i)
+    {
+        accumilator += level.segments[i].size;
+        if(selector <= accumilator)
+        {
+            selection_idx = i;
+            break;
+        }
+    }
 
+    Assert(selection_idx >= 0 && selection_idx < level.segment_count);
+    if(selection_idx < level.segment_count - 1)
+    {
+        game_state->distance_travelled += 1;
+    }
+    else
+    {
+        game_state->distance_travelled = -1;
+    }
 
-    Entity* ether = Request_Entity(game_state);
-    Generate_From_Loot_Table(ether, table, 1, Rarity_Mode::minimum, {}, {}, game_state);
-    Assert(ether->inventory.count == 1);
-    return 0;
+    Loot_Table table = level.segments[selection_idx].rooms;
+    GENERATE_ENTITY_FN* fn = Pick_From_Loot_Table(table, {}, game_state);
+    Entity* result = fn((Entity*)(404), game_state);
+
+    return result;
 }
 
 
-SIG Entity* Proceed_To_Next_Room(Game_State* game_state)
+SIG void Proceed(Game_State* game_state)
 {
-    Room_Generator_Element_Array(*levels[])() = 
+    Level_Segments levels[] =
     {
-        Caves,
+        Caves(game_state),
     };
-    
-    Entity* player = Dereference(game_state->player, game_state);
-    Entity* prev_room = Dereference(player->residence, game_state);
-    
-    Flush_Messages(game_state);
-    Tick_Active_Effects_Down_To_Zero(player, game_state);
-    Tick_Down_Effect_Durations(player, Duration_Type::room, game_state);
-    Print_Messages(game_state);
 
-    Entity* room = prev_room;
+    game_state->active_initiative_index = 0;
+    game_state->initiative_count = 0;
+    game_state->next_room = false;
+
+    Entity* player = Dereference(game_state->player, game_state);
     if(Is_Alive(player))
     {
-        game_state->active_initiative_index = 0;
-        game_state->initiative_count = 0;
-        game_state->next_room = false;
-
+        Flush_Messages(game_state);
+        Tick_Active_Effects_Down_To_Zero(player, game_state);
+        Tick_Down_Effect_Durations(player, Duration_Type::room, game_state);
+        Print_Messages(game_state);
+        
+        bool you_win = false;
         if(game_state->distance_travelled < 0)
         {
-            game_state->distance_travelled = 0;
             game_state->level += 1;
             if(game_state->level == Array_Length(levels))
             {
                 // you win!
+                you_win = true;
             }
         }
-        
-        if(prev_room)
+
+        if(Entity* prev_room = Dereference(player->residence, game_state))
         {
             Remove_From_Residence(player, game_state);
             Assert(Dereference(player->residence, game_state) == 0);
             Delete_Entity(prev_room, game_state);
-        }        
-        room = Request_Entity(game_state);
+        }
 
-
-        if(PROTOTYPE_ENT_GS* override_fn = Pointer(game_state->room_generation_override_fn_offset, game_state))
+        if(!you_win)
         {
-            override_fn(room, game_state);
-            game_state->room_generation_override_fn_offset = {};
+            Entity* room = Next_Room(levels[game_state->level % Array_Length(levels)], game_state);
+
+            Deep_Insert(player, room, game_state);
+            Sort_Space(&room->inventory, game_state);
+
+            Enter_A_Room_Printout(player, room, game_state);
         }
         else
         {
-            Room_Generator_Element_Array rooms = levels[game_state->level % Array_Length(levels)]();
-            u32 roll = Roll(21, game_state);
-            u32 offset = Round_To_S32(Square_Root(f32(roll)));
-            u32 selector = game_state->distance_travelled + offset;
-            
-            u32 accumulator = 0;
-            Room_Generator_Element generator = Pick_Room_Generator(rooms, selector, game_state);
-            generator.fn(room, game_state);
-
-            game_state->distance_travelled += 1;
+            Terminate("un-implemented ... but you did win!");
         }
-        
-        Deep_Insert(player, room, game_state);
-        Sort_Space(&room->inventory, game_state);
-
-        Enter_A_Room_Printout(player, room, game_state);
     }
-    
-    return room;
 }
 
 
@@ -5357,7 +5290,7 @@ SIG bool Play_Game(Game_State* game_state)
         game_state->round += 1;
         if(game_state->next_room)
         {
-            Proceed_To_Next_Room(game_state);
+            Proceed(game_state);
         }
 
         Clear(&game_state->scratch_buffer, Zero_Memory::no);

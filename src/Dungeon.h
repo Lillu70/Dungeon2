@@ -794,20 +794,79 @@ struct Loot_Table
 
 struct Pick_From_Table_Rules
 {
-    Rarity_Mode mode;
+    Comparison rarity_comparison;
     Rarity::T target_rarity_A;
     Rarity::T target_rarity_B;
     u32* equipment_slot_filters;
     u64 equipment_slot_filter_count;
+    Comparison weight_comparison;
+    s32 target_weight_A;
+    s32 target_weight_B;
 };
 
 
-enum class Rarity_Mode
+struct Rules_Builder
+{
+    Pick_From_Table_Rules rules;
+
+    Rules_Builder()
+    {
+        rules = {};
+    }
+
+    Rules_Builder Rarity(Comparison comp, Rarity::T A, Rarity::T B = Rarity::T(0))
+    {
+        rules.rarity_comparison = comp;
+        rules.target_rarity_A = A;
+        rules.target_rarity_B = B;
+
+        return *this;
+    }
+
+    Rules_Builder Slot_Filters(u32* slot_filters, u64 count)
+    {
+        rules.equipment_slot_filters = slot_filters;
+        rules.equipment_slot_filter_count = count;
+
+        return *this;
+    }
+
+    Rules_Builder Weight(Comparison comp, s32 A, s32 B = s32(0))
+    {
+        rules.weight_comparison = comp;
+        rules.target_weight_A = A;
+        rules.target_weight_B = B;
+
+        return *this;
+    }
+
+    Pick_From_Table_Rules Finish()
+    {
+        return rules;
+    }
+};
+
+
+enum class Comparison : u8
 {
     minimum,
     maximum,
     between,
-    guaranteed,
+    equal,
+};
+
+
+struct Level_Segment
+{
+    Loot_Table rooms;
+    s32 size;
+};
+
+
+struct Level_Segments
+{
+    Level_Segment* segments;
+    u64 segment_count;
 };
 
 
