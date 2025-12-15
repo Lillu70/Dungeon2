@@ -100,12 +100,6 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     stats[Stats::vitality]  = 5;
 
     Finalize_Entity(entity, room, game_state);
-
-    u32 slot_filters[] = 
-    {
-        {Equipment_Slots::flag[Equipment_Slots::primary_hand]},
-        {Equipment_Slots::flag[Equipment_Slots::primary_hand] | Equipment_Slots::flag[Equipment_Slots::secondary_hand]},
-    };
     
     Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
     

@@ -7,7 +7,6 @@
 
 // TODO: Collapse entity_offset and reference... why do I have both?
 // TODO: Test equipping the same ring twice.
-// TODO: Make room picking based on a range. 20% up and and down from distance travelled.
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
 // TODO: Visualise apply poison rolls, also make it integer check not a float so it can be represented by a "dice". Bring back resistance as anti effect stat.
@@ -568,7 +567,7 @@ SIG Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_
     {
         if(entity != actor)
         {
-            String entity_name = Name(entity, game_state);
+            String entity_name = Name_Without_Color(entity, game_state);
             String entity_true_name = Get_String(entity->name_offset, game_state);
 
             if(Match_Case_Insensitive(entity_name, name) || Match_Case_Insensitive(entity_true_name, name))
@@ -1092,8 +1091,8 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
     Entity* attacker = Dereference(ar->attacker, game_state);
     Entity* defender = Dereference(ar->defender, game_state);
     
-    String attacker_name = Colored_Name(attacker, game_state);
-    String defender_name = Colored_Name(defender, game_state);
+    String attacker_name = Name(attacker, game_state);
+    String defender_name = Name(defender, game_state);
 
     if(ar->attack_modifier == Attack_Mod::standard)
     {
@@ -1307,38 +1306,38 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
 }
 
 
-SIG String Name(Entity* entity, Game_State* game_state)
+SIG String Name_Without_Color(Entity* entity, Game_State* game_state)
 {
     String name = Get_String(entity->name_offset, game_state);
     
-    #if 1
     if(entity->dublicate_identifier)
     {
         U64_To_String_Memory base_aphabet_rep = Decode_Base_Aplhabet(entity->dublicate_identifier - 1);
 
         name = Format_Message(game_state, "%s (%s)", name.ptr, base_aphabet_rep.b);
     }
-    #endif
-
-    #if 0
-    if(entity->dublicate_identifier)
-    {
-        name = Format_Message(game_state, "%s (%d)", name.ptr, entity->dublicate_identifier);
-    }
-    #endif
 
     return name;
 }
 
 
-SIG String Colored_Name(Entity* entity, Game_State* game_state)
+SIG String Name(Entity* entity, Game_State* game_state)
 {
     char* cstart = Entity_Color(entity, game_state);
     char* cend = game_state->default_color.data;
-    String name = Name(entity, game_state);
-    String result = Format_Message(game_state, "%s%s%s", cstart, name.ptr, cend);
-    //result.length = name.length;
-    return result;
+
+    String name = Get_String(entity->name_offset, game_state);
+    if(entity->dublicate_identifier)
+    {
+        U64_To_String_Memory base_aphabet_rep = Decode_Base_Aplhabet(entity->dublicate_identifier - 1);
+        name = Format_Message(game_state, "%s%s (%s)%s", cstart, name.ptr, base_aphabet_rep.b, cend);
+    }
+    else
+    {
+        name = Format_Message(game_state, "%s%s%s", cstart, name.ptr, cend);
+    }
+
+    return name;
 }
 
 
@@ -1399,7 +1398,7 @@ SIG void Push_Generic_Apply_Effect_Message(Effect_Instance* source_effect, Entit
     {
         Arena* scratch_buffer = &game_state->scratch_buffer;
 
-        String target_name = Colored_Name(target, game_state);
+        String target_name = Name(target, game_state);
         String source_name = Effect_Name(source_effect, game_state);
         String new_effect_name = Effect_Name(&new_effect, game_state);
         
@@ -2070,7 +2069,7 @@ SIG Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose:
         if(verbose)
         {
             String message = {};
-            String entity_name = Colored_Name(entity, game_state);
+            String entity_name = Name(entity, game_state);
 
             if(result.health_snapshot == result.max_health)
             {
@@ -2178,7 +2177,7 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String 
 
             if(verbose)
             {
-                String defender_name = Colored_Name(defender, game_state);
+                String defender_name = Name(defender, game_state);
                 if(ddr.is_killing_blow)
                 {
 
@@ -2220,7 +2219,7 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Reference attacker, String 
                     char* attacker_name_ptr = 0;
                     if(Entity* e = Dereference(attacker, game_state))
                     {
-                        attacker_name_ptr = Colored_Name(e, game_state).ptr;
+                        attacker_name_ptr = Name(e, game_state).ptr;
                     }
                     
                     if(attacker_name_ptr && ddr.exp_reward)
@@ -2334,7 +2333,7 @@ SIG String Effect_Name(Effect_Instance* instance, Game_State* game_state)
     }
     else if(Entity* source = Dereference(instance->source, game_state))
     {
-        result = Colored_Name(source, game_state);
+        result = Name(source, game_state);
     }
 
     return result;
@@ -2779,7 +2778,7 @@ SIG void Print_Equiped_Weapons(Entity* target, bool preamble, Game_State* game_s
     if(weapon)
     {
         Arena_Snapshot snapshot = Snapshot(&game_state->messages_buffer);
-        String weapon_name = Colored_Name(weapon, game_state);
+        String weapon_name = Name(weapon, game_state);
         if(preamble)
         {
             Print("\nHe is wielding a");
@@ -2787,7 +2786,7 @@ SIG void Print_Equiped_Weapons(Entity* target, bool preamble, Game_State* game_s
         Print(" [%s", weapon_name.ptr);
         if(offhand)
         {
-            String offhand_name = Colored_Name(offhand, game_state);
+            String offhand_name = Name(offhand, game_state);
             Print(" and %s", offhand_name.ptr);
         }
         Print("]");
@@ -2802,7 +2801,7 @@ SIG void Print_Equiped_Weapons(Entity* target, bool preamble, Game_State* game_s
 
 SIG void Inspect(Entity* target, Game_State* game_state)
 {
-    String target_name = Colored_Name(target, game_state);
+    String target_name = Name(target, game_state);
 
     Print("[%s]", target_name.ptr);
 
@@ -2920,7 +2919,7 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
             
                 if(interactable->uses_count == 0)
                 {
-                    String item_name = Colored_Name(item, game_state);
+                    String item_name = Name(item, game_state);
                     Print("\n%s is now out of usages.", item_name.ptr);
 
                     if(PROTOTYPE_ENT_GS* on_empty_fn = Pointer(interactable->on_empty_fn_offset, game_state))
@@ -2932,7 +2931,7 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
         }
         else
         {
-            String item_name = Colored_Name(item, game_state);
+            String item_name = Name(item, game_state);
             Print("\n%s is empty, so it can't be used anymore...", item_name.ptr);
         }
     }
@@ -2945,7 +2944,7 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
 {
     bool item_was_equiped = true;
 
-    String target_name = Colored_Name(target, game_state);
+    String target_name = Name(target, game_state);
 
     if(!(target->flags & EFlags::equippable))
     {
@@ -3073,7 +3072,7 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                         Print
                         (
                             "\n%s is occypying a slot(s) that %s requires... Unequip it?", 
-                            Colored_Name(*unique_blocking_entities, game_state).ptr,
+                            Name(*unique_blocking_entities, game_state).ptr,
                             target_name.ptr
                         );
                     }
@@ -3093,7 +3092,7 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                                     Print(", ");
                                 }
                             }
-                            Print("%s", Colored_Name(unique_blocking_entities[i], game_state).ptr);
+                            Print("%s", Name(unique_blocking_entities[i], game_state).ptr);
                         }
                         Print(" are blocking slots that %s requires... Unequip them?", target_name.ptr);
                     }
@@ -3194,7 +3193,7 @@ SIG void Open(Entity* actor, Game_State* game_state)
 
             Deep_Insert(entity, residence, game_state);
             
-            Print("\n| - %s", Colored_Name(entity, game_state).ptr);
+            Print("\n| - %s", Name(entity, game_state).ptr);
         }
         else
         {
@@ -3217,7 +3216,7 @@ SIG u64 Longest_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_sta
         if(entity != actor)
         {
             count += 1;
-            result = Max(result, Name(entity, game_state).length);
+            result = Max(result, Name_Without_Color(entity, game_state).length);
         }
     }
 
@@ -3239,7 +3238,7 @@ SIG u64 Longest_Entity_Name_In_Actor_Inventory(Entity* actor, Game_State* game_s
     while(Entity* entity = Next_Entity(&iter))
     {
         count += 1;
-        result = Max(result, Name(entity, game_state).length);
+        result = Max(result, Name_Without_Color(entity, game_state).length);
         heaviest_weight = Max(heaviest_weight, entity->weight);
     }
 
@@ -3294,7 +3293,7 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                     entity_count, 
                     Entity_Color(entity, game_state), 
                     longest_entity_name,
-                    Name(entity, game_state).ptr, 
+                    Name_Without_Color(entity, game_state).ptr, 
                     game_state->default_color.data
                 );
 
@@ -3567,10 +3566,13 @@ SIG void Apply_Or_Describe_Attak_Modifier(Entity** attacker_ptr, Entity** defend
         {
             if(attacker)
             {
+                Arena_Snapshot snapshot = Snapshot(&game_state->messages_buffer);
+
+                String defender_name = Name(defender, game_state);
                 *defender_ptr = 0;
 
                 AGAIN:
-                Print("\nType the name the item equipped on %s that you wish to attack: ", Name(defender, game_state).ptr);
+                Print("\nType name of the item equipped on %s that you wish to attack: ", defender_name.ptr);
                 String item_name = Get_User_Input(game_state);
                 Entity* target_item = Find_Entity_By_Name(attacker, defender, item_name, game_state, Verbose::yes);
                 if(target_item && Is_Equipped(defender, target_item, game_state))
@@ -3580,12 +3582,14 @@ SIG void Apply_Or_Describe_Attak_Modifier(Entity** attacker_ptr, Entity** defend
                 }
                 else
                 {
-                    Print("\n%s is not an equipped item on %s. Do you wish to try again?", item_name.ptr, Name(defender, game_state).ptr);
+                    Print("\n%s is not an equipped item on %s. Do you wish to try again?", item_name.ptr, defender_name.ptr);
                     if(User_Query_Yes_No(game_state))
                     {
                         goto AGAIN;
                     }
                 }
+
+                Restore(&game_state->messages_buffer, snapshot);
             }
             else
             {
@@ -3744,6 +3748,8 @@ SIG void Player_Action(Entity* actor, String actor_name, Game_State* game_state)
     bool has_turn = true;
     while(actor->actions & AT::normal && has_turn)
     {
+        Flush_Messages(game_state);
+
         if(actor->actions == Full_Action)
         {
             Print("\n\n- What do you [HP:%d/%d] do? : ", actor->_health, Max_Health(actor, game_state));
@@ -3995,7 +4001,7 @@ SIG void Take_Action(Entity* actor, Game_State* game_state)
 
     if(Is_Alive(actor))
     {
-        String actor_name = Colored_Name(actor, game_state);
+        String actor_name = Name(actor, game_state);
 
         if(!(actor->flags & EFlags::hidden_iniative))
         {
@@ -4737,7 +4743,7 @@ SIG _inline void Enter_A_Room_Printout(Entity* player, Entity* room, Game_State*
     Wait(0.5, game_state);
     Print("\n...");
     Wait(1, game_state);
-    Print("\n\n%s arrives at %s.", Colored_Name(player, game_state).ptr, Name(room, game_state).ptr);
+    Print("\n\n%s arrives at %s.", Name(player, game_state).ptr, Get_String(room->name_offset, game_state).ptr);
     Wait(1.5, game_state);
     Print("\n%s", Get_String(room->description_offset, game_state).ptr);
     Wait(2, game_state);
@@ -4956,7 +4962,7 @@ SIG void Create_Player_Charater(Game_State* game_state)
 
 
         Wait(1, game_state);
-        Print("\n\nGood luck %s!", Colored_Name(player, game_state).ptr);
+        Print("\n\nGood luck %s!", Name(player, game_state).ptr);
         Wait(2, game_state);
 
         #if ENTRANCE
@@ -5134,7 +5140,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
                 if(Roll_Initiative(entity, game_state))
                 {
                     longest_digit_count = Max(longest_digit_count, Digits(entity->initiative.value.total_result));
-                    longest_entity_name_lenght = Max(longest_entity_name_lenght, Name(entity, game_state).length);
+                    longest_entity_name_lenght = Max(longest_entity_name_lenght, Name_Without_Color(entity, game_state).length);
                     game_state->initiative_count += 1;
                     if(entity->initiative.visible)
                     {
@@ -5181,7 +5187,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
                             "\n| -%s%*s%s with initiative of %*d", 
                             Entity_Color(entity, game_state),
                             npadding, 
-                            Name(entity, game_state).ptr,
+                            Name_Without_Color(entity, game_state).ptr,
                             game_state->default_color.data,
                             dpadding, 
                             init->value.total_result
@@ -5635,7 +5641,7 @@ SIG CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game
                     count, 
                     Entity_Color(entity, game_state),
                     longest_item_name,
-                    Name(entity, game_state).ptr, 
+                    Name_Without_Color(entity, game_state).ptr, 
                     game_state->default_color.data,
                     weight_digit_count,
                     entity->weight
@@ -5799,7 +5805,7 @@ SIG CMD_Result::T Equipment_Command(Entity* actor, String args, Game_State* game
             Print("\n| %*s:", s32(longest_equipment_slot_name_length), Equipment_Slots::name[i].ptr);
             if(Entity* entity = Dereference(actor->equipment + i, game_state))
             {
-                Print(" %s", Colored_Name(entity, game_state).ptr);
+                Print(" %s", Name(entity, game_state).ptr);
             }
             else
             {
@@ -5854,7 +5860,7 @@ SIG CMD_Result::T Use_Command(Entity* actor, String args, Game_State* game_state
     
     if(target)
     {
-        String target_name = Colored_Name(target, game_state);
+        String target_name = Name(target, game_state);
         Print("\nYou attempt to use %s.", target_name.ptr);
         if(!Use(actor, target, game_state, Verbose::yes))
         {
@@ -5878,7 +5884,6 @@ SIG CMD_Result::T Equip_Command(Entity* actor, String args, Game_State* game_sta
     
     if(target)
     {
-        String target_name = Name(target, game_state);
         if(!Equip(actor, target, game_state, Verbose::yes))
         {
             result = CMD_Result::abort;
@@ -6478,7 +6483,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
             {
                 for(u64 i = 0; i < cc->template_count; ++i)
                 {
-                    if(Match_Case_Insensitive(args, Name(cc->class_templates[i], cc->game_state)))
+                    if(Match_Case_Insensitive(args, Get_String(cc->class_templates[i]->name_offset, cc->game_state)))
                     {
                         found = true;
                         *out_idx = i;
@@ -6536,7 +6541,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                             refnum += 1;
                             Wait(1, cc->game_state);
                             Entity* e = cc->class_templates[i];
-                            Print("\n|\t%llu - %s", refnum, Name(e, cc->game_state).ptr);    
+                            Print("\n| %llu - %s", refnum, Name(e, cc->game_state).ptr);    
                         }
                     }
                     else
@@ -6676,7 +6681,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                         
                         Entity* e = cc->class_templates[idx];
 
-                        Print("[%s]", Name(e, cc->game_state).ptr);
+                        Print("[%s]", Get_String(e->name_offset, cc->game_state).ptr);
                         Print("\nDescription: %s", Get_String(e->description_offset, cc->game_state).ptr);
                         Print("\nLevel: %d", Level(e));
                         Print("\nStats:");

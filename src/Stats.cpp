@@ -13,8 +13,8 @@ namespace Stats
     X(accuracy),        \
     X(vitality),        \
     X(armor),           \
-    X(immunity)         \
-    X(arcane)           \
+    X(immunity),        \
+    X(arcane),          \
 
 
     enum T

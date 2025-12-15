@@ -1560,7 +1560,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
                 // This though is fast! No memory allocations really happening here.
 
                 u64 length = 0;
-                char* message_base = Push_String(arena, Colored_Name(entity, game_state), &length);
+                char* message_base = Push_String(arena, Name(entity, game_state), &length);
                 
                 U64_To_String_Memory m;
                 Push_String(arena, STR(" potency is: "), &length);
@@ -1595,7 +1595,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
                 Restore(&game_state->scratch_buffer, snapshot);
                 
                 Push_Message(message, game_state);
-                String source_name = Colored_Name(entity, game_state);
+                String source_name = Name(entity, game_state);
                 Heal(target, potency, source_name, Verbose::yes, game_state);
             }
             else
