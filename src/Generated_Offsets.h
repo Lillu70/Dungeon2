@@ -27,6 +27,11 @@ struct PROTOTYPE_EFFINST_ENT_GS_Offset
     u64 v;
 };
 
+struct PROTOTYPE_EFFINST_ENT_ENT_GS_Offset
+{
+    u64 v;
+};
+
 struct PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset
 {
     u64 v;

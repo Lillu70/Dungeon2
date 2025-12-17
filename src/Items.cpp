@@ -27,6 +27,8 @@ SIG Loot_Table Basic_Consumables_Loot_Table(Game_State* game_state)
     {
         {Create_Antidote},
         {Create_Healing_Potion},
+        {Create_Bomb},
+        {Create_Fragmentation_Bomb},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -94,9 +96,9 @@ SIG Loot_Table Basic_Weapons_Loot_Table(Game_State* game_state)
 {
     local_storage Loot_Table_Entry entries[] =
     {
-        {Create_Greate_Sword},
+        {Create_Great_Sword},
         {Create_Halberd},
-        {Create_Greate_Club},
+        {Create_Great_Club},
         {Create_Magma_Hammer},
         {Create_Dagger},
         {Create_Poison_Dagger},
@@ -116,7 +118,22 @@ SIG Loot_Table Basic_Weapons_Loot_Table(Game_State* game_state)
 }
 
 
-SIG Entity* Create_Greate_Sword(Entity* room, Game_State* game_state)
+SIG Loot_Table Basic_Merged_Loot_Table(Game_State* game_state)
+{
+    Loot_Table result = Merge_Loot_Tables
+    (
+        Basic_Weapons_Loot_Table(game_state),
+        Basic_Armors_Loot_Table(game_state),
+        Basic_Trinkets_Loot_Table(game_state),
+        Basic_Consumables_Loot_Table(game_state),
+        &game_state->scratch_buffer
+    );
+
+    return result;
+}
+
+
+SIG Entity* Create_Great_Sword(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
@@ -136,7 +153,7 @@ SIG Entity* Create_Greate_Sword(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might] = + 4;
+        effect.stat_modifiers[Stats::might] = + 6;
         effect.stat_modifiers[Stats::speed] = - 1;
         effect.critical_failure_range       = + 3;
         Add_Dice(&effect, 2, 8);
@@ -169,7 +186,7 @@ SIG Entity* Create_Halberd(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.pierce                       = + 4;
-        effect.stat_modifiers[Stats::might] = + 4;
+        effect.stat_modifiers[Stats::might] = + 6;
         effect.stat_modifiers[Stats::speed] = + 2;
         effect.critical_failure_range       = + 2;
         Add_Dice(&effect, 1, 16);
@@ -202,7 +219,7 @@ SIG Entity* Create_Long_Spear(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.pierce                       = + 14;
-        effect.stat_modifiers[Stats::might] = + 2;
+        effect.stat_modifiers[Stats::might] = + 5;
         effect.stat_modifiers[Stats::speed] = + 5;
         effect.critical_success_range       = + 4;
         Add_Dice(&effect, 1, 6);
@@ -214,11 +231,11 @@ SIG Entity* Create_Long_Spear(Entity* room, Game_State* game_state)
 }
 
 
-SIG Entity* Create_Greate_Club(Entity* room, Game_State* game_state)
+SIG Entity* Create_Great_Club(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
-    entity->name_offset = Offset(STR("Greate club"), game_state);
+    entity->name_offset = Offset(STR("Great club"), game_state);
     entity->description_offset = Offset(STR("Basicly a tree with its branches cut off."), game_state);
     
     entity->flags = EFlags::equippable | EFlags::item;
@@ -234,11 +251,11 @@ SIG Entity* Create_Greate_Club(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]     = + 10;
-        effect.stat_modifiers[Stats::speed]     = - 6;
+        effect.stat_modifiers[Stats::might]     = + 16;
+        effect.stat_modifiers[Stats::speed]     = - 3;
         effect.stat_modifiers[Stats::accuracy]  = + 2;
-        effect.critical_failure_range           = + 5;
-        Add_Dice(&effect, 2, 6);
+        effect.critical_failure_range           = + 8;
+        Add_Dice(&effect, 1, 3);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -257,26 +274,28 @@ SIG Entity* Create_Magma_Hammer(Entity* room, Game_State* game_state)
             s32 burning_duration = 3;
             if(instance)
             {
+                String effect_name = Effect_Name(instance, game_state);
+
                 Effect_Instance burning = {};
                 burning.effect_offset = Get_Burning_Effect_Offset(game_state);
                 burning.duration = burning_duration;
                 burning.source = Offset(attacker, game_state);
 
                 Apply_Effect_Result apply = Apply_Effect(defender, burning, game_state);
-                Push_Generic_Apply_Effect_Message(instance, defender, burning, apply, game_state);
+                Push_Generic_Apply_Effect_Message(effect_name, defender, burning, apply, game_state);
 
                 Entity_Iterator iter = Make_Iterator(Pointer(defender->residence, game_state), game_state);
                 while(Entity* entity = Next_Entity(&iter))
                 {
                     if(entity != defender && Is_Living_Enemy_Of(entity, attacker))
                     {
-                        Deal_Damage(entity, attacker, Effect_Name(instance, game_state), splash_damage, 0, Damage_Type::magical, game_state, Verbose::yes);
+                        Deal_Damage(entity, attacker, effect_name, splash_damage, 0, Damage_Type::magical, game_state, Verbose::yes);
                     }
                 }
             }
             else
             {
-                Print("Sets the target on fire for %d turns and deals %d points of splash damage to every hostile in the room.", burning_duration, splash_damage);
+                Print("Sets the target on fire for %d turns and deals %d points of splash damage to every other hostile in the room.", burning_duration, splash_damage);
             }
         }
     };
@@ -323,7 +342,7 @@ SIG Entity* Create_War_Pick(Entity* room, Game_State* game_state)
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
     
-    entity->weight = 7;
+    entity->weight = 5;
     entity->_stats[Stats::vitality] = 5;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -331,7 +350,7 @@ SIG Entity* Create_War_Pick(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.pierce                        = + 6;
-        effect.stat_modifiers[Stats::might]  = + 2;
+        effect.stat_modifiers[Stats::might]  = + 4;
         Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -373,7 +392,7 @@ SIG Entity* Create_Whip(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Whip"), game_state);
-    entity->description_offset = Offset(STR("Good for horses, questional for fighting, but excpetialy motivating."), game_state);
+    entity->description_offset = Offset(STR("Good for horses, questionable for fighting, but excpetialy motivating."), game_state);
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
@@ -415,7 +434,7 @@ SIG Entity* Create_Mace(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]  = + 6;
+        effect.stat_modifiers[Stats::might]  = + 8;
         Add_Dice(&effect, 1, 2);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -444,10 +463,9 @@ SIG Entity* Create_Rapier(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::accuracy] = + 3;
-        effect.stat_modifiers[Stats::might]    = + 2;
+        effect.stat_modifiers[Stats::might]    = + 4;
         effect.critical_success_range          = + 6;
         effect.critical_failure_range          = + 2;
-        effect.pierce                          = + 4;
         Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -475,7 +493,8 @@ SIG Entity* Create_Short_Spear(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::speed] = + 5;
-        effect.stat_modifiers[Stats::might] = + 2;
+        effect.stat_modifiers[Stats::might] = + 4;
+        effect.pierce                       = + 4;
         Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -504,8 +523,8 @@ SIG Entity* Create_Morning_Star(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.pierce                       = + 3;
-        effect.stat_modifiers[Stats::might] = + 6;
-        Add_Dice(&effect, 1, 3);
+        effect.stat_modifiers[Stats::might] = + 9;
+        Add_Dice(&effect, 1, 2);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -562,7 +581,7 @@ SIG Entity* Create_Dagger(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.critical_success_range        = + 2;
-        effect.stat_modifiers[Stats::might]  = + 1;
+        effect.stat_modifiers[Stats::might]  = + 3;
         effect.stat_modifiers[Stats::speed]  = + 1;
         effect.pierce                        = 2;
         Add_Dice(&effect, 1, 4);
@@ -578,6 +597,8 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
 {
     struct local
     {
+
+        // TODO: Update the new system!
         static void On_Hit_FN(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
         {
             f32 apply_poison_change = 0.5f;
@@ -598,7 +619,7 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
                     };
 
                     Apply_Effect_Result apply = Apply_Effect(defender, poison_instance, game_state);
-                    Push_Generic_Apply_Effect_Message(instance, defender, poison_instance, apply, game_state);
+                    Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, poison_instance, apply, game_state);
                 }
             }
             // Describe the function here.
@@ -629,7 +650,7 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.critical_success_range        = + 2;
-        effect.stat_modifiers[Stats::might]  = + 1;
+        effect.stat_modifiers[Stats::might]  = + 3;
         effect.stat_modifiers[Stats::speed]  = + 1;
         effect.pierce                        = 2;
         Add_Dice(&effect, 1, 4);
@@ -1542,7 +1563,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
         {
             s16 dice_faces = 6;
 
-            if(target)
+            if(entity)
             {
                 s16 level = Level(target);
                 Dice dice = {1, level};
@@ -1571,21 +1592,6 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
                 Push_String(arena, To_String(u64(dice.faces), &m), &length);
                 Push_String(arena, STR(" = "), &length);
                 Push_String(arena, To_String(u64(*dice_results), &m), &length);
-                #if 0
-                if(dice.count > 1)
-                {
-                    Push_String(arena, STR("["), &length);
-                    for(u64 i = 0; i < dice.count; ++i)
-                    {
-                        if(i > 0)
-                        {
-                            Push_String(arena, STR(", "), &length);
-                        }
-                        Push_String(arena, To_String(u64(dice_results[i + 1]), &m), &length);
-                    }
-                    Push_String(arena, STR("]"), &length);
-                }
-                #endif
                 Push_String(arena, STR(")"), &length);
 
                 Push(arena, 1); // null terminator!
@@ -1609,10 +1615,172 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Healing Potion"), game_state);
     entity->description_offset = Offset(STR("Produced in great numbers by the clergy, especially when preparing for war."), game_state);
-    entity->flags = EFlags::interactable | EFlags::item;
+    entity->flags = EFlags::interactable | EFlags::item | EFlags::stacks;
     entity->rarity = Rarity::rare;
 
     entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+struct String_Builder
+{
+    Arena* arena;
+    u64 length;
+    char* base;
+
+    String_Builder(Arena* _arena, String str) : arena(_arena), length(0), base(Push_String(arena, str, &length)){}
+
+    String_Builder Next(String str)
+    {
+        Assert(base);
+        Push_String(arena, str, &length);
+        return *this;
+    }
+
+    String Finish()
+    {
+        Push(arena, 1); // NOTE: null terminator! (not included in the length)
+        return {base, length};
+    }
+};
+
+
+SIG Entity* Create_Bomb(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice dice = {1, 6};
+            if(item)
+            {
+                s32 base = Get_Stat_Value(user, Stats::arcane, game_state);
+
+                s32 dice_result = (s32)Roll(dice, game_state);
+                s32 damage = base + dice_result;
+                u64 length = 0;
+                
+                // Bomb potency is: %d ([acrane]:%d + %dd%d = %d)
+                U64_To_String_Memory m;
+                String source_name = Name(item, game_state);
+                String message = String_Builder(&game_state->messages_buffer, source_name)
+                .Next(STR(" potency is: "))
+                .Next(To_String(damage, &m))
+                .Next(STR(" (["))
+                .Next(Stats::name[Stats::arcane])
+                .Next(STR("]:"))
+                .Next(To_String(base, &m))
+                .Next(STR(" + "))
+                .Next(To_String(dice.count, &m))
+                .Next(STR("d"))
+                .Next(To_String(dice.faces, &m))
+                .Next(STR(" = "))
+                .Next(To_String(dice_result, &m))
+                .Next(STR(")"))
+                .Finish();
+                
+                Push_Message(message, game_state);
+
+                Entity_Iterator iter = Make_Iterator(Pointer(user->residence, game_state), game_state);
+                while(Entity* entity = Next_Entity(&iter))
+                {
+                    if(Is_Living_Active_Enemy_Of(entity, user))
+                    {
+                        Deal_Damage(entity, Offset(user, game_state), source_name, damage, {}, Damage_Type::physical, game_state, Verbose::yes);
+                    }
+                }
+            }
+            else
+            {
+                Print("Deals [%s] + %dd%d physical damage to all hostiles in the room.", Stats::name[Stats::arcane].ptr, dice.count, dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Bomb"), game_state);
+    entity->description_offset = Offset(STR("An explosive device created by a talented alchemist."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Fragmentation_Bomb(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice dice = {1, 6};
+            s32 pierce = 5;
+            if(item)
+            {
+                s32 base = Get_Stat_Value(user, Stats::arcane, game_state);
+
+                s32 dice_result = (s32)Roll(dice, game_state);
+                s32 damage = base + dice_result;
+                u64 length = 0;
+                
+                // Bomb potency is: %d ([acrane]:%d + %dd%d = %d)
+                U64_To_String_Memory m;
+                String source_name = Name(item, game_state);
+                String message = String_Builder(&game_state->messages_buffer, source_name)
+                .Next(STR(" potency is: "))
+                .Next(To_String(damage, &m))
+                .Next(STR(" (["))
+                .Next(Stats::name[Stats::arcane])
+                .Next(STR("]:"))
+                .Next(To_String(base, &m))
+                .Next(STR(" + "))
+                .Next(To_String(dice.count, &m))
+                .Next(STR("d"))
+                .Next(To_String(dice.faces, &m))
+                .Next(STR(" = "))
+                .Next(To_String(dice_result, &m))
+                .Next(STR(")"))
+                .Finish();
+                
+                Push_Message(message, game_state);
+
+                Entity_Iterator iter = Make_Iterator(Pointer(user->residence, game_state), game_state);
+                while(Entity* entity = Next_Entity(&iter))
+                {
+                    if(Is_Living_Active_Enemy_Of(entity, user))
+                    {
+                        Deal_Damage(entity, Offset(user, game_state), source_name, damage, pierce, Damage_Type::physical, game_state, Verbose::yes);
+                    }
+                }
+            }
+            else
+            {
+                Print("Deals [%s] + %dd%d + %d pierce physical damage to all hostiles in the room.", Stats::name[Stats::arcane].ptr, dice.count, dice.faces, pierce);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Fragmentation Bomb"), game_state);
+    entity->description_offset = Offset(STR("An explosive device packed inside a jar of nails. Created by a devious alchemist."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 4;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
     entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
     entity->interactable.uses_count = 1;

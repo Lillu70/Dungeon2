@@ -85,6 +85,7 @@ namespace EFlags
         redirected          = u64(1) << 10,
         can_be_stolen_from  = u64(1) << 11,
         visible             = u64(1) << 12,
+        stacks              = u64(1) << 13,
 
         started_turn        = u64(1) << 49,
         player_controlled   = u64(1) << 50,
@@ -266,8 +267,8 @@ struct Effect
     PROTOTYPE_EFFINST_ENT_GS_Offset /*-------------------*/ on_apply_fn_offset;
     PROTOTYPE_EFFINST_ENT_GS_Offset /*-------------------*/ on_turn_end_fn_offset;
     PROTOTYPE_EFFINST_ENT_GS_Offset /*-------------------*/ on_turn_start_fn_offset;
+    PROTOTYPE_EFFINST_ENT_ENT_GS_Offset /*---------------*/ on_loot_attempt_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_attack_fn_offset;
-    PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_being_attacked_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_miss_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_hit_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_dodge_fn_offset;
@@ -454,11 +455,14 @@ struct Interactable
 
 enum class Faction : u8
 {
-    none    = 0,
-    player  = 1,
-    bandit  = 2,
-    nature  = 3,
-    undead  = 4,
+    none = 0,
+    player,
+    bandit,
+    nature,
+    rats,
+    ants,
+    undead,
+    mimic,
     COUNT
 };
 
@@ -488,6 +492,7 @@ struct Entity
             Interactable interactable;
             Initiative initiative;
             
+            u64 refnum;
             u64 dublicate_identifier;
             s32 _temp_health;
             s32 _health;
@@ -574,6 +579,15 @@ struct Message_Pipe
 {
     String* ctrl_block;
     u64 count;
+};
+
+
+struct Apply_Check_Record
+{
+    Roll_Result arcane_roll;
+    Roll_Result immunity_roll;
+
+    bool application_was_successfull;
 };
 
 
@@ -932,7 +946,7 @@ namespace Attack_Mod
     X(delayed),                 \
     X(bane),                    \
     X(plague),                  \
-    X(mimick),                  \
+    X(mimic),                   \
 
     enum T
     {
@@ -1021,15 +1035,14 @@ constexpr char* inspect_command_args =
 constexpr char* proceed_command_description = 
 "Attempt to leave this room and delwe deeper into the Dungeon.\n"
 "This can be done freely if there are no hostiles in the room,\n"
-"but otherwise a speed check is rolled against all of the hostiles.\n"
+"but otherwise a speed check is rolled against all of the hostiles,\n"
+"that have not yet used their normal action.\n"
 "If any of them roll better than you, they prevent you from fleeing.";
 
 constexpr char* attacks_command_description = 
 "When used without arguments lists all known attack modifiers,\n"
 "or if a name of an attack modifier is provided as the argument,\n"
 "provides a detailed description of said attack modifeir.";
-
-
 
 
 constexpr char* search_command_description      = "Thoroughly search through the space for anything of interest.";
@@ -1091,6 +1104,7 @@ Game_Command Player_Actions[] =
 HEADACHE(typedef void PROTOTYPE_ENT_GS(Entity*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_ENT_ENT_GS(Entity*, Entity*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_GS(Effect_Instance*, Entity*, Game_State*);)
+HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_ENT_GS(Effect_Instance*, Entity*, Entity*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_ENT_AR_GS(Effect_Instance*, Entity*, Entity*, Attack_Record*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS(Effect_Instance*, Entity_Offset, Entity*, Deal_Damage_Result*, Game_State*);)
 HEADACHE(typedef void PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS(Effect_Instance*, Entity*, s32*, String, Game_State*);)

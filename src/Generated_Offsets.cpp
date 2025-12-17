@@ -99,6 +99,29 @@ SIG _inline PROTOTYPE_EFFINST_ENT_GS* Pointer(PROTOTYPE_EFFINST_ENT_GS_Offset of
 }
 // -------- 
 
+// ---- PROTOTYPE_EFFINST_ENT_ENT_GS ----
+SIG _inline PROTOTYPE_EFFINST_ENT_ENT_GS_Offset Offset(PROTOTYPE_EFFINST_ENT_ENT_GS* pointer, Game_State* game_state)
+{
+    Assert(game_state->executable_base_address);
+    PROTOTYPE_EFFINST_ENT_ENT_GS_Offset offset = {};
+    if(pointer)
+    {
+        offset = {u64((char*)pointer - game_state->executable_base_address) + 1};
+    }
+    return offset;
+}
+
+SIG _inline PROTOTYPE_EFFINST_ENT_ENT_GS* Pointer(PROTOTYPE_EFFINST_ENT_ENT_GS_Offset offset, Game_State* game_state)
+{
+    PROTOTYPE_EFFINST_ENT_ENT_GS* pointer = {};
+    if(offset.v)
+    {
+        pointer = (PROTOTYPE_EFFINST_ENT_ENT_GS*)(game_state->executable_base_address + offset.v - 1);
+    }
+    return pointer;
+}
+// -------- 
+
 // ---- PROTOTYPE_EFFINST_ENT_ENT_AR_GS ----
 SIG _inline PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset Offset(PROTOTYPE_EFFINST_ENT_ENT_AR_GS* pointer, Game_State* game_state)
 {

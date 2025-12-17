@@ -5,7 +5,8 @@
 // All rights reserved.
 // ===================================
 
-// TODO: Loot table caching! ... for computer reasons and for my sanity.
+// TODO: Pierce and armor effects in the default deal damage print out.
+// TODO: Duration type part of the effect instead of The instance???
 // TODO: Test equipping the same ring twice.
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
@@ -21,7 +22,7 @@
 // TODO: Make help command describe common effects.
 
 #define DEVMODE      1
-#define SEED         1
+#define SEED         235013
 #define RANDOM_SEED  0
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
@@ -308,43 +309,6 @@ SIG Entity_Offset* Find_Empty_Slot(Entity_Node* node)
     return result;
 }
 
-#if 0
-SIG Reference Make_Reference(Entity* entity, Game_State* game_state)
-{
-    Assert(entity->ID);
-    u64 offset = Storage_Offset(entity, game_state);
-    Reference result = {offset, entity->ID};
-    return result;
-}
-
-
-SIG Entity* Dereference(Reference* reference, Game_State* game_state) 
-{
-    Entity* result = 0;
-    if(reference->ID)
-    {
-        Assert(reference->offset);
-        u64 offset = reference->offset - 1;
-
-        result = (Entity*)(game_state->permanent_storage.memory + offset);
-
-        if(result->ID != reference->ID)
-        {
-            result = 0;
-        }
-    }
-    
-    return result;
-};
-
-
-SIG Entity* Dereference(Reference reference, Game_State* game_state)
-{
-    Entity* result = Dereference(&reference, game_state);
-    return result;
-};
-#endif
-
 
 SIG _inline Entity_Offset Offset(Entity* entity, Game_State* game_state)
 {
@@ -609,7 +573,7 @@ SIG Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_
     Entity_Iterator iter = Make_Iterator(space, game_state);
     while(Entity* entity = Next_Entity(&iter))
     {
-        if(entity != actor && Is_Visible(entity))
+        if(entity->refnum)
         {
             String entity_name = Name_Without_Color(entity, game_state);
             String entity_true_name = Get_String(entity->name_offset, game_state);
@@ -621,6 +585,7 @@ SIG Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_
             }
         }
     }
+
     Restore(&game_state->messages_buffer, snapshot);
     
     if(!target && verbose)
@@ -647,18 +612,13 @@ SIG Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Entity* space
             u64 target_idx = To_U64(name_or_reference_number);
             if(target_idx)
             {
-                u64 entity_count = 0;
                 Entity_Iterator iter = Make_Iterator(space, game_state);
                 while(Entity* entity = Next_Entity(&iter))
                 {
-                    if(entity != actor && Is_Visible(entity))
+                    if(entity->refnum == target_idx)
                     {
-                        entity_count += 1;
-                        if(target_idx == entity_count)
-                        {
-                            target = entity;
-                            break;
-                        }
+                        target = entity;
+                        break;
                     }
                 }
             }
@@ -962,6 +922,36 @@ SIG void Add_Dice(Effect* effect, s16 count, s16 faces)
 }
 
 
+SIG u64 Per_Count_Rolled_Square_Weighted_Random(u64 count, Game_State* game_state)
+{
+    u64 result = 0;
+    for(u32 i = 0; i < count; ++i)
+    {
+        if(Roll(Square(i + 2), game_state) == 1)
+        {
+            result += 1;
+        }
+    }
+
+    return result;
+}
+
+
+SIG u64 Per_Count_Rolled_Random(u64 count, u32 change, Game_State* game_state)
+{
+    u64 result = 0;
+    for(u32 i = 0; i < count; ++i)
+    {
+        if(Roll(change, game_state) == 1)
+        {
+            result += 1;
+        }
+    }
+
+    return result;
+}
+
+
 SIG u32 Roll(u32 range, Game_State* game_state)
 {
     u32 result = 0;
@@ -1016,7 +1006,7 @@ SIG f32 Random_F32(Game_State* game_state)
 
 SIG Roll_Result Stat_Roll(s32 value, Stats::T stat, Game_State* game_state)
 {
-    Assert(stat < Stats::armor);
+    Assert(stat <= Stats::arcane);
 
     Roll_Result rr = {};
 
@@ -1039,7 +1029,7 @@ SIG s32 Value(Roll_Result rr)
 
 SIG Roll_Result Stat_Roll(Entity* entity, Stats::T stat, Game_State* game_state)
 {
-    Assert(stat < Stats::armor);
+    Assert(stat <= Stats::arcane);
 
     s32 value = Get_Stat_Value(entity, stat, game_state);
     Roll_Result rr = Stat_Roll(value, stat, game_state);
@@ -1113,20 +1103,28 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
         if(ar->is_hit)
         {
             Print((ar->is_critical_success)? "and the attack is a critical success!" : " and the attack lands.");
-            Wait(0.5, game_state);
+            Wait(0.8, game_state);
 
-            {
-                char* cstart    = game_state->damage_color.data;
-                char* cend      = game_state->default_color.data;
-                Print(" Dealing %s%d%s points of damage.", cstart, ar->deal_damage_result.damage_after_mitigation, cend);
-            }
+            Print
+            (
+                " Dealing %s%d%s point%s of damage.", 
+                game_state->damage_color.data, 
+                ar->deal_damage_result.damage_after_mitigation, 
+                game_state->default_color.data,
+                (ar->deal_damage_result.damage_after_mitigation > 1)? "s" : ""
+            );            
 
             Wait(0.8, game_state);
             if(ar->deal_damage_result.damage_to_temp_health)
             {
-                char* cstart = game_state->temp_health_color.data;
-                char* cend = game_state->default_color.data;
-                Print(" Temporary health absorbs %s%d%s points.", cstart, ar->deal_damage_result.damage_to_temp_health, cend);
+                Print
+                (
+                    " Temporary health absorbs %s%d%s point%s.", 
+                    game_state->temp_health_color.data, 
+                    ar->deal_damage_result.damage_to_temp_health, 
+                    game_state->default_color.data,
+                    (ar->deal_damage_result.damage_to_temp_health > 1)? "s" : ""
+                );
             }
 
             if(ar->deal_damage_result.is_killing_blow)
@@ -1138,13 +1136,14 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
                     message = Format_Message
                     (
                         game_state, 
-                        "%s %s. %s receives %s%d%s points of experience.", 
+                        "%s %s. %s receives %s%d%s point%s of experience.", 
                         defender_name.ptr, 
                         w, 
                         attacker_name.ptr, 
                         game_state->exp_color.data,
                         ar->deal_damage_result.exp_reward,
-                        game_state->default_color.data
+                        game_state->default_color.data,
+                        (ar->deal_damage_result.exp_reward > 1)? "s" : ""
                     );
                 }
                 else
@@ -1395,14 +1394,13 @@ SIG void Print_Required_Equipment_Slots(Entity* item)
 }
 
 
-SIG void Push_Generic_Apply_Effect_Message(Effect_Instance* source_effect, Entity* target, Effect_Instance new_effect, Apply_Effect_Result apply, Game_State* game_state)
+SIG void Push_Generic_Apply_Effect_Message(String source_name, Entity* target, Effect_Instance new_effect, Apply_Effect_Result apply, Game_State* game_state)
 {
     if(apply != Apply_Effect_Result::failed)
     {
         Arena* scratch_buffer = &game_state->scratch_buffer;
 
         String target_name = Name(target, game_state);
-        String source_name = Effect_Name(source_effect, game_state);
         String new_effect_name = Effect_Name(&new_effect, game_state);
         
         u64 duration = new_effect.duration;
@@ -1703,6 +1701,36 @@ SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_st
 }
 
 
+SIG bool Is_The_Same(Entity* A, Entity* B, Game_State* game_state)
+{
+    const u64 size = sizeof(*A);
+    char buffers[2][size] = {};
+    Mem_Copy(buffers[0], A, size);
+    Mem_Copy(buffers[1], B, size);
+
+    for(u64 i = 0; i < 2; ++i)
+    {
+        Entity* entity_view = (Entity*)buffers[i];
+        entity_view->ID = {};                   // Unique identifier. No two entities should have the same ID.
+        entity_view->refnum = {};               // Same as residence, it's about what context this was seen last. Does not effect the what this is.
+        entity_view->residence = {};            // Where the entity is. Where something is stored has no relation to what something is.
+        entity_view->dublicate_identifier = {}; // Used to distinguish two things with the same name, so not related to being the same or not.
+    }
+
+    bool result = true;
+    for(u64 i = 0; i < size; ++i)
+    {
+        if(buffers[0][i] != buffers[1][i])
+        {
+            result = false;
+            break;
+        }
+    }
+    
+    return result;
+}
+
+
 SIG void Remove_All_Effects(Entity* entity, Game_State* game_state)
 {
     Effects_Root* root = &entity->active_effects;
@@ -2000,9 +2028,11 @@ SIG bool Is_Item(Entity* entity)
 }
 
 
-SIG bool Is_Visible(Entity* entity)
+SIG bool Is_Visible(Entity* entity, Entity* actor, Game_State* game_state)
 {
-    bool result = entity->flags & (EFlags::visible | EFlags::actor);
+    bool visible = (entity->flags & EFlags::visible) > 0;
+    bool parent = entity->residence.v == Offset(actor, game_state).v;
+    bool result = visible || (entity->flags & EFlags::actor) || entity->weight >= 10 || parent;
     return result;
 }
 
@@ -2022,6 +2052,13 @@ SIG bool Is_Hostile_Against(Entity* A, Entity* B)
 
 
 SIG bool Is_Living_Enemy_Of(Entity* actor, Entity* target)
+{
+    bool result = (actor->_health > 0) && Is_Hostile_Against(actor, target);
+    return result;
+}
+
+
+SIG bool Is_Living_Active_Enemy_Of(Entity* actor, Entity* target)
 {
     bool result = Is_Alive(actor) && Is_Hostile_Against(actor, target);
     return result;
@@ -2155,23 +2192,25 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
             if(defender->_health <= 0)
             {
                 ddr.is_killing_blow = true;
-                
                 ddr.exp_reward = Exp_Reward(defender);
-                
-                // NOTE: Proc on damage taken
-                {
-                    Effects_Iterator iter = Make_Iterator(&defender->active_effects, game_state);
-                    while(Effect_Instance* instance = Next(&iter))
-                    {
-                        Effect* effect = Pointer(instance->effect_offset, game_state);
+            }
 
-                        if(PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS* on_damage_taken_fn = Pointer(effect->on_damage_taken_fn_offset, game_state))
-                        {
-                            on_damage_taken_fn(instance, attacker_offset, defender, &ddr, game_state);
-                        }
+            // NOTE: Proc on damage taken
+            {
+                Effects_Iterator iter = Make_Iterator(&defender->active_effects, game_state);
+                while(Effect_Instance* instance = Next(&iter))
+                {
+                    Effect* effect = Pointer(instance->effect_offset, game_state);
+
+                    if(PROTOTYPE_EFFINST_ENTOFF_ENT_DDR_GS* on_damage_taken_fn = Pointer(effect->on_damage_taken_fn_offset, game_state))
+                    {
+                        on_damage_taken_fn(instance, attacker_offset, defender, &ddr, game_state);
                     }
                 }
-                
+            }
+
+            if(defender->_health <= 0)
+            {
                 if(Entity* e = Pointer(attacker_offset, game_state))
                 {
                     e->exp += ddr.exp_reward;
@@ -2201,15 +2240,17 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                         message = Format_Message
                         (
                             game_state, 
-                            "%s takes %s%d%s points of damage from %s. Temporary health absorbs %s%d%s points. %s dies.", 
+                            "%s takes %s%d%s point%s of damage from %s. Temporary health absorbs %s%d%s point%s. %s dies.", 
                             defender_name.ptr,
                             game_state->damage_color.data, 
                             ddr.damage_after_mitigation,
                             game_state->default_color.data,
+                            (ddr.damage_after_mitigation > 1)? "s" : "",
                             source_name.ptr, 
                             game_state->temp_health_color.data,
                             ddr.damage_to_temp_health,
                             game_state->default_color.data,
+                            (ddr.damage_to_temp_health > 1)? "s" : "",
                             defender_name.ptr
                         );
                     }
@@ -2218,11 +2259,12 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                         message = Format_Message
                         (
                             game_state, 
-                            "%s takes %s%d%s points of damage from %s. %s dies.", 
+                            "%s takes %s%d%s point%s of damage from %s. %s dies.", 
                             defender_name.ptr, 
                             game_state->damage_color.data, 
                             ddr.damage_after_mitigation,
                             game_state->default_color.data,
+                            (ddr.damage_after_mitigation > 1)? "s" : "",
                             source_name.ptr, 
                             defender_name.ptr
                         );
@@ -2241,11 +2283,12 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                         String message2 = Format_Message
                         (
                             game_state, 
-                            "%s resives %s%d%s points of experience.", 
+                            "%s resives %s%d%s point%s of experience.", 
                             attacker_name_ptr,
                             game_state->exp_color.data,
                             ddr.exp_reward,
-                            game_state->default_color.data
+                            game_state->default_color.data,
+                            (ddr.exp_reward > 1)? "s" : ""
                         );
                         Push_Message(message2, game_state);
                     }
@@ -2258,15 +2301,17 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                         message = Format_Message
                         (
                             game_state, 
-                            "%s takes %s%d%s points of damage from %s. Temporary health absorbs %s%d%s points.",
+                            "%s takes %s%d%s point%s of damage from %s. Temporary health absorbs %s%d%s point%s.",
                             defender_name.ptr,
                             game_state->damage_color.data,
                             ddr.damage_after_mitigation,
                             game_state->default_color.data,
+                            (ddr.damage_after_mitigation > 1)? "s" : "",
                             source_name.ptr,
                             game_state->temp_health_color.data,
                             ddr.damage_to_temp_health,
-                            game_state->default_color.data
+                            game_state->default_color.data,
+                            (ddr.damage_to_temp_health > 1)? "s" : ""
                         );
                     }
                     else
@@ -2274,11 +2319,12 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                         message = Format_Message
                         (
                             game_state, 
-                            "%s takes %s%d%s points of damage from %s.", 
+                            "%s takes %s%d%s point%s of damage from %s.", 
                             defender_name.ptr,
                             game_state->damage_color.data, 
                             ddr.damage_after_mitigation, 
                             game_state->default_color.data,
+                            (ddr.damage_after_mitigation > 1)? "s" : "",
                             source_name.ptr
                         );
                     }
@@ -2470,7 +2516,53 @@ SIG Effect_Instance* New_Effect_Slot(Effects_Root* root, Game_State* game_state)
 }
 
 
-SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, Game_State* game_state)
+SIG Apply_Check_Record Application_Check(Entity* attacker, Entity* defender, Game_State* game_state)
+{
+    Apply_Check_Record acr;
+
+    acr.arcane_roll = Stat_Roll(attacker, Stats::arcane, game_state);
+    acr.immunity_roll = Stat_Roll(defender, Stats::immunity, game_state);
+
+    acr.application_was_successfull = acr.arcane_roll.total_result > acr.immunity_roll.total_result;
+
+    return acr;
+}
+
+
+SIG void Attempt_Infection(Entity* attacker, Entity* defender, String source_name, Effect_Instance infectious_effect_instance, Game_State* game_state)
+{
+    Apply_Check_Record acr = Application_Check(attacker, defender, game_state);
+    String message1 = Format_Message
+    (
+        game_state, 
+        "%s attempts to apply %s to %s: [%s]:%d (%d + %dd%d = %d) VS [%s]:%d (%d + %dd%d = %d)", 
+        source_name.ptr, 
+        Effect_Name(&infectious_effect_instance, game_state).ptr, 
+        Name(defender, game_state).ptr,
+        Stats::name[acr.immunity_roll.stat].ptr,
+        acr.immunity_roll.total_result,
+        acr.immunity_roll.stat_value,
+        acr.immunity_roll.dice.count,
+        acr.immunity_roll.dice.faces,
+        acr.immunity_roll.dice_result,
+        Stats::name[acr.arcane_roll.stat].ptr,
+        acr.arcane_roll.total_result,
+        acr.arcane_roll.stat_value,
+        acr.arcane_roll.dice.count,
+        acr.arcane_roll.dice.faces,
+        acr.arcane_roll.dice_result
+    );
+    Push_Message(message1, game_state);
+
+    if(acr.application_was_successfull)
+    {
+        Apply_Effect_Result apply = Apply_Effect(defender, infectious_effect_instance, game_state);
+        Push_Generic_Apply_Effect_Message(source_name, defender, infectious_effect_instance, apply, game_state);
+    }
+}
+
+
+SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, Game_State* game_state, Forced::T forced DEF(Forced::T(0)))
 {
     Apply_Effect_Result result = Apply_Effect_Result::failed;
     Effect* effect = Pointer(instance.effect_offset, game_state);
@@ -2485,7 +2577,7 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
         Assert(Pointer(instance.source, game_state)); // Do you have to have source?
         Assert(effect->type < Effect_Type::COUNT);       
 
-        if(Is_Alive(target))
+        if(Is_Alive(target) || forced == Forced::yes)
         {
             Effect_Instance* slot = 0;
             Effect_Instance* shortest_duration = 0;
@@ -2614,14 +2706,14 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
         {
             char c = (effect->critical_success_range > 0)? '+' : '-';
             local::Line(depth);
-            Print("Crtical range: %c %d", c, effect->critical_success_range);
+            Print("Crtical range: %c %d", c, Abs(effect->critical_success_range));
         }
 
         if(effect->critical_failure_range)
         {
             char c = (effect->critical_failure_range > 0)? '+' : '-';
             local::Line(depth);
-            Print("Fumple range: %c %d", c, effect->critical_failure_range);
+            Print("Fumple range: %c %d", c, Abs(effect->critical_failure_range));
         }
         
         if(effect->flags & Effect_Flags::has_damage_multiplier)
@@ -2642,11 +2734,17 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
             Print("Thorns damage: %d", effect->thorns_damage);
         }
 
+        if(effect->pierce)
+        {
+            local::Line(depth);
+            Print("Pierce: %d", effect->pierce);
+        }
+
         if(effect->carry_capacity_modifier)
         {
             char c = (effect->carry_capacity_modifier > 0)? '+' : '-';
             local::Line(depth);
-            Print("Carrying capacity modifeir: %c %d", c, effect->carry_capacity_modifier);
+            Print("Carrying capacity modifeir: %c %d", c, Abs(effect->carry_capacity_modifier));
         }
         
 
@@ -3126,7 +3224,7 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
                     
                     for(u64 i = 0; i < blocking_slots_count; ++i)
                     {
-                        *blocking_slots[i] = {};
+                        *blocking_slots[i] = Offset(target, game_state);
                     }
                     
                     for(u64 i = 0; i < slots_to_use_count; ++i)
@@ -3203,6 +3301,7 @@ SIG void Open(Entity* actor, Game_State* game_state)
 
             Deep_Insert(entity, residence, game_state);
             
+            Wait(0.5, game_state);
             Print("\n| - %s", Name(entity, game_state).ptr);
         }
         else
@@ -3239,33 +3338,6 @@ SIG u64 Longest_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_sta
 }
 
 
-SIG u64 Longest_Entity_Name_In_Actor_Inventory(Entity* actor, Game_State* game_state, u64* out_count DEF(0), s16* out_heaviest_weight DEF(0))
-{
-    s16 heaviest_weight = 0;
-    u64 count = 0;
-    u64 result = 0;
-    Entity_Iterator iter = Make_Iterator(actor, game_state);
-    while(Entity* entity = Next_Entity(&iter))
-    {
-        count += 1;
-        result = Max(result, Name_Without_Color(entity, game_state).length);
-        heaviest_weight = Max(heaviest_weight, entity->weight);
-    }
-
-    if(out_count)
-    {
-        *out_count = count;
-    }
-
-    if(out_heaviest_weight)
-    {
-        *out_heaviest_weight = heaviest_weight;
-    }
-
-    return result;
-}
-
-
 SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status::T report_turn_taken_status DEF(Report_Turn_Taken_Status::T(1)))
 {
     Entity* actor_residence = Pointer(actor->residence, game_state);
@@ -3284,10 +3356,12 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
         Entity_Iterator iter = Make_Iterator(actor_residence, game_state);
         while(Entity* entity = Next_Entity(&iter))
         {
-            if(entity != actor && Is_Visible(entity))
+            entity->refnum = 0;
+            if(entity != actor && Is_Visible(entity, actor, game_state))
             {
                 entity_count += 1;
-
+                entity->refnum = entity_count;
+                
                 if(first)
                 {
                     Print("\nYou glance around the room and see:");
@@ -4003,8 +4077,8 @@ SIG void NPC_Action(Entity* actor, String actor_name, Game_State* game_state)
                         // "%s bursts open releasing its conents:\n"
                         String str = Get_String(actor->burst_message_offset, game_state);
                         char* msg = (str.ptr)? str.ptr : "opens releasing it's contents";
-
                         Print("\n\n%s %s:", actor_name.ptr, msg);
+                        Wait(1, game_state);
                         Open(actor, game_state);
                     }
                     else
@@ -4629,7 +4703,7 @@ SIG void Sort_Space(Entity_Root_Node* space, Game_State* game_state)
         {
             Entity* entity = Pointer(*A, game_state);
             
-            if(!Is_Living_Enemy_Of(entity, player))
+            if(!Is_Living_Active_Enemy_Of(entity, player))
             {
                 // Find last living
                 Backwards_Iterator back_iter = Make_Backwards_Iterator(space, game_state);
@@ -4645,7 +4719,7 @@ SIG void Sort_Space(Entity_Root_Node* space, Game_State* game_state)
                     }
                     else
                     {
-                        if(Is_Living_Enemy_Of(other, player))
+                        if(Is_Living_Active_Enemy_Of(other, player))
                         {
                             // Swap!
                             Entity_Offset temp = *A;
@@ -5636,7 +5710,7 @@ SIG CMD_Result::T Pickup_Command(Entity* actor, String args, Game_State* game_st
             }
             else
             {
-                Print("\nYou pickup %s. (Now carrying: [%lld/%lld])", target_name.ptr, carrying_amount + target_weight, carry_capacity);
+                Print("\nYou pickup %s. (Now carrying: [%lld/%lld])", target_name.ptr, carrying_amount + target_weight, carry_capacity);            
                 Deep_Insert(target, actor, game_state);
             }
         }
@@ -5659,58 +5733,149 @@ SIG CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game
         Entity_Iterator iter = Make_Iterator(&actor->inventory, game_state);
         if(iter.count)
         {
-            s16 heaviest_item_weight;
-            u64 total_count;
-            s32 longest_item_name = (s32)Longest_Entity_Name_In_Actor_Inventory(actor, game_state, &total_count, &heaviest_item_weight);
-            s32 count_digit_count = s32(Digits(s32(total_count)));
-            s32 weight_digit_count = Digits(heaviest_item_weight);
+            s16 heaviest_weight = 0;
+            u64 longest_item_name_length = 0;
+            struct Inventory_Display_Item
+            {
+                Entity* entity;
+                u64 count;
+                bool equipped;
+            };
 
-            u64 count = 0;
+            Inventory_Display_Item* display_items = Push_Array(&game_state->scratch_buffer, Inventory_Display_Item, 0);
+            u64 display_item_count = 0;
+            u64 highest_idi_count = 0;
+
+            while(Entity* entity = Next_Entity(&iter))
+            {
+                entity->dublicate_identifier = 0;
+                Entity* first_dublicate_name_hit = 0;
+                u64 dublicate_names_count = 0;
+                
+                bool unique = true;
+                bool is_equipped = Is_Equipped(actor, entity, game_state);
+                if(!is_equipped)
+                {
+                    String entity_name = Get_String(entity->name_offset, game_state);
+                    for(u64 i = 0; i < display_item_count; ++i)
+                    {
+                        Inventory_Display_Item* idi = display_items + i;
+                        
+                        if(!idi->equipped && Is_The_Same(entity, idi->entity, game_state))
+                        {
+                            unique = false;
+                            idi->count += 1;
+                            highest_idi_count = Max(highest_idi_count, idi->count);
+                            break;
+                        }
+                        
+                        String idi_name = Get_String(idi->entity->name_offset, game_state);
+                        if(Match_Case_Sensitive(entity_name, idi_name))
+                        {
+                            dublicate_names_count += 1;
+                            if(!first_dublicate_name_hit)
+                            {
+                                first_dublicate_name_hit = idi->entity;
+                            }
+                        }
+                    }
+                }
+
+                if(unique)
+                {
+                    if(dublicate_names_count == 1)
+                    {
+                        first_dublicate_name_hit->dublicate_identifier = 1;
+                        entity->dublicate_identifier = 2;
+                    }
+                    else if(dublicate_names_count > 1)
+                    {
+                        entity->dublicate_identifier = dublicate_names_count + 1;
+                    }
+
+                    display_item_count += 1;
+                    entity->refnum = display_item_count;
+
+                    String entity_name = Name_Without_Color(entity, game_state);
+                    longest_item_name_length = Max(longest_item_name_length, entity_name.length);
+                    heaviest_weight = Max(heaviest_weight, entity->weight);
+                    *Push_Struct(&game_state->scratch_buffer, Inventory_Display_Item) = {entity, 1, is_equipped};
+                }
+            }
+
+            s32 count_digit_count = Digits((s32)display_item_count);
+            s32 heaviest_weight_digit_count = Digits((s32)heaviest_weight);
+
+            u64 count_string_lenght = 0;
+            if(highest_idi_count > 1)
+            {
+                count_string_lenght = 2 + Digits((s32)highest_idi_count);
+            }
+
             s32 carrying_amount = Carrying_Amount(actor, game_state);
             s32 carry_capacity = Carry_Capacity(actor, game_state);
             Print("\nYour inventory [%d/%d] contains:", carrying_amount, carry_capacity);
-            while(Entity* entity = Next_Entity(&iter))
+            for(u64 i = 0; i < display_item_count; ++i)
             {
-                count += 1;
+                Inventory_Display_Item* idi = display_items + i;
+
+                String count_string = {};
+                count_string.length = count_string_lenght;
+                count_string.ptr = (char*)Push(&game_state->scratch_buffer, count_string.length + 1);
+                u64 writehead = 0;
+                if(idi->count > 1)
+                {
+                    U64_To_String_Memory m;
+                    String num_string = To_String(idi->count, &m);
+                    count_string.ptr[writehead++] = 'x';
+                    Mem_Copy(count_string.ptr + writehead, num_string.ptr, num_string.length);
+                    writehead += num_string.length;
+                }
+                
+                for(u64 j = writehead; j < count_string.length; ++j)
+                {
+                    count_string.ptr[j] = ' ';
+                }
+
                 Print
                 (
-                    "\n| %s %-*llu %s%-*s%s [Weight: %*d]", 
-                    (Is_Equipped(actor, entity, game_state))? "*" : "-", 
+                    "\n| %s %-*llu %s%-*s%s %s[Weight: %*d]", 
+                    (idi->equipped)? "*" : "-", 
                     count_digit_count,
-                    count, 
-                    Entity_Color(entity, game_state),
-                    longest_item_name,
-                    Name_Without_Color(entity, game_state).ptr, 
+                    idi->entity->refnum, 
+                    Entity_Color(idi->entity, game_state),
+                    s32(longest_item_name_length),
+                    Name_Without_Color(idi->entity, game_state).ptr, 
                     game_state->default_color.data,
-                    weight_digit_count,
-                    entity->weight
+                    count_string.ptr,
+                    heaviest_weight_digit_count,
+                    idi->entity->weight
                 );
-                
 
-                if(entity->_health <= 0)
+                if(idi->entity->_health <= 0)
                 {
-                    if(Is_Item(entity))
+                    if(Is_Item(idi->entity))
                     {
                         Print(" [BROKEN]");
                     }
                     
-                    if(entity->flags & EFlags::actor)
+                    if(idi->entity->flags & EFlags::actor)
                     {
                         Print(" [DEAD]");
                     }
                 }
 
-                if(entity->interactable.uses_count || (entity->flags & EFlags::interactable))
+                if(idi->entity->interactable.uses_count || (idi->entity->flags & EFlags::interactable))
                 {
                     Print(" [");
-                    Print_Uses(entity);
+                    Print_Uses(idi->entity);
                     Print("]");
                 }
 
-                if(entity->flags & EFlags::equippable)
+                if(idi->entity->flags & EFlags::equippable)
                 {
                     Print(" [Slots: ");
-                    Print_Required_Equipment_Slots(entity);
+                    Print_Required_Equipment_Slots(idi->entity);
                     Print("]");
                 }
             }
@@ -5755,7 +5920,7 @@ SIG CMD_Result::T Proceed_Command(Entity* actor, String args, Game_State* game_s
             Entity_Iterator iter = Make_Iterator(room, game_state);
             while(Entity* entity = Next_Entity(&iter))
             {
-                if(Is_Living_Enemy_Of(entity, actor))
+                if(Is_Living_Active_Enemy_Of(entity, actor) && (entity->actions & AT::normal))
                 {
                     Roll_Result catch_roll = Stat_Roll(entity, Stats::speed, game_state);
                     *Push_Struct(&game_state->scratch_buffer, Catch_Attempt) = {catch_roll, entity};
@@ -6242,20 +6407,23 @@ SIG CMD_Result::T Search_Command(Entity* actor, String args, Game_State* game_st
     {
         bool first = true;
 
+        Print("\nYou search around... ");
+        Wait(1.2, game_state);
+
         Entity_Iterator iter = Make_Iterator(Pointer(actor->residence, game_state), game_state);
         while(Entity* entity = Next_Entity(&iter))
         {
-            if(!Is_Visible(entity))
+            if(!Is_Visible(entity, actor, game_state))
             {
                 entity->flags |= EFlags::visible;
-                if(Is_Visible(entity))
+                if(Is_Visible(entity, actor, game_state))
                 {
                     if(first)
                     {
                         first = false;
-                        Print("\nYou find:");
+                        Print("and you find:");
                     }
-
+                    Wait(0.8, game_state);
                     Print("\n| %s", Name(entity, game_state).ptr);
                 }
             }
@@ -6263,8 +6431,10 @@ SIG CMD_Result::T Search_Command(Entity* actor, String args, Game_State* game_st
 
         if(first)
         {
-            Print("\nYou search around, but you don't find anything new.");
+            Print("but you don't find anything new.");
         }
+
+        Wait(1, game_state);
     }
     else
     {
@@ -6407,38 +6577,60 @@ SIG CMD_Result::T Loot_Command(Entity* actor, String args, Game_State* game_stat
     Entity* target = Find_Entity_By_Name_Or_Reference_Number(actor, actor->residence, args, game_state);
     if(target)
     {
+        Flush_Messages(game_state);
+        Effects_Iterator iter = Make_Iterator(&target->active_effects, game_state);
+        while(Effect_Instance* instance = Next(&iter))
+        {
+            Effect* effect = Pointer(instance->effect_offset, game_state);
+            if(PROTOTYPE_EFFINST_ENT_ENT_GS* on_loot = Pointer(effect->on_loot_attempt_fn_offset, game_state))
+            {
+                on_loot(instance, target, actor, game_state);
+            }
+        }
+        Print_Messages(game_state);
+
+
         String target_name = Name(target, game_state);
 
         if(target->flags & EFlags::container)
         {
+            Print("\nYou open %s...", target_name.ptr);
+            Wait(1.2, game_state);
             if(Has_Content(&target->inventory))
             {
-                Print("\nYou open %s. It contains:", target_name.ptr);
+                Print(" it contains:");
                 Open(target, game_state);
             }
             else
             {
-                Print("\nYou open %s. It's empty.", target_name.ptr);
+                target->flags |= EFlags::is_open;
+                Print(" but it's empty.");
             }
+            Wait(0.8, game_state);
         }
         else if(target->flags & EFlags::actor)
         {
             if(target->_health > 0)
             {
                 Print("\n%s is alive and doens't take kindly to beeing looted.\n%s gets a free attack against you: ", target_name.ptr, target_name.ptr);
+                Wait(0.8, game_state);
                 Attack(target, actor, game_state);
             }
             else
             {
+                Print("\nYou open %s...", target_name.ptr);
+                Wait(1.2, game_state);
                 if(Has_Content(&target->inventory))
                 {
-                    Print("\nYou loot %s. It contains:", target_name.ptr);
+                    Print(" it contains:");
                     Open(target, game_state);
                 }
                 else
                 {
-                    Print("\nYou loot %s, but It's empty.", target_name.ptr);
+                    target->flags |= EFlags::is_open;
+                    Print(" but it's empty.");
                 }
+                Wait(0.8, game_state);
             }
         }
         else

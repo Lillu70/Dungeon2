@@ -75,7 +75,7 @@ SIG Effect_Offset Get_Enraged_Effect_Offset(Game_State* game_state)
                 effect_instance.duration = 1;
 
                 Apply_Effect_Result apply = Apply_Effect(target, effect_instance, game_state);
-                Push_Generic_Apply_Effect_Message(instance, target, effect_instance, apply, game_state);
+                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), target, effect_instance, apply, game_state);
             }
             else
             {
@@ -244,6 +244,117 @@ SIG Effect_Offset Get_Burning_Effect_Offset(Game_State* game_state)
     }
 
     return result;
+}
+
+
+SIG Effect_Offset Get_Festering_Rash_Effect_Offset(Game_State* game_state)
+{
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Festering rash"), game_state);
+        effect.type = Effect_Type::disease;
+        effect.stat_modifiers[Stats::might] = - 1;
+        effect.stat_modifiers[Stats::dodge] = - 1;
+        effect.stat_modifiers[Stats::speed] = - 1;
+        effect.stat_modifiers[Stats::arcane] = - 1;
+        effect.stat_modifiers[Stats::immunity] = - 1;
+        effect.stat_modifiers[Stats::accuracy] = - 1;
+        effect.stat_modifiers[Stats::vitality] = - 1;
+
+        effect.critical_success_range = - 1;
+        effect.critical_failure_range = + 1;
+
+        result = Insert_Effect(effect, key, game_state);
+    }
+
+    return result;
+}
+
+
+SIG Effect_Instance Get_Festering_Rash(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.effect_offset = Get_Festering_Rash_Effect_Offset(game_state);
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+    return instance;
+}
+
+
+SIG Effect_Offset Get_Weakening_Blight_Offset(Game_State* game_state)
+{
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Weakening Blight"), game_state);
+        effect.type = Effect_Type::disease;
+        effect.stat_modifiers[Stats::might] = - 5;
+
+        result = Insert_Effect(effect, key, game_state);
+    }
+
+    return result;
+}
+
+
+SIG Effect_Instance Get_Weakening_Blight(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.effect_offset = Get_Weakening_Blight_Offset(game_state);
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+    return instance;
+}
+
+
+SIG Effect_Offset Get_Devouring_Plague_Offset(Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 damage = 1;
+            if(instance)
+            {
+                Deal_Damage(target, instance->source, Effect_Name(instance, game_state), damage, {}, Damage_Type::magical, game_state, Verbose::yes);
+            }
+            else
+            {
+                Print("Deals %d points of damage to the inflicted.", damage);
+            }
+        }
+    };
+
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Devouring plague"), game_state);
+        effect.type = Effect_Type::disease;
+        effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
+        result = Insert_Effect(effect, key, game_state);
+    }
+
+    return result;
+}
+
+
+SIG Effect_Instance Get_Devouring_Plague(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.effect_offset = Get_Devouring_Plague_Offset(game_state);
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+    return instance;
 }
 
 
@@ -589,7 +700,7 @@ SIG Effect_Instance Disarming_Attack(Entity* attacker, Game_State* game_state)
                     weak_grip_instance.source = Offset(attacker, game_state);
 
                     Apply_Effect_Result apply = Apply_Effect(defender, weak_grip_instance, game_state);
-                    Push_Generic_Apply_Effect_Message(instance, defender, weak_grip_instance, apply, game_state);
+                    Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, weak_grip_instance, apply, game_state);
                 }
             }
             else
@@ -646,7 +757,7 @@ SIG Effect_Instance Vampiric_Attack(Entity* attacker, Game_State* game_state)
                 vampirism_effect_instance.source = Offset(attacker, game_state);
 
                 Apply_Effect_Result apply = Apply_Effect(attacker, vampirism_effect_instance, game_state);
-                Push_Generic_Apply_Effect_Message(instance, attacker, vampirism_effect_instance, apply, game_state);
+                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), attacker, vampirism_effect_instance, apply, game_state);
             }
             else
             {
@@ -794,7 +905,7 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
                 enraged.duration = 1;
 
                 Apply_Effect_Result apply = Apply_Effect(entity, enraged, game_state);
-                Push_Generic_Apply_Effect_Message(instance, entity, enraged, apply, game_state);
+                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), entity, enraged, apply, game_state);
             }
             else
             {
@@ -912,7 +1023,7 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
                 burning.duration = Burn_Duration();
 
                 Apply_Effect_Result apply = Apply_Effect(defender, burning, game_state);
-                Push_Generic_Apply_Effect_Message(instance, defender, burning, apply, game_state);
+                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, burning, apply, game_state);
             }
             else
             {
@@ -1102,7 +1213,7 @@ SIG Effect_Instance Stylish_Attack(Entity* attacker, Game_State* game_state)
                     if(Is_Living_Enemy_Of(entity, attacker))
                     {
                         Apply_Effect_Result apply = Apply_Effect(entity, enraged_instance, game_state);
-                        Push_Generic_Apply_Effect_Message(instance, entity, enraged_instance, apply, game_state);
+                        Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), entity, enraged_instance, apply, game_state);
                     }
                 }
             }
