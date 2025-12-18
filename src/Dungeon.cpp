@@ -10,11 +10,9 @@
 // TODO: Test equipping the same ring twice.
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
-// TODO: Visualise apply poison rolls, also make it integer check not a float so it can be represented by a "dice". Bring back resistance as anti effect stat.
 // TODO: Level up / Rest mechanic.
 // TODO: Make Loot command usable on items in the inventory.
 // TODO: Consumable with a CD. Currenty acrhitecture does not support this. Large sacale effort?
-// TODO: Consumable stacking.
 // TODO: Make effect iterators survive deletions... Effects_Root_Node* iteration ID. iterator ID also stored in the effect instance when iterated, skip effect if ID already same as iterator. 
 // Nuke the ID when an effect is deleted. at least a good catch against tampering, but also start over the iteration skipping over the ones with last runs ID. Replace with this runs ID incase delete happens again.
 
@@ -27,7 +25,7 @@
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
-#define QUICKSTART   1
+#define QUICKSTART   0
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -63,27 +61,6 @@ SIG char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, u8 red, u8 green, u8 
     Assert(size + 1 < Array_Length(buffer->data));
 
     return buffer->data;
-}
-
-
-SIG char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, Color color)
-{
-    char* result = Get_Output_Color_CSTR(buffer, color.r, color.g, color.b);
-    return result;
-}
-
-
-SIG void Set_Output_Color(u8 red, u8 green, u8 blue)
-{
-    ANSI_Color_Buffer buffer;
-    char* c = Get_Output_Color_CSTR(&buffer, red, green, blue);
-    Print("%s", c);
-}
-
-
-SIG void Set_Output_Color(Color color)
-{
-    Set_Output_Color(color.r, color.g, color.b);
 }
 
 
@@ -307,6 +284,54 @@ SIG Entity_Offset* Find_Empty_Slot(Entity_Node* node)
     }
     
     return result;
+}
+
+
+SIG Ambush_Creature_Spawner_Offset Offset(Ambush_Creature_Spawner* pointer, Game_State* game_state)
+{
+    Ambush_Creature_Spawner_Offset offset = {};
+    if(pointer)
+    {
+        offset = {Storage_Offset(pointer, game_state)};
+    }
+
+    return offset;
+}
+
+
+SIG Ambush_Creature_Spawner* Pointer(Ambush_Creature_Spawner_Offset offset, Game_State* game_state)
+{
+    Ambush_Creature_Spawner* pointer = {};
+    if(offset.v)
+    {
+        pointer = (Ambush_Creature_Spawner*)Pull_From_Storage_Offset(offset.v, game_state);
+    }
+
+    return pointer;
+}
+
+
+SIG Ambush_Option_Offset Offset(Ambush_Option* pointer, Game_State* game_state)
+{
+    Ambush_Option_Offset offset = {};
+    if(pointer)
+    {
+        offset = {Storage_Offset(pointer, game_state)};
+    }
+
+    return offset;
+}
+
+
+SIG Ambush_Option* Pointer(Ambush_Option_Offset offset, Game_State* game_state)
+{
+    Ambush_Option* pointer = {};
+    if(offset.v)
+    {
+        pointer = (Ambush_Option*)Pull_From_Storage_Offset(offset.v, game_state);
+    }
+
+    return pointer;
 }
 
 
@@ -573,7 +598,7 @@ SIG Entity* Find_Entity_By_Name(Entity* actor, Entity* space, String name, Game_
     Entity_Iterator iter = Make_Iterator(space, game_state);
     while(Entity* entity = Next_Entity(&iter))
     {
-        if(entity->refnum)
+        if(entity != actor && (Is_Visible(entity, actor, game_state)))
         {
             String entity_name = Name_Without_Color(entity, game_state);
             String entity_true_name = Get_String(entity->name_offset, game_state);
@@ -1686,18 +1711,177 @@ SIG void Assign_Dublicate_Name_Identifier(Entity* entity_to_insert, Entity* stor
 }
 
 
-SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_state)
+SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_state, Assign_Dublicate_Identifier::T assign_dublicate_identifier DEF(Assign_Dublicate_Identifier::T(1)))
 {
     if(storage_entity)
     {
+        entity->refnum = 0;
+        entity->dublicate_identifier = 0;
         Remove_From_Residence(entity, game_state);
         entity->residence = Offset(storage_entity, game_state);
-
-        Assign_Dublicate_Name_Identifier(entity, storage_entity, game_state);
+        
+        if(assign_dublicate_identifier)
+        {
+            Assign_Dublicate_Name_Identifier(entity, storage_entity, game_state);
+        }
 
         Entity_Root_Node* storage = &storage_entity->inventory;
         Insert(entity, storage, game_state);
     }
+}
+
+
+SIG Ambush_Option* Request_Ambush_Option(Game_State* game_state)
+{
+    Ambush_Option* ambush_option = Pointer(game_state->free_ambush_option_offset, game_state);
+    if(ambush_option)
+    {
+        game_state->free_ambush_option_offset = ambush_option->next;
+        *ambush_option = {};
+    }
+    else
+    {
+        ambush_option = Push_Struct(&game_state->permanent_storage, Ambush_Option);
+    }
+
+    return ambush_option;
+}
+
+
+SIG void Release_Ambush_Option(Ambush_Option* ambush_option, Game_State* game_state)
+{
+    *ambush_option = {};
+    ambush_option->next = game_state->free_ambush_option_offset;
+    game_state->free_ambush_option_offset = Offset(ambush_option, game_state);
+}
+
+
+SIG Ambush_Creature_Spawner* Request_Ambush_Creature_Spawner(Game_State* game_state)
+{
+    Ambush_Creature_Spawner* spawner = Pointer(game_state->free_ambush_creature_spawner_offset, game_state);
+    if(spawner)
+    {
+        game_state->free_ambush_creature_spawner_offset = spawner->next;
+        *spawner = {};
+    }
+    else
+    {
+        spawner = Push_Struct(&game_state->permanent_storage, Ambush_Creature_Spawner);
+    }
+
+    return spawner;
+}
+
+
+SIG void Release_Ambush_Creature_Spawner(Ambush_Creature_Spawner* spawner, Game_State* game_state)
+{
+    *spawner = {};
+    spawner->next = game_state->free_ambush_creature_spawner_offset;
+    game_state->free_ambush_creature_spawner_offset = Offset(spawner, game_state);
+}
+
+
+SIG Ambush_Option* Create_Ambush_Option(f32 change, Game_State* game_state)
+{
+    Ambush_Option* result = Request_Ambush_Option(game_state);
+    result->change = change;
+    result->next = game_state->_ambush_table.head;
+    game_state->_ambush_table.head = Offset(result, game_state);
+    game_state->_ambush_table.options_total_change += change;
+    return result;
+}
+
+
+SIG void Add_Ambush_Creature_Spawner(Ambush_Option* ambush, Ambush_Creature_Spawner spawner, Game_State* game_state)
+{
+    Ambush_Creature_Spawner* sp = Request_Ambush_Creature_Spawner(game_state);
+    *sp = spawner;
+    sp->next = ambush->head;
+    ambush->head = Offset(sp, game_state);
+}
+
+
+SIG void Reset_Ambush_Table(Game_State* game_state, f32 change DEF(0))
+{
+    Ambush_Option* option_head = Pointer(game_state->_ambush_table.head, game_state);
+    while(option_head)
+    {
+        Ambush_Creature_Spawner* spawner_head = Pointer(option_head->head, game_state);
+        while(spawner_head)
+        {
+            Ambush_Creature_Spawner* next_spawner_head = Pointer(spawner_head->next, game_state);
+            Release_Ambush_Creature_Spawner(spawner_head, game_state);
+            spawner_head = next_spawner_head;
+        }
+
+        Ambush_Option* option_next_head = Pointer(option_head->next, game_state);
+        Release_Ambush_Option(option_head, game_state);
+        option_head = option_next_head;
+    }
+
+    game_state->_ambush_table = {};
+    game_state->_ambush_table.change = change;
+}
+
+
+SIG bool Trigger_Ambush(Entity* room, Game_State* game_state, Entity*** out_spawned_entities, u64* out_spawned_count)
+{
+    Ambush_Option* selected_option = 0;
+    
+    f32 trigger = Random_F32(game_state);
+    if(trigger > game_state->_ambush_table.change)
+    {
+        f32 selector = Random_F32(game_state) * game_state->_ambush_table.options_total_change;
+        f32 accumilator = 0;
+
+        Ambush_Option* option = Pointer(game_state->_ambush_table.head, game_state);
+        while(option)
+        {
+            accumilator += option->change;
+            if(selector <= accumilator)
+            {
+                selected_option = option;
+                break;
+            }
+
+            option = Pointer(option->next, game_state);
+        }
+    }
+
+    if(selected_option)
+    {
+        Entity** spawned_entities = Push_Array(&game_state->scratch_buffer, Entity*, 0);
+        u64 spawned_count = 0;
+
+        Ambush_Creature_Spawner* spawner = Pointer(selected_option->head, game_state);
+        while(spawner)
+        {
+            u32 count = spawner->min;
+            if(spawner->max)
+            {
+                u32 offset = Roll(spawner->max + 1, game_state) - 1;
+                count += offset;
+            }
+
+            LOOP(count)
+            {
+                // NOTE: Entity create functions SHOULD cleanup after them selfs, but if not, just do so here.
+                Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
+                Entity* entity = Pointer(spawner->gen_fn_offset, game_state)/*->*/(room, game_state);
+                Restore(&game_state->scratch_buffer, snapshot);
+
+                *Push_Struct(&game_state->scratch_buffer, Entity*) = entity;
+                spawned_count += 1;
+            }
+
+            spawner = Pointer(spawner->next, game_state);
+        }
+
+        *out_spawned_entities = spawned_entities;
+        *out_spawned_count = spawned_count;
+    }
+
+    return selected_option != 0;
 }
 
 
@@ -1865,10 +2049,17 @@ SIG s32 Get_Stat_Value(Entity* entity, Stats::T stat, Game_State* game_state, u6
 }
 
 
+SIG void Ding(Entity* actor, Game_State* game_state)
+{
+    Print("You have leveled up!");
+    actor->_lvl += 1;
+}
+
+
 SIG s32 Exp_To_Level_Up(s32 _lvl)
 {
     f32 lvl = f32(_lvl);
-    s32 result = s32( -100.f + (1.f + Square(lvl + 1)) * 100.f );
+    s32 result = s32( -5.f + (1.f + Square(lvl)) * 5.f);
     return result;
 }
 
@@ -1902,7 +2093,7 @@ SIG void Set_Level_Based_On_Stats(Entity* entity)
 
 SIG s16 Level(Entity* entity)
 {
-    s16 result = Max(s16(1), s16(entity->_lvl + 1));
+    s16 result = Max(s16(1), s16(entity->_lvl));
     return result;
 }
 
@@ -1953,7 +2144,7 @@ SIG s32 Exp_Reward(Entity* entity)
 
     if(entity->flags & EFlags::actor)
     {
-        result += Level(entity) * 100;
+        result += Level(entity);
     }
     
     return result;
@@ -3864,7 +4055,9 @@ SIG void Player_Action(Entity* actor, String actor_name, Game_State* game_state)
                     u8 action_snapshot = actor->actions;
                     actor->actions &= ~cmd->action_type;
                     
-                    switch(cmd->fn(actor, args, game_state))
+                    CMD_Result::T r = cmd->fn(actor, args, game_state);
+                    Print_Messages(game_state);
+                    switch(r)
                     {
                         case CMD_Result::success:
                         {
@@ -5063,6 +5256,11 @@ SIG void Create_Player_Charater(Game_State* game_state)
         }
         #endif
 
+        Entity_Iterator iter = Make_Iterator(player, game_state);
+        while(Entity* item = Next_Entity(&iter))
+        {
+            item->dublicate_identifier = 0;
+        }
 
         Wait(1, game_state);
         Print("\n\nGood luck %s!", Name(player, game_state).ptr);
@@ -5398,10 +5596,9 @@ SIG void Exit_Handling(Game_State* game_state)
 SIG bool Play_Game(Game_State* game_state)
 {
     Reset_Game_State(game_state);
-    
+
     Print("New game of DUNGEON HD!");
     Create_Player_Charater(game_state);        
-
 
     while(game_state->running)
     {
@@ -5471,8 +5668,8 @@ SIG void Reset_Game_State(Game_State* game_state)
     Get_Output_Color_CSTR(&game_state->exp_color,        110, 110, 255);
 
     game_state->rarity_colors[Rarity::common] = game_state->default_color;
-    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::rare],          80, 140,  80);
-    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::magical],       80,  80, 230);
+    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::rare],          80, 190,  80);
+    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::magical],       30,  80, 210);
     Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::epic],         163,  73, 164);
     Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::legendary],    240, 100,  20);
 
@@ -5710,8 +5907,8 @@ SIG CMD_Result::T Pickup_Command(Entity* actor, String args, Game_State* game_st
             }
             else
             {
-                Print("\nYou pickup %s. (Now carrying: [%lld/%lld])", target_name.ptr, carrying_amount + target_weight, carry_capacity);            
-                Deep_Insert(target, actor, game_state);
+                Print("\nYou pickup %s. (Now carrying: [%lld/%lld])", target_name.ptr, carrying_amount + target_weight, carry_capacity);
+                Deep_Insert(target, actor, game_state, Assign_Dublicate_Identifier::no);
             }
         }
     }
@@ -5748,6 +5945,7 @@ SIG CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game
 
             while(Entity* entity = Next_Entity(&iter))
             {
+                entity->flags |= EFlags::visible;
                 entity->dublicate_identifier = 0;
                 Entity* first_dublicate_name_hit = 0;
                 u64 dublicate_names_count = 0;
@@ -6242,6 +6440,107 @@ SIG CMD_Result::T Stats_Command(Entity* actor, String args, Game_State* game_sta
         result = CMD_Result::invalid_args;
     }
     
+    return result;
+}
+
+
+SIG CMD_Result::T Camp_Command(Entity* actor, String args, Game_State* game_state)
+{
+    CMD_Result::T result = CMD_Result::success;
+    
+    Entity* target = Find_Entity_By_Name_Or_Reference_Number(actor, actor, args, game_state);
+    
+    if(target)
+    {
+        String item_name = Name_Without_Color(target, game_state);
+        
+        Food_Quality::T quality = target->food_quality;
+        if(quality)
+        {
+            bool mosters = false;
+            Entity* room = Pointer(actor->residence, game_state);
+            Entity_Iterator iter = Make_Iterator(room, game_state);
+            while(Entity* entity = Next_Entity(&iter))
+            {
+                if(Is_Living_Active_Enemy_Of(entity, actor))
+                {
+                    mosters = true;
+                    break;
+                }
+            }
+
+            if(!mosters)
+            {
+                Print("\nYou eat the %s, and then you try to get some sleep.", item_name.ptr);
+                Wait(1, game_state);
+                
+                Entity** ambush_entities = 0;
+                u64 ambush_entity_count = 0;
+                bool success = true;
+
+                String dots[] = {STR("."), STR(".."), STR("...")};
+                for(u64 i = 0; i < Array_Length(dots); ++i)
+                {
+                    Print("\n%s", dots[i].ptr);
+                    Wait(1, game_state);
+                    if(Trigger_Ambush(room, game_state, &ambush_entities, &ambush_entity_count))
+                    {
+                        success = false;
+                        break;
+                    }
+                }
+
+                if(success)
+                {
+                    Print("\nYou manage to sleep for several hours without being disturbed.");
+
+                    while(actor->exp > Exp_To_Level_Up(actor))
+                    {
+                        Ding(actor, game_state);
+                    }
+
+                    // TODO: -> Do the level up here!
+                    f32 fhealing = Max_Health(actor, game_state) * Food_Quality::healing[quality];
+                    s32 healing_amount = Round_To_S32(fhealing);
+
+                    Heal(actor, healing_amount, STR("Resting"), Verbose::yes, game_state);
+                }
+                else
+                {
+                    if(ambush_entity_count == 1)
+                    {
+                        Print("\nAs you sleep, you are attacked by a %s!", Name(*ambush_entities, game_state).ptr);
+                    }
+                    else
+                    {
+                        Print("\nAs you sleep, you are attacked by:");
+                        for(u64 i = 0; i < ambush_entity_count; ++i)
+                        {
+                            Wait(1, game_state);
+                            Print("\n| %s", Name(ambush_entities[i], game_state).ptr);
+                        }
+                    }
+                }
+
+                Delete_Entity(target, game_state);
+            }
+            else
+            {
+                Print("\nCan't rest when there are active hostiles in the room.");
+                result = CMD_Result::abort;
+            }
+        }
+        else
+        {
+            Print("\nAgainst better judgment you bite into the %s.", item_name.ptr);
+            Deal_Damage(actor, {}, STR("cracking a tooth"), 1, {}, Damage_Type::magical, game_state, Verbose::yes);
+        }
+    }
+    else
+    {
+        result = CMD_Result::invalid_args;
+    }
+
     return result;
 }
 

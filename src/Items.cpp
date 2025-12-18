@@ -597,39 +597,21 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
 {
     struct local
     {
-
-        // TODO: Update the new system!
-        static void On_Hit_FN(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
         {
-            f32 apply_poison_change = 0.5f;
             u64 poison_duration = 4;
             
             if(attacker)
             {
-                f32 r = Random_F32(game_state);
-                if(r <= apply_poison_change)
-                {
-                    // Apply poison!
-                    Effect_Offset poison_effect_offset = Get_Poison_Effect_Offset(game_state);
-                    Effect_Instance poison_instance = 
-                    {
-                        poison_duration, 
-                        poison_effect_offset, 
-                        Offset(attacker, game_state)
-                    };
-
-                    Apply_Effect_Result apply = Apply_Effect(defender, poison_instance, game_state);
-                    Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, poison_instance, apply, game_state);
-                }
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Poison(poison_duration, attacker, game_state), game_state);
             }
-            // Describe the function here.
             else
             {
-                char* str = 
-                "%.0f%% change to apply a poison effect. "
+                char* format_string = 
+                "Attempt to apply poison target.\n"
                 "The poison lasts %llu turns and deals %dd%d damage at the end of affected entities turn.";
                 
-                Print(str, apply_poison_change * 100, poison_duration, Poison_Damage_Dice().count, Poison_Damage_Dice().faces);
+                Print(format_string, poison_duration, Poison_Damage_Dice().count, Poison_Damage_Dice().faces);
             }
         }
     };    
@@ -654,7 +636,7 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::speed]  = + 1;
         effect.pierce                        = 2;
         Add_Dice(&effect, 1, 4);
-        effect.on_hit_fn_offset = Offset(local::On_Hit_FN, game_state);
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -1615,7 +1597,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Healing Potion"), game_state);
     entity->description_offset = Offset(STR("Produced in great numbers by the clergy, especially when preparing for war."), game_state);
-    entity->flags = EFlags::interactable | EFlags::item | EFlags::stacks;
+    entity->flags = EFlags::interactable | EFlags::item;
     entity->rarity = Rarity::rare;
 
     entity->weight = 1;
@@ -1786,6 +1768,19 @@ SIG Entity* Create_Fragmentation_Bomb(Entity* container, Game_State* game_state)
     entity->interactable.uses_count = 1;
 
     Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Jerky(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Jerky"), game_state);
+    entity->description_offset = Offset(STR("Dried and salted meat."), game_state);
+    entity->food_quality = Food_Quality::lunch;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
     return entity;
 }
 

@@ -48,11 +48,9 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     Equip(entity, Create_Leather_Cuirass(entity, game_state), game_state);
     Equip(entity, Create_Arming_Cap(entity, game_state), game_state);
     
-    // Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
-    // Create_Antidote(entity, game_state);
-    // 
-    // Create_Healing_Potion(entity, game_state);
-    // Create_Healing_Potion(entity, game_state);
+    LOOP(3) Create_Healing_Potion(entity, game_state);
+    LOOP(2) Create_Bomb(entity, game_state);
+    LOOP(2) Create_Jerky(entity, game_state);
 
     return entity;
 }
@@ -196,14 +194,12 @@ SIG Entity* Create_Blight_Rat(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 80;
     
-    entity->bonus_exp_reward = + 100;
-
     s16* stats = entity->_stats;
     stats[Stats::might]     = 4;
     stats[Stats::dodge]     = 3;
     stats[Stats::speed]     = 3;
     stats[Stats::accuracy]  = 6;
-    stats[Stats::vitality]  = 9;
+    stats[Stats::vitality]  = 7;
     stats[Stats::armor]     = 1;
     stats[Stats::immunity]  = 10;
     stats[Stats::arcane]    = 5;
@@ -317,7 +313,7 @@ SIG Entity* Create_Enlarged_Ant(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 10;
-    entity->bonus_exp_reward = -150;
+    // entity->bonus_exp_reward = -150;
     
     s16* stats = entity->_stats;
     stats[Stats::might]     = 3;
@@ -389,7 +385,7 @@ SIG Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor;
     entity->faction = Faction::nature;
     entity->weight = 300;
-    entity->bonus_exp_reward = + 500;
+    entity->bonus_exp_reward = + 5;
     
     s16* stats = entity->_stats;
     stats[Stats::might]     = 1;
@@ -801,20 +797,6 @@ SIG Entity* Create_Armor_Rack(Entity* room, Game_State* game_state)
 }
 
 
-SIG Entity* Create_Rat_Meat(Entity* container, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-
-    entity->name_offset = Offset(STR("Rat meat"), game_state);
-    entity->description_offset = Offset(STR("Dripping red. Swarming with flies."), game_state);
-    entity->weight = 5;
-    
-    Finalize_Entity(entity, container, game_state);
-
-    return entity;
-}
-
-
 SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -882,28 +864,11 @@ SIG Entity* Create_Spider(Entity* room, Game_State* game_state)
 
     struct local
     {
-        static void On_Hit_FN(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
         {
-            f32 apply_poison_change = 0.5f;
-            u64 poison_duration = 4;
-            
             if(attacker)
             {
-                f32 r = Random_F32(game_state);
-                if(r <= apply_poison_change)
-                {
-                    // Apply poison!
-                    Effect_Offset poison_effect_offset = Get_Poison_Effect_Offset(game_state);
-                    Effect_Instance poison_instance = 
-                    {
-                        poison_duration, 
-                        poison_effect_offset, 
-                        Offset(attacker, game_state)
-                    };
-                    
-                    Apply_Effect_Result apply = Apply_Effect(defender, poison_instance, game_state);
-                    Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, poison_instance, apply, game_state);
-                }
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Poison(3, attacker, game_state), game_state);
             }
         }
     };
@@ -988,17 +953,7 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
 
-    LOOP(3) Create_Skull_Cap(room, game_state);
-    Create_Great_Club(room, game_state);
-
-    for(u64 i = 0; i < 10; ++i) 
-    {
-        Entity* e = Create_Healing_Potion(room, game_state);
-        if(i % 2)
-        {
-            e->interactable.uses_count = 5;
-        }
-    }
+    Create_Blight_Rat(room, game_state);
 }
 
 
@@ -1006,6 +961,29 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
 {
     struct local
     {
+
+        static void Ambush_Rodents(Game_State* game_state)
+        {
+            Reset_Ambush_Table(game_state, 0.1f);
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(10, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Giant_Rat, game_state), 1, 3}, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(4, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Giant_Rat, game_state), 2}, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Blight_Rat, game_state), 1}, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(1, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Mutant_Hedgehog, game_state), 1}, game_state);
+            }
+        }
+
+
         static Entity* Supply_Room(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
@@ -1046,6 +1024,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a wide opening"), game_state);
                 char room_description[] = 
                 "The stone walls extend into the unseeable darkness.\n"
@@ -1080,6 +1060,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a long hallway"), game_state);
                 char room_description[] = 
                 "In the dark path ahead you can something moving.\n";
@@ -1110,6 +1092,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a battlefield"), game_state);
                 char room_description[] = 
                 "It looks like a group goblins and humans recently fought here. The dead were unceremoniously left where they had fallen.";
@@ -1150,6 +1134,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a mass grave"), game_state);
                 char room_description[] = 
                 "There are hatches in the cealing. Under them are piles and piles of rotting corpses. The dead appear to be goblins.\n"
@@ -1191,6 +1177,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a small rat nest"), game_state);
                 char room_description[] = 
                 "Looks to be a rat colony, but thankfully a small one.";
@@ -1230,6 +1218,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a dead-end"), game_state);
                 char room_description[] = 
                 "You crawl through a crack in the wall, but it led only to small dead end room.\n"
@@ -1282,6 +1272,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::magical;
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a battlefield"), game_state);
                 char room_description[] = 
                 "Ants and rats are fighting over a corpse.\n";
@@ -1340,6 +1332,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("an abandoned camp"), game_state);
                 char room_description[] = 
                 "You can see torn up tents. There is also a firepit, but is has gone cold a long time ago.";
@@ -1396,6 +1390,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::magical;
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Rodents(game_state);
+
                 room->name_offset = Offset(STR("a beasts lair"), game_state);
                 char room_description[] = 
                 "In the middle of the room there is what looks to you to be a \"bed\" of sorts.\n"
@@ -1422,7 +1418,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             return room;
         }
     };
-
 
     local_storage Loot_Table_Entry entries[] = 
     {
@@ -1567,3 +1562,8 @@ SIG _inline Level_Segments Caves(Game_State* game_state)
     Level_Segments level = {segments, Array_Length(segments)};
     return level;
 }
+
+
+
+
+

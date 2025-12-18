@@ -20,21 +20,6 @@
 // Using a deeper include is a hack to ensures that... \o/
 #include "Stats.cpp" 
 
-union Color
-{
-    u8 channels[4];
-    struct
-    {
-        u8 r;
-        u8 g;
-        u8 b;
-        u8 a;
-    };
-    u32 value;
-};
-static_assert(sizeof(Color) == sizeof(u32));
-
-
 struct ANSI_Color_Buffer
 {
     char data[sizeof("\x1b[38;2;255;255;255um")];
@@ -85,7 +70,6 @@ namespace EFlags
         redirected          = u64(1) << 10,
         can_be_stolen_from  = u64(1) << 11,
         visible             = u64(1) << 12,
-        stacks              = u64(1) << 13,
 
         started_turn        = u64(1) << 49,
         player_controlled   = u64(1) << 50,
@@ -339,6 +323,35 @@ String duration_type_names[] =
 #undef DURATION_TYPES
 
 
+namespace Food_Quality
+{
+    #define FOOD_QUALITIES(X, F)    \
+    X(F(none,        0.00f)),       \
+    X(F(snack,       0.25f)),       \
+    X(F(appetizer,   0.50f)),       \
+    X(F(lunch,       0.75f)),       \
+    X(F(meal,        1.00f)),
+
+    enum T : u8
+    {
+        FOOD_QUALITIES(PASTE, SWITCH_AB_A)
+        COUNT
+    };
+
+    String name[] = 
+    {
+        FOOD_QUALITIES(PASTE_AS_STRING, SWITCH_AB_A)
+    };
+
+    f32 healing[] = 
+    {
+        FOOD_QUALITIES(PASTE, SWITCH_AB_B)
+    };
+
+    #undef FOOD_QUALITIES
+}
+
+
 namespace Class
 {
     #define CLASSES(X, F)                           \
@@ -453,6 +466,7 @@ struct Interactable
     s32 uses_count;
 };
 
+
 enum class Faction : u8
 {
     none = 0,
@@ -504,6 +518,7 @@ struct Entity
             u8 actions;
             u8 stunned;
             Rarity::T rarity;
+            Food_Quality::T food_quality;
             Faction faction;
 
             s16 _stats[Stats::COUNT];
@@ -664,6 +679,16 @@ namespace Forced
 };
 
 
+namespace Assign_Dublicate_Identifier
+{
+    enum T : u8
+    {
+        no = 0,
+        yes
+    };  
+}
+
+
 struct Entity_Iterator
 {
     u64 idx;
@@ -686,6 +711,43 @@ struct Backwards_Iterator
     u64 index;
 
     Game_State* game_state;
+};
+
+
+struct Ambush_Creature_Spawner_Offset
+{
+    u64 v;
+};
+
+
+struct Ambush_Option_Offset
+{
+    u64 v;
+};
+
+
+struct Ambush_Creature_Spawner
+{
+    GENERATE_ENTITY_FN_Offset gen_fn_offset;
+    u32 min;
+    u32 max;
+    Ambush_Creature_Spawner_Offset next;
+};
+
+
+struct Ambush_Option
+{
+    f32 change;
+    Ambush_Creature_Spawner_Offset head;
+    Ambush_Option_Offset next;
+};
+
+
+struct Ambush_Table
+{
+    f32 change;
+    f32 options_total_change;
+    Ambush_Option_Offset head;
 };
 
 
@@ -731,6 +793,10 @@ struct Game_State
     Effect_Offset free_effect_offset;
     Effects_Node_Offset free_effects_offset;
     
+    Ambush_Table _ambush_table;
+    Ambush_Option_Offset free_ambush_option_offset;
+    Ambush_Creature_Spawner_Offset free_ambush_creature_spawner_offset;
+
     Effect_Hash_Table permanent_effects;
 
     u64 round;
@@ -1068,6 +1134,7 @@ Game_Command Player_Actions[] =
 {
     { Help_Command,         AT::free,   0, STR("help"),         help_command_description,           help_command_arguments},
     { Proceed_Command,      AT::normal, 0, STR("proceed"),      proceed_command_description,        no_args},
+    { Camp_Command,         AT::normal, 0, STR("camp"),         "TODO: FILL IN",                    no_args},
     { Search_Command,       AT::normal, 0, STR("search"),       search_command_description,         no_args},
     { Inspect_Command,      AT::free,   0, STR("inspect"),      inspect_command_description,        inspect_command_args},
     { Glance_Command,       AT::free,   0, STR("glance"),       glance_command_description,         no_args},

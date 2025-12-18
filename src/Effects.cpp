@@ -171,44 +171,44 @@ SIG Effect_Offset Get_Vampirism_Effect_Offset(Game_State* game_state)
 }
 
 
-SIG Dice Poison_Damage_Dice()
+SIG Dice Poison_Damage_Dice(){ return {2, 4}; }
+SIG Effect_Instance Get_Poison(u64 duration, Entity* source, Game_State* game_state)
 {
-    Dice poison_damage = {2, 4};
-    return poison_damage;
-}
-
-
-SIG void Poison_On_Turn_End_FN(Effect_Instance* instance, Entity* target, Game_State* game_state)
-{
-    Dice dice = Poison_Damage_Dice();
-
-    if(target)
+    struct local
     {
-        s16 dmg = (s16)Roll(dice, game_state);
-        String name = Effect_Name(instance, game_state);
-        Deal_Damage(target, instance->source, name, dmg, 0, Damage_Type::magical, game_state, Verbose::yes);
-    }
-    else
-    {
-        Print("Deals %dd%d damage.", dice.count, dice.faces);
-    }
-}
+        static void On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            Dice dice = Poison_Damage_Dice();
 
+            if(target)
+            {
+                s16 dmg = (s16)Roll(dice, game_state);
+                String name = Effect_Name(instance, game_state);
+                Deal_Damage(target, instance->source, name, dmg, 0, Damage_Type::magical, game_state, Verbose::yes);
+            }
+            else
+            {
+                Print("Deals %dd%d damage.", dice.count, dice.faces);
+            }
+        }
+    };
 
-SIG Effect_Offset Get_Poison_Effect_Offset(Game_State* game_state)
-{
-    Effect_Offset result;
+    Effect_Offset effect_offset;
     Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &result, game_state))
+    if(!Retrive_Effect(key, &effect_offset, game_state))
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Poison"), game_state);
-        effect.on_turn_end_fn_offset = Offset(Poison_On_Turn_End_FN, game_state);
+        effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
         effect.type = Effect_Type::poison;
-        result = Insert_Effect(effect, key, game_state);
+        effect_offset = Insert_Effect(effect, key, game_state);
     }
 
-    return result;
+    Effect_Instance instance = {};
+    instance.duration = duration;
+    instance.source = Offset(source, game_state);
+    instance.effect_offset = effect_offset;
+    return instance;
 }
 
 
