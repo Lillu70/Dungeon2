@@ -21,6 +21,45 @@
 // Effect idea: On turn end stun a random entity in the room.
 
 
+SIG Loot_Table Basic_Manuals_Loot_Table(Game_State* game_state)
+{
+    local_storage Loot_Table_Entry entries[] =
+    {
+        {Create_Manual_Of_Allin},
+        {Create_Manual_Of_Blessed},
+        {Create_Manual_Of_Careful},
+        {Create_Manual_Of_Evasive},
+        {Create_Manual_Of_Execute},
+        {Create_Manual_Of_Guarding},
+        {Create_Manual_Of_Reckless},
+        {Create_Manual_Of_Vampiric},
+    };
+
+    local_storage Loot_Table table = {entries, Array_Length(entries)};
+    Fill_Loot_Table_Changes_And_Item_Rarity(&table, game_state);
+
+    return table;
+}
+
+
+SIG Loot_Table Basic_Foods_Loot_Table(Game_State* game_state)
+{
+    local_storage Loot_Table_Entry entries[] =
+    {
+        {Create_Mushroom},
+        {Create_Bread},
+        {Create_Jerky},
+        {Create_BBQ_Wings},
+        {Create_Steak_And_Smashed_Potatoes},
+    };
+
+    local_storage Loot_Table table = {entries, Array_Length(entries)};
+    Fill_Loot_Table_Changes_And_Item_Rarity(&table, game_state);
+
+    return table;
+}
+
+
 SIG Loot_Table Basic_Consumables_Loot_Table(Game_State* game_state)
 {
     local_storage Loot_Table_Entry entries[] =
@@ -48,6 +87,9 @@ SIG Loot_Table Basic_Trinkets_Loot_Table(Game_State* game_state)
         {Create_Ring_Of_Strange_Fortunes},
         {Create_Cape_Of_Dashing},
         {Create_Cape_Of_Avoidance},
+        {Create_Cape_Of_Immunity},
+        {Create_Arcane_Cape},
+        {Create_Cape_Of_Spite},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -83,6 +125,10 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Sabatons},
         {Create_Gladiator_Sandals},
         {Create_Leather_Boots},
+        {Create_Gloves_Of_Brutality},
+        {Create_Leather_Gloves},
+        {Create_Chainmail_Gloves},
+        {Create_Plate_Gloves},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -126,6 +172,8 @@ SIG Loot_Table Basic_Merged_Loot_Table(Game_State* game_state)
         Basic_Armors_Loot_Table(game_state),
         Basic_Trinkets_Loot_Table(game_state),
         Basic_Consumables_Loot_Table(game_state),
+        Basic_Foods_Loot_Table(game_state),
+        Basic_Manuals_Loot_Table(game_state),
         &game_state->scratch_buffer
     );
 
@@ -646,6 +694,84 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Cape_Of_Immunity(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Cape of Immunity"), game_state);
+    entity->description_offset = Offset(STR("Pray you have one when the plague hits."), game_state);
+    entity->rarity = Rarity::magical;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::immunity]  = + 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Arcane_Cape(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Arcane cape"), game_state);
+    entity->description_offset = Offset(STR("Draw the user closer to the souce it self."), game_state);
+    entity->rarity = Rarity::magical;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::arcane]  = + 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Cape_Of_Spite(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Cape of Spite"), game_state);
+    entity->description_offset = Offset(STR("Made of living metal. When its wearer is hurt it forms into a spike and thrusts it self into the attacker."), game_state);
+    entity->rarity = Rarity::epic;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.thorns_damage = + 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
 SIG Entity* Create_Cape_Of_Avoidance(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -849,11 +975,25 @@ SIG Entity* Create_Ring_Of_Regeneration(Entity* room, Game_State* game_state)
             
             if(target)
             {
-                Heal(target, healing_amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+                bool room_contains_an_acitve_hostile = false;
+                Entity_Iterator iter = Make_Iterator(Pointer(target->residence, game_state), game_state);
+                while(Entity* entity = Next_Entity(&iter))
+                {
+                    if(Is_Living_Active_Enemy_Of(entity, target))
+                    {
+                        room_contains_an_acitve_hostile = true;
+                        break;
+                    }
+                }
+                
+                if(room_contains_an_acitve_hostile)
+                {
+                    Heal(target, healing_amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+                }
             }
             else
             {
-                Print("Heals the wearer %d points of health.", healing_amount);
+                Print("If it sences a hostile presence, heals the wearer %d points of health.", healing_amount);
             }
         }
     };
@@ -900,6 +1040,84 @@ SIG Entity* Create_Gloves_Of_Brutality(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 2;
         Add_Dice(&effect, 1, 6);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Leather_Gloves(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Leather gloves"), game_state);
+    entity->description_offset = Offset(STR("Basic hand protection."), game_state);
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::gloves];
+    entity->weight = 2;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Chainmail_Gloves(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Chainmail gloves"), game_state);
+    entity->description_offset = Offset(STR("Effective hand protection."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::gloves];
+    entity->weight = 3;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 2;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Plate_Gloves(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Plate gloves"), game_state);
+    entity->description_offset = Offset(STR("Heavy hand protection."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::gloves];
+    entity->weight = 4;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+        effect.critical_failure_range       = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -1610,27 +1828,502 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
 }
 
 
-struct String_Builder
+SIG Entity* Create_Jerky(Entity* room, Game_State* game_state)
 {
-    Arena* arena;
-    u64 length;
-    char* base;
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Jerky"), game_state);
+    entity->description_offset = Offset(STR("Dried and salted meat."), game_state);
+    entity->food_quality = Food_Quality::appetizer;
+    entity->weight = 1;
 
-    String_Builder(Arena* _arena, String str) : arena(_arena), length(0), base(Push_String(arena, str, &length)){}
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
 
-    String_Builder Next(String str)
+
+SIG Entity* Create_Bread(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Bread"), game_state);
+    entity->description_offset = Offset(STR("A bread loaf."), game_state);
+    entity->food_quality = Food_Quality::snack;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_BBQ_Wings(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Barbequed wings"), game_state);
+    entity->description_offset = Offset(STR("Chicken wings with a spicy sause."), game_state);
+    entity->food_quality = Food_Quality::lunch;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Steak_And_Smashed_Potatoes(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->rarity = Rarity::magical;
+    entity->name_offset = Offset(STR("Steak & mashed potatoes"), game_state);
+    entity->description_offset = Offset(STR("Medium rare."), game_state);
+    entity->food_quality = Food_Quality::meal;
+    entity->weight = 2;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Mushroom(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Mushroom"), game_state);
+    entity->description_offset = Offset(STR("Looks edible, but with mushrooms... who knows?"), game_state);
+    entity->food_quality = Food_Quality::snack;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+/*
+X(standard),                \
+    X(reckless),                \
+    X(careful),                 \
+    X(weakspot),                \
+    X(allin),                   \
+    X(disarming),               \
+    X(guarding),                \
+    X(evasive),                 \
+    X(vampiric),                \
+    X(blessed),                 \
+    X(berserking),              \
+    X(targeted),                \
+    X(execute),                 \
+    X(redirect),                \
+    X(change),                  \
+    X(cleansing),               \
+    X(thieving),                \
+
+*/
+
+
+
+
+SIG Entity* Create_Manual_Of_Berserking(Entity* container, Game_State* game_state)
+{
+    struct local
     {
-        Assert(base);
-        Push_String(arena, str, &length);
-        return *this;
-    }
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::berserking;
+            String attack_name = Attack_Mod::name[mod];
 
-    String Finish()
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Berserking Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Blessed(Entity* container, Game_State* game_state)
+{
+    struct local
     {
-        Push(arena, 1); // NOTE: null terminator! (not included in the length)
-        return {base, length};
-    }
-};
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::blessed;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Blessed Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Vampiric(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::vampiric;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Vampiric Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Evasive(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::evasive;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Evasive Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Guarding(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::guarding;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Guarding Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Disarming(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::disarming;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Disarming Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Allin(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::allin;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Allin Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Weakspot(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::weakspot;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Weakspot Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Careful(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::careful;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Careful Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+SIG Entity* Create_Manual_Of_Reckless(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::reckless;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Reckless Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Manual_Of_Execute(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Attack_Mod::T mod = Attack_Mod::execute;
+            String attack_name = Attack_Mod::name[mod];
+
+            if(item)
+            {
+                Print("\nYou have learned how use the %s attack.", attack_name.ptr);
+                user->known_attack_modifiers |= Attack_Modifier_Mask(mod);
+            }
+            else
+            {
+                Print("Teaches the user the %s attack modifeir.", attack_name.ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Manual of Execute Attack"), game_state);
+    entity->description_offset = Offset(STR("A skill book."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 3;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
 
 
 SIG Entity* Create_Bomb(Entity* container, Game_State* game_state)
@@ -1768,19 +2461,6 @@ SIG Entity* Create_Fragmentation_Bomb(Entity* container, Game_State* game_state)
     entity->interactable.uses_count = 1;
 
     Finalize_Entity(entity, container, game_state);
-    return entity;
-}
-
-
-SIG Entity* Create_Jerky(Entity* room, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-    entity->name_offset = Offset(STR("Jerky"), game_state);
-    entity->description_offset = Offset(STR("Dried and salted meat."), game_state);
-    entity->food_quality = Food_Quality::lunch;
-    entity->weight = 1;
-
-    Finalize_Entity(entity, room, game_state);
     return entity;
 }
 

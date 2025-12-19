@@ -142,3 +142,10 @@ SIG s32 Digits(s32 v, s32 base DEF(10))
     s32 result = s32(exp);
     return result;
 }
+
+// TODO: Generate variants:
+SIG s16 Inv(s16 v)
+{
+    s16 result = v * -1;
+    return result;
+}

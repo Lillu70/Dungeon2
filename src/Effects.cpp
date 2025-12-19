@@ -171,7 +171,7 @@ SIG Effect_Offset Get_Vampirism_Effect_Offset(Game_State* game_state)
 }
 
 
-SIG Dice Poison_Damage_Dice(){ return {2, 4}; }
+SIG Dice Poison_Damage_Dice(){ return {1, 4}; }
 SIG Effect_Instance Get_Poison(u64 duration, Entity* source, Game_State* game_state)
 {
     struct local
@@ -294,7 +294,8 @@ SIG Effect_Offset Get_Weakening_Blight_Offset(Game_State* game_state)
         Effect effect = {};
         effect.name_offset = Offset(STR("Weakening Blight"), game_state);
         effect.type = Effect_Type::disease;
-        effect.stat_modifiers[Stats::might] = - 5;
+        effect.stat_modifiers[Stats::might] = - 3;
+        effect.carry_capacity_modifier      = - 10;
 
         result = Insert_Effect(effect, key, game_state);
     }

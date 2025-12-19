@@ -5,6 +5,7 @@
 // All rights reserved.
 // ===================================
 
+// TODO: Glance name lenght bug!
 // TODO: Pierce and armor effects in the default deal damage print out.
 // TODO: Duration type part of the effect instead of The instance???
 // TODO: Test equipping the same ring twice.
@@ -20,12 +21,12 @@
 // TODO: Make help command describe common effects.
 
 #define DEVMODE      1
-#define SEED         235013
-#define RANDOM_SEED  0
+#define SEED         1
+#define RANDOM_SEED  1
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
-#define QUICKSTART   0
+#define QUICKSTART   1
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -1158,18 +1159,37 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
                 String message = {};
                 if(ar->deal_damage_result.exp_reward)
                 {
-                    message = Format_Message
-                    (
-                        game_state, 
-                        "%s %s. %s receives %s%d%s point%s of experience.", 
-                        defender_name.ptr, 
-                        w, 
-                        attacker_name.ptr, 
-                        game_state->exp_color.data,
-                        ar->deal_damage_result.exp_reward,
-                        game_state->default_color.data,
-                        (ar->deal_damage_result.exp_reward > 1)? "s" : ""
-                    );
+                    if(attacker->exp >= Exp_To_Level_Up(attacker))
+                    {
+                        message = Format_Message
+                        (
+                            game_state, 
+                            "%s %s. %s receives %s%d%s point%s of experience. %s has enough experience to level up!", 
+                            defender_name.ptr, 
+                            w, 
+                            attacker_name.ptr, 
+                            game_state->exp_color.data,
+                            ar->deal_damage_result.exp_reward,
+                            game_state->default_color.data,
+                            (ar->deal_damage_result.exp_reward > 1)? "s" : "",
+                            attacker_name.ptr
+                        );
+                    }
+                    else
+                    {
+                        message = Format_Message
+                        (
+                            game_state, 
+                            "%s %s. %s receives %s%d%s point%s of experience.", 
+                            defender_name.ptr, 
+                            w, 
+                            attacker_name.ptr, 
+                            game_state->exp_color.data,
+                            ar->deal_damage_result.exp_reward,
+                            game_state->default_color.data,
+                            (ar->deal_damage_result.exp_reward > 1)? "s" : ""
+                        );
+                    }
                 }
                 else
                 {
@@ -1801,7 +1821,7 @@ SIG void Add_Ambush_Creature_Spawner(Ambush_Option* ambush, Ambush_Creature_Spaw
 }
 
 
-SIG void Reset_Ambush_Table(Game_State* game_state, f32 change DEF(0))
+SIG void Reset_Ambush_Table(Game_State* game_state)
 {
     Ambush_Option* option_head = Pointer(game_state->_ambush_table.head, game_state);
     while(option_head)
@@ -1820,6 +1840,11 @@ SIG void Reset_Ambush_Table(Game_State* game_state, f32 change DEF(0))
     }
 
     game_state->_ambush_table = {};
+}
+
+
+SIG void Set_Ambush_Change(f32 change, Game_State* game_state)
+{
     game_state->_ambush_table.change = change;
 }
 
@@ -1829,7 +1854,7 @@ SIG bool Trigger_Ambush(Entity* room, Game_State* game_state, Entity*** out_spaw
     Ambush_Option* selected_option = 0;
     
     f32 trigger = Random_F32(game_state);
-    if(trigger > game_state->_ambush_table.change)
+    if(trigger < game_state->_ambush_table.change)
     {
         f32 selector = Random_F32(game_state) * game_state->_ambush_table.options_total_change;
         f32 accumilator = 0;
@@ -1859,7 +1884,8 @@ SIG bool Trigger_Ambush(Entity* room, Game_State* game_state, Entity*** out_spaw
             u32 count = spawner->min;
             if(spawner->max)
             {
-                u32 offset = Roll(spawner->max + 1, game_state) - 1;
+                s32 range = spawner->max - spawner->min + 1;
+                u32 offset = Roll(range, game_state) - 1;
                 count += offset;
             }
 
@@ -2049,24 +2075,74 @@ SIG s32 Get_Stat_Value(Entity* entity, Stats::T stat, Game_State* game_state, u6
 }
 
 
+struct Leveler
+{
+    Entity* actor;
+    s16 points;
+    s16 assigned[Stats::armor];
+    bool summarize;
+    bool running;
+};
+
+
 SIG void Ding(Entity* actor, Game_State* game_state)
 {
-    Print("You have leveled up!");
-    actor->_lvl += 1;
+    s16 actor_level_snapshot = actor->_lvl;
+    while(actor->exp >= Exp_To_Level_Up(actor))
+    {
+        actor->_lvl += 1;
+    }
+
+    s16 levels = actor->_lvl - actor_level_snapshot;
+    if(levels)
+    {
+        if(levels == 1)
+        {
+            Print("\n\nYou have gained a level up!");
+        }
+        else
+        {
+            Print("\n\nYou have gained %d level ups!", levels);
+        }
+        
+        Leveler leveler = {actor, levels * Stats::points_per_lvl};
+        Print("\nYou have %d points to spend.\n", leveler.points);
+
+        Command* commands = 0;
+        u64 count = 0;
+        Get_Level_Up_Commands(&commands, &count, game_state);
+        leveler.running = true;
+        Attempt_To_Execute_Command(commands, count, STR("help"), {}, game_state);
+        while(leveler.running)
+        {
+            if(leveler.summarize)
+            {
+                Attempt_To_Execute_Command(commands, count, STR("summary"), &leveler, game_state);
+            }
+
+            Print("\n\n- What do you do [points left: %d]: ", leveler.points);
+            Prompt_User_For_Command_And_Attempt_To_Execute(commands, count, &leveler, game_state);
+        }
+
+        for(u64 i = 0; i < Array_Length(leveler.assigned); ++i)
+        {
+            actor->_stats[i] += leveler.assigned[i];
+        }
+    }
 }
 
 
 SIG s32 Exp_To_Level_Up(s32 _lvl)
 {
     f32 lvl = f32(_lvl);
-    s32 result = s32( -5.f + (1.f + Square(lvl)) * 5.f);
+    s32 result = s32( -5.f + Round((1.f + Square(lvl)) / 3.f) * 5.f);
     return result;
 }
 
 
 SIG _inline s32 Exp_To_Level_Up(Entity* entity)
 {
-    s32 result = Exp_To_Level_Up(entity->_lvl);
+    s32 result = Exp_To_Level_Up(Level(entity));
     return result;
 }
 
@@ -2088,6 +2164,19 @@ SIG void Set_Level_Based_On_Stats(Entity* entity)
 {
     entity->_lvl = Calculate_Level(entity);
     entity->exp = (entity->_lvl)? (Exp_To_Level_Up(entity->_lvl - 1)) : 0;
+}
+
+
+SIG s32 Exp_Reward(Entity* entity)
+{
+    s32 result = entity->bonus_exp_reward;
+
+    if(entity->flags & EFlags::actor)
+    {
+        result += Level(entity) * 2;
+    }
+    
+    return result;
 }
 
 
@@ -2134,19 +2223,6 @@ SIG s32 Carry_Capacity(Entity* entity, Game_State* game_state)
     }
     
     result = Max(1, result + mod);
-    return result;
-}
-
-
-SIG s32 Exp_Reward(Entity* entity)
-{
-    s32 result = entity->bonus_exp_reward;
-
-    if(entity->flags & EFlags::actor)
-    {
-        result += Level(entity);
-    }
-    
     return result;
 }
 
@@ -3142,6 +3218,11 @@ SIG void Inspect(Entity* target, Game_State* game_state)
     {
         Print("\n");
         Print_Uses(target);
+    }
+
+    if(target->food_quality)
+    {
+        Print("\nFood Quality: %s", Food_Quality::name[target->food_quality].ptr);
     }
 
     Print_Equiped_Weapons(target, true, game_state);
@@ -5048,46 +5129,10 @@ SIG _inline void Enter_A_Room_Printout(Entity* player, Entity* room, Game_State*
 }
 
 
-SIG Room_Generator_Element Pick_Room_Generator(Room_Generator_Element_Array array, u32 selector, Game_State* game_state)
-{
-    u64 idx = array.count - 1;
-
-    u32 accumulator = 0;
-    for(u64 i = 0; i < array.count; ++i)
-    {
-        accumulator += array.array[i].size;
-        
-        if(selector <= accumulator)
-        {
-            idx = i;
-            break;
-        }
-    }
-
-    Room_Generator_Element result = array.array[idx];
-    return result;
-}
-
-
-SIG Room_Generator_Element Pick_Room_Generator(Room_Generator_Element_Array array, Game_State* game_state)
-{
-    s32 total = 0;
-    for(u64 i = 0; i < array.count; ++i)
-    {
-        total += array.array[i].size;
-    }
-    Assert(total);
-    u32 selector = Roll(total, game_state) - 1;
-    Room_Generator_Element result = Pick_Room_Generator(array, selector, game_state);
-    return result;
-}
-
-
-SIG void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 count, void* user_ptr, Game_State* game_state)
+SIG CMD_Result::T Attempt_To_Execute_Command(Command* commands, u64 count, String user_input, void* user_ptr, Game_State* game_state)
 {
     CMD_Result::T result = CMD_Result::none;
 
-    String user_input = Get_User_Input(game_state);
     String name = {};
     String args = {};
     String help = STR("help");
@@ -5106,13 +5151,13 @@ SIG void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 c
                 Command cmd = commands[i];
 
                 String cmd_name;
-                cmd.fn(Call_Style::name, &cmd_name, {});
+                cmd.fn(Call_Style::name, &cmd_name, {}, game_state);
                 Assert(name.length && name.ptr);
 
                 if(Match_Beginning_Case_Insensitive(args, cmd_name))
                 {
                     result = CMD_Result::success;
-                    cmd.fn(Call_Style::describe, 0, {});
+                    cmd.fn(Call_Style::describe, 0, {}, game_state);
                     break;
                 }
             }
@@ -5123,16 +5168,27 @@ SIG void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 c
         {
             result = CMD_Result::success;
             
+            u64 longest_command_name_length = 0;
+            for(u64 i = 0; i < count; ++i)
+            {
+                Command cmd = commands[i];
+                String cmd_name;
+                cmd.fn(Call_Style::name, &cmd_name, {}, game_state);
+                longest_command_name_length = Max(longest_command_name_length, cmd_name.length);
+            }
+
             Print("\nAvailable commands are: ");
+            Print("\n| %*s", s32(longest_command_name_length), help.ptr);
             for(u64 i = 0; i < count; ++i)
             {
                 Command cmd = commands[i];
 
                 String cmd_name;
-                cmd.fn(Call_Style::name, &cmd_name, {});
+                cmd.fn(Call_Style::name, &cmd_name, {}, game_state);
                 Assert(cmd_name.length && cmd_name.ptr);
-                Print("\n|%11s", cmd_name.ptr);
+                Print("\n| %*s", s32(longest_command_name_length), cmd_name.ptr);
             }
+            Print("\n\nFor more details about a command, use the command name as an argument in to the %s command.", help.ptr);
         }
     }
     else
@@ -5141,7 +5197,7 @@ SIG void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 c
         {
             Command cmd = commands[i];
 
-            cmd.fn(Call_Style::name, &name, {});
+            cmd.fn(Call_Style::name, &name, {}, game_state);
             Assert(name.length && name.ptr);
 
             if(Match_Beginning_Case_Insensitive(user_input, name))
@@ -5149,7 +5205,7 @@ SIG void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 c
                 args = Forward(user_input, name);
                 args = Skip_Whitespace(args);
                 
-                result = cmd.fn(Call_Style::execute, user_ptr, args);
+                result = cmd.fn(Call_Style::execute, user_ptr, args, game_state);
                 break;
             }
         }
@@ -5174,6 +5230,16 @@ SIG void Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 c
             Print("\n\"%s\" is not a valid command. Use the command \"help\" for a list of available commands.", user_input.ptr);
         }break;
     }
+
+    return result;
+}
+
+
+SIG CMD_Result::T Prompt_User_For_Command_And_Attempt_To_Execute(Command* commands, u64 count, void* user_ptr, Game_State* game_state)
+{
+    String user_input = Get_User_Input(game_state);
+    CMD_Result::T result = Attempt_To_Execute_Command(commands, count, user_input, user_ptr, game_state);
+    return result;
 }
 
 
@@ -5191,7 +5257,7 @@ SIG void Create_Player_Charater(Game_State* game_state)
         Class_Mask(Class::knight) | 
         Class_Mask(Class::wretched);
 
-    Character_Creator cc = {game_state, (Entity**)Push(&game_state->scratch_buffer, 0)};
+    Character_Creator cc = {(Entity**)Push(&game_state->scratch_buffer, 0)};
 
     for(u64 i = 0; i < Class::COUNT; ++i)
     {
@@ -5211,9 +5277,10 @@ SIG void Create_Player_Charater(Game_State* game_state)
         Command* commands;
         u64 count;
 
-        Get_Character_Creator_Commands(game_state, &commands, &count);
+        Get_Character_Creator_Commands(&commands, &count, game_state);
         Wait(1, game_state);
         cc.running = true;
+        Attempt_To_Execute_Command(commands, count, STR("help"), {}, game_state);
         while(cc.running)
         {
             Print("\n\n- What do you do: ");
@@ -5384,6 +5451,8 @@ SIG void Proceed(Game_State* game_state)
 
         if(!you_win)
         {
+            Reset_Ambush_Table(game_state);
+            
             Entity* room = 0;
             if(PROTOTYPE_ENT_GS* override = Pointer(game_state->room_generation_override_fn_offset, game_state))
             {
@@ -6453,87 +6522,89 @@ SIG CMD_Result::T Camp_Command(Entity* actor, String args, Game_State* game_stat
     if(target)
     {
         String item_name = Name_Without_Color(target, game_state);
-        
-        Food_Quality::T quality = target->food_quality;
-        if(quality)
+        if(target->_health > 0)
         {
-            bool mosters = false;
-            Entity* room = Pointer(actor->residence, game_state);
-            Entity_Iterator iter = Make_Iterator(room, game_state);
-            while(Entity* entity = Next_Entity(&iter))
+            Food_Quality::T quality = target->food_quality;
+            if(quality)
             {
-                if(Is_Living_Active_Enemy_Of(entity, actor))
+                bool mosters = false;
+                Entity* room = Pointer(actor->residence, game_state);
+                Entity_Iterator iter = Make_Iterator(room, game_state);
+                while(Entity* entity = Next_Entity(&iter))
                 {
-                    mosters = true;
-                    break;
-                }
-            }
-
-            if(!mosters)
-            {
-                Print("\nYou eat the %s, and then you try to get some sleep.", item_name.ptr);
-                Wait(1, game_state);
-                
-                Entity** ambush_entities = 0;
-                u64 ambush_entity_count = 0;
-                bool success = true;
-
-                String dots[] = {STR("."), STR(".."), STR("...")};
-                for(u64 i = 0; i < Array_Length(dots); ++i)
-                {
-                    Print("\n%s", dots[i].ptr);
-                    Wait(1, game_state);
-                    if(Trigger_Ambush(room, game_state, &ambush_entities, &ambush_entity_count))
+                    if(Is_Living_Active_Enemy_Of(entity, actor))
                     {
-                        success = false;
+                        mosters = true;
                         break;
                     }
                 }
 
-                if(success)
+                if(!mosters)
                 {
-                    Print("\nYou manage to sleep for several hours without being disturbed.");
+                    Print("\nYou eat the %s, and then you try to get some sleep.", item_name.ptr);
+                    Wait(1, game_state);
+                    
+                    Entity** ambush_entities = 0;
+                    u64 ambush_entity_count = 0;
+                    bool success = true;
 
-                    while(actor->exp > Exp_To_Level_Up(actor))
+                    String dots[] = {STR("."), STR(".."), STR("...")};
+                    for(u64 i = 0; i < Array_Length(dots); ++i)
                     {
-                        Ding(actor, game_state);
+                        Print("\n%s", dots[i].ptr);
+                        Wait(1, game_state);
+                        if(Trigger_Ambush(room, game_state, &ambush_entities, &ambush_entity_count))
+                        {
+                            success = false;
+                            break;
+                        }
                     }
 
-                    // TODO: -> Do the level up here!
-                    f32 fhealing = Max_Health(actor, game_state) * Food_Quality::healing[quality];
-                    s32 healing_amount = Round_To_S32(fhealing);
-
-                    Heal(actor, healing_amount, STR("Resting"), Verbose::yes, game_state);
-                }
-                else
-                {
-                    if(ambush_entity_count == 1)
+                    if(success)
                     {
-                        Print("\nAs you sleep, you are attacked by a %s!", Name(*ambush_entities, game_state).ptr);
+                        Print("\nYou manage to sleep for several hours without being disturbed.");
+                        Ding(actor, game_state);
+
+                        // TODO: -> Do the level up here!
+                        f32 fhealing = Max_Health(actor, game_state) * Food_Quality::healing[quality];
+                        s32 healing_amount = Round_To_S32(fhealing);
+
+                        Heal(actor, healing_amount, STR("Resting"), Verbose::yes, game_state);
                     }
                     else
                     {
-                        Print("\nAs you sleep, you are attacked by:");
-                        for(u64 i = 0; i < ambush_entity_count; ++i)
+                        if(ambush_entity_count == 1)
                         {
-                            Wait(1, game_state);
-                            Print("\n| %s", Name(ambush_entities[i], game_state).ptr);
+                            Print("\nAs you sleep, you are attacked by a %s!", Name(*ambush_entities, game_state).ptr);
+                        }
+                        else
+                        {
+                            Print("\nAs you sleep, you are attacked by:");
+                            for(u64 i = 0; i < ambush_entity_count; ++i)
+                            {
+                                Wait(1, game_state);
+                                Print("\n| %s", Name(ambush_entities[i], game_state).ptr);
+                            }
                         }
                     }
-                }
 
-                Delete_Entity(target, game_state);
+                    Delete_Entity(target, game_state);
+                }
+                else
+                {
+                    Print("\nCan't rest when there are active hostiles in the room.");
+                    result = CMD_Result::abort;
+                }
             }
             else
             {
-                Print("\nCan't rest when there are active hostiles in the room.");
-                result = CMD_Result::abort;
+                Print("\nAgainst better judgment you bite into the %s.", item_name.ptr);
+                Deal_Damage(actor, {}, STR("cracking a tooth"), 1, {}, Damage_Type::magical, game_state, Verbose::yes);
             }
         }
         else
         {
-            Print("\nAgainst better judgment you bite into the %s.", item_name.ptr);
-            Deal_Damage(actor, {}, STR("cracking a tooth"), 1, {}, Damage_Type::magical, game_state, Verbose::yes);
+            Print("\n%s is destroid and as such, unusable.", item_name.ptr);
         }
     }
     else
@@ -7040,7 +7111,7 @@ SIG CMD_Result::T Set_Seed_Command(Entity* actor, String args, Game_State* game_
 }
 
 
-SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_commands, u64* out_count)
+SIG void Get_Level_Up_Commands(Command** out_commands, u64* out_count, Game_State* game_state)
 {
     struct local
     {
@@ -7051,7 +7122,383 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
             Print("\nArguments: %s", args.ptr);
         }
 
-        static bool Find_By_Refnum_Or_Name(u64* out_idx, String args, Character_Creator* cc)
+        static CMD_Result::T Stat_Allocate(Call_Style ccs, void* user_ptr, String args, u32 stat_idx, Game_State* game_state)
+        {
+            CMD_Result::T result = CMD_Result::abort;
+            String cmd_name = Stats::name[stat_idx];
+
+            switch(ccs)
+            {
+                case Call_Style::name:
+                {
+                    *(String*)user_ptr = cmd_name;
+                }break;
+
+                case Call_Style::describe:
+                {
+                    Arena* scratch_buffer = &game_state->scratch_buffer;
+
+                    Arena_Snapshot snapshot = Snapshot(scratch_buffer);
+
+                    String start = STR("Adds or subtracts from the amount of points (provided as an argument) assigned into the ");
+                    String description = String_Builder(scratch_buffer, start).Next(cmd_name).Next(STR(" stat.")).Finish();
+
+                    char arguments[] = 
+                    "First an optional plus(+) or minus(-) sign, then a number of points you wish to add/subtract.\n"
+                    "If the sign is ommited, the default behavior is addition.";
+                    
+                    Self_Describe(cmd_name, description, STR(arguments));
+
+                    Restore(scratch_buffer, snapshot);
+                }break;
+
+                case Call_Style::execute:
+                {
+                    Leveler* leveler = (Leveler*)user_ptr;
+                    leveler->summarize = true;
+
+                    if(args.length > 0)
+                    {
+                        result = CMD_Result::success;
+
+                        s16 sign = 1;
+                        if(First(args) == '+')
+                        {
+                            args = Forward(args, 1);
+                        }
+                        else if(First(args) == '-')
+                        {
+                            sign = -1;
+                            args = Forward(args, 1);
+                        }
+
+                        args = Skip_Whitespace(args);
+                        if(Is_Positive_Integer(args))
+                        {
+                            if(args.length < 20)
+                            {
+                                u64 v = To_U64(args);
+                                s16 points_to_assign;
+                                char* modification_type;
+                                if(sign > 0)
+                                {
+                                    points_to_assign = (s16)Min(v, u64(leveler->points));
+                                    modification_type = "increased";
+                                    if(points_to_assign == 0)
+                                    {
+                                        Print("\nYou don't have any points left.");
+                                    }
+                                    else if(points_to_assign < v)
+                                    {
+                                        Print("\nYou only have %d points left, points to assign reduced down to %d.", points_to_assign, points_to_assign);
+                                    }
+                                }
+                                else
+                                {
+                                    points_to_assign = (s16)Min(v, u64(leveler->assigned[stat_idx]));
+                                    modification_type = "reduced";
+
+                                    if(points_to_assign == 0)
+                                    {
+                                        Print("\nYou haven't assignd any points to %s.", cmd_name.ptr);
+                                    }
+                                    else if(points_to_assign < v)
+                                    {
+                                        Print
+                                        (
+                                            "\nYou have only assigned %d points to %s, points to reduce set down to %d.", 
+                                            points_to_assign, 
+                                            cmd_name.ptr, 
+                                            points_to_assign
+                                        );
+                                    }
+                                }
+                                
+                                if(points_to_assign)
+                                {
+                                    leveler->points += (points_to_assign * Inv(sign));
+                                    leveler->assigned[stat_idx] += (points_to_assign * sign);
+                                    s32 total = leveler->actor->_stats[stat_idx] + leveler->assigned[stat_idx];
+
+                                    Print
+                                    (
+                                        "\nStat: %s %s by %d. Points assigned to %s is now %d totaling up to %d.", 
+                                        cmd_name.ptr, 
+                                        modification_type, 
+                                        points_to_assign,
+                                        cmd_name.ptr,
+                                        leveler->assigned[stat_idx],
+                                        total
+                                    );
+                                }
+                            }
+                            else
+                            {
+                                Print("\nSorry, but the provided number: %s is too big.", args.ptr);
+                                result = CMD_Result::invalid_args;
+                            }
+                        }
+                        else
+                        {
+                            result = CMD_Result::invalid_args;
+                        }
+                    }
+                    else
+                    {
+                        result = CMD_Result::invalid_args;
+                    }
+                }break;
+            }
+
+            return result;
+        }
+
+
+        static CMD_Result::T summary(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
+        {
+            CMD_Result::T result = CMD_Result::abort;
+            String cmd_name = STR(__func__);
+
+            switch(ccs)
+            {
+                case Call_Style::name:
+                {
+                    *(String*)user_ptr = cmd_name;
+                }break;
+
+                case Call_Style::describe:
+                {
+                    char description[] = 
+                    "Lists character stats and allocated points.";
+
+                    char arguments[] = 
+                    "Takes no arguments.";
+                    
+                    Self_Describe(cmd_name, STR(description), STR(arguments));
+                }break;
+
+                case Call_Style::execute:
+                {
+                    if(args.length == 0)
+                    {
+                        result = CMD_Result::success;
+
+                        Leveler* leveler = (Leveler*)user_ptr;
+                        leveler->summarize = false;
+
+                        u64 longest_stat_name_length = 0;
+                        s16 biggest_stat_value = 0;
+                        for(u64 i = 0; i < Array_Length(leveler->assigned); ++i)
+                        {
+                            longest_stat_name_length = Max(longest_stat_name_length, Stats::name[i].length);
+                            biggest_stat_value = Max(biggest_stat_value, leveler->actor->_stats[i]);
+                        }
+
+                        s32 biggest_stat_value_digit_count = Digits(biggest_stat_value);
+
+                        Print("\nPoints left: %d", leveler->points);
+                        for(u64 i = 0; i < Array_Length(leveler->assigned); ++i)
+                        {
+                            s16 base = leveler->actor->_stats[i];
+                            Wait(0.3, game_state);
+                            Print("\n| %*s: %*d", s32(longest_stat_name_length), Stats::name[i].ptr, biggest_stat_value_digit_count, base);
+                            
+                            s16 assigned = leveler->assigned[i];
+                            if(assigned)
+                            {
+                                Print(" + %d", assigned);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        result = CMD_Result::invalid_args;
+                    }
+                }break;
+            }
+
+            return result;
+        }
+
+        static CMD_Result::T reset(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
+        {
+            CMD_Result::T result = CMD_Result::abort;
+            String cmd_name = STR(__func__);
+
+            switch(ccs)
+            {
+                case Call_Style::name:
+                {
+                    *(String*)user_ptr = cmd_name;
+                }break;
+
+                case Call_Style::describe:
+                {
+                    char description[] = 
+                    "De-allocates all points.";
+
+                    char arguments[] = 
+                    "No arguments or \"!\" to skip the confirmation step.";
+
+                    Self_Describe(cmd_name, STR(description), STR(arguments));
+                }break;
+
+                case Call_Style::execute:
+                {
+                    Leveler* leveler = (Leveler*)user_ptr;
+
+                    if(args.length == 0)
+                    {
+                        Print("\nAre you sure?:");
+                        if(User_Query_Yes_No(game_state))
+                        {
+                            result = CMD_Result::success;
+                        }
+                        else
+                        {
+                            result = CMD_Result::abort;
+                        }
+                    }
+                    else if(Match_Case_Sensitive(args, STR("!")))
+                    {
+                        result = CMD_Result::success;
+                    }
+                    else
+                    {
+                        result = CMD_Result::invalid_args;
+                    }
+
+                    if(result == CMD_Result::success)
+                    {
+                        leveler->summarize = true;
+                        for(u64 i = 0; i < Array_Length(leveler->assigned); ++i)
+                        {
+                            leveler->points += leveler->assigned[i];
+                            leveler->assigned[i] = 0;
+                        }
+                    }
+                }break;
+            }
+            
+            return result;
+        }
+
+        static CMD_Result::T done(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
+        {
+            CMD_Result::T result = CMD_Result::abort;
+            String cmd_name = STR(__func__);
+
+            switch(ccs)
+            {
+                case Call_Style::name:
+                {
+                    *(String*)user_ptr = cmd_name;
+                }break;
+
+                case Call_Style::describe:
+                {
+                    char description[] = 
+                    "If all the points are allocated, exists the level up prompt.";
+
+                    char arguments[] = 
+                    "No arguments or \"!\" to skip the confirmation step.";
+                    
+                    Self_Describe(cmd_name, STR(description), STR(arguments));
+                }break;
+
+                case Call_Style::execute:
+                {
+                    Leveler* leveler = (Leveler*)user_ptr;
+
+                    if(args.length == 0)
+                    {
+                        if(leveler->points == 0)
+                        {
+                            Print("\nAre you sure? :");
+                            if(User_Query_Yes_No(game_state))
+                            {
+                                result = CMD_Result::success;
+                            }
+                            else
+                            {
+                                result = CMD_Result::abort;
+                            }
+                        }
+                        else
+                        {
+                            Print("\nYou still have %d points to assign.", leveler->points);
+                        }
+                    }
+                    else if(Match_Case_Sensitive(args, STR("!")))
+                    {
+                        if(leveler->points == 0)
+                        {
+                            result = CMD_Result::success;
+                        }
+                        else
+                        {
+                            Print("\nYou still have %d points to assign.", leveler->points);
+                        }
+                    }
+                    else
+                    {
+                        result = CMD_Result::invalid_args;
+                    }
+
+                    if(result == CMD_Result::success)
+                    {
+                        leveler->running = false;
+                    }
+                }break;
+            }
+
+            return result;
+        }
+    };
+
+    // CONSIDER: Is this too much voodoo? Just copy pasting the function with different name.
+    // I thinks it's borderline, but lands on the fiiiiiine side of things.
+    #define STAT_ALLOCATE_PASS_THROUGH(X)                                                       \
+    [](Call_Style ccs, void* user_ptr, String args, Game_State* game_state) -> CMD_Result::T    \
+    {                                                                                           \
+        CMD_Result::T result = local::Stat_Allocate(ccs, user_ptr, args, Stats::X, game_state); \
+        return result;                                                                          \
+    }
+
+    Command commands[] = 
+    {
+        STAT_ALLOCATE_PASS_THROUGH(might),
+        STAT_ALLOCATE_PASS_THROUGH(speed),
+        STAT_ALLOCATE_PASS_THROUGH(dodge),
+        STAT_ALLOCATE_PASS_THROUGH(accuracy),
+        STAT_ALLOCATE_PASS_THROUGH(vitality),
+
+        local::summary,
+        local::reset,
+        local::done,
+    };
+
+    #undef STAT_ALLOCATE_PASS_THROUGH
+
+    *out_commands = Push_Array(&game_state->scratch_buffer, Command, Array_Length(commands));
+    Mem_Copy(*out_commands, commands, sizeof(commands));
+
+    *out_count = Array_Length(commands);
+}
+
+
+SIG void Get_Character_Creator_Commands(Command** out_commands, u64* out_count, Game_State* game_state)
+{
+    struct local
+    {
+        static void Self_Describe(String name, String description, String args)
+        {
+            Print("[%s]", name.ptr);
+            Print("\nDescription: %s", description.ptr);
+            Print("\nArguments: %s", args.ptr);
+        }
+
+        static bool Find_By_Refnum_Or_Name(u64* out_idx, String args, Character_Creator* cc, Game_State* game_state)
         {
             bool found = false;
             if(Is_Positive_Integer(Skip_Zeroes(args)))
@@ -7072,7 +7519,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
             {
                 for(u64 i = 0; i < cc->template_count; ++i)
                 {
-                    if(Match_Case_Insensitive(args, Get_String(cc->class_templates[i]->name_offset, cc->game_state)))
+                    if(Match_Case_Insensitive(args, Get_String(cc->class_templates[i]->name_offset, game_state)))
                     {
                         found = true;
                         *out_idx = i;
@@ -7090,7 +7537,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
         }
 
 
-        static CMD_Result::T list(Call_Style ccs, void* user_ptr, String args)
+        static CMD_Result::T list(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
         {
             CMD_Result::T result = CMD_Result::abort;
             String cmd_name = STR(__func__);
@@ -7110,9 +7557,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                     char arguments[] = 
                     "Takes no arguments.";
                     
-                    String name;
-                    list(Call_Style::name, &name, {});
-                    Self_Describe(name, STR(description), STR(arguments));
+                    Self_Describe(cmd_name, STR(description), STR(arguments));
                 }break;
 
                 case Call_Style::execute:
@@ -7128,9 +7573,9 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                         for(u64 i = 0; i < cc->template_count; ++i)
                         {
                             refnum += 1;
-                            Wait(1, cc->game_state);
+                            Wait(1, game_state);
                             Entity* e = cc->class_templates[i];
-                            Print("\n| %llu - %s", refnum, Name(e, cc->game_state).ptr);    
+                            Print("\n| %llu - %s", refnum, Name(e, game_state).ptr);    
                         }
                     }
                     else
@@ -7143,7 +7588,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
             return result;
         }
 
-        static CMD_Result::T select(Call_Style ccs, void* user_ptr, String args)
+        static CMD_Result::T select(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
         {
             CMD_Result::T result = CMD_Result::abort;
             String cmd_name = STR(__func__);
@@ -7171,9 +7616,9 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                     Character_Creator* cc = (Character_Creator*)user_ptr;
                     
                     u64 idx = 0;
-                    if(Find_By_Refnum_Or_Name(&idx, args, cc))
+                    if(Find_By_Refnum_Or_Name(&idx, args, cc, game_state))
                     {
-                        Print("Starting game as the %s!", Name(cc->class_templates[idx], cc->game_state).ptr);
+                        Print("Starting game as the %s!", Name(cc->class_templates[idx], game_state).ptr);
                         cc->selected_idx = idx;
                         cc->running = false;
 
@@ -7189,7 +7634,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
             return result;
         }
 
-        static CMD_Result::T inspect(Call_Style ccs, void* user_ptr, String args)
+        static CMD_Result::T inspect(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
         {
             CMD_Result::T result = CMD_Result::abort;
             String cmd_name = STR(__func__);
@@ -7218,11 +7663,11 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
 
                     Assert(cc->selected_idx < cc->template_count);
                     Entity* e = cc->class_templates[cc->selected_idx];
-                    Entity* item = Find_Entity_By_Name_Or_Reference_Number(0, e, args, cc->game_state, Verbose::yes);
+                    Entity* item = Find_Entity_By_Name_Or_Reference_Number(0, e, args, game_state, Verbose::yes);
                     if(item)
                     {
                         result = CMD_Result::success;
-                        Inspect(item, cc->game_state);
+                        Inspect(item, game_state);
                     }
                     else
                     {
@@ -7235,7 +7680,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
             return result;
         }
 
-        static CMD_Result::T describe(Call_Style ccs, void* user_ptr, String args)
+        static CMD_Result::T describe(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
         {
             CMD_Result::T result = CMD_Result::abort;
             String cmd_name = STR(__func__);
@@ -7263,15 +7708,15 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                     Character_Creator* cc = (Character_Creator*)user_ptr;
 
                     u64 idx = 0;
-                    if(Find_By_Refnum_Or_Name(&idx, args, cc))
+                    if(Find_By_Refnum_Or_Name(&idx, args, cc, game_state))
                     {
                         cc->selected_idx = idx;
                         result = CMD_Result::success;
                         
                         Entity* e = cc->class_templates[idx];
 
-                        Print("[%s]", Get_String(e->name_offset, cc->game_state).ptr);
-                        Print("\nDescription: %s", Get_String(e->description_offset, cc->game_state).ptr);
+                        Print("[%s]", Get_String(e->name_offset, game_state).ptr);
+                        Print("\nDescription: %s", Get_String(e->description_offset, game_state).ptr);
                         Print("\nLevel: %d", Level(e));
                         Print("\nStats:");
                         for(u64 j = 0; j < Stats::COUNT - 1; ++j)
@@ -7294,11 +7739,11 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                         {
                             Print("\n\nEquipment:");
                             u64 refnum = 0;
-                            Entity_Iterator iter = Make_Iterator(e, cc->game_state);
+                            Entity_Iterator iter = Make_Iterator(e, game_state);
                             while(Entity* item = Next_Entity(&iter))
                             {
                                 refnum += 1;
-                                Print("\n| %llu - %s", refnum, Name(item, cc->game_state).ptr);
+                                Print("\n| %llu - %s", refnum, Name(item, game_state).ptr);
                             }
                         }
                     }
@@ -7313,7 +7758,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
             return result;
         }
 
-        static CMD_Result::T exit(Call_Style ccs, void* user_ptr, String args)
+        static CMD_Result::T exit(Call_Style ccs, void* user_ptr, String args, Game_State* game_state)
         {
             CMD_Result::T result = CMD_Result::abort;
             String cmd_name = STR(__func__);
@@ -7343,7 +7788,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
                     if(args.length == 0)
                     {
                         Print("\nAre you sure you want to quit the game? You haven't even played it yet! :");
-                        if(User_Query_Yes_No(cc->game_state))
+                        if(User_Query_Yes_No(game_state))
                         {
                             result = CMD_Result::success;
                         }
@@ -7363,7 +7808,7 @@ SIG void Get_Character_Creator_Commands(Game_State* game_state, Command** out_co
 
                     if(result == CMD_Result::success)
                     {
-                        cc->game_state->running = false;
+                        game_state->running = false;
                         cc->running = false;
                     }
                 }break;

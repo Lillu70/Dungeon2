@@ -6,6 +6,60 @@
 // ===================================
 
 
+// - Enemies
+// Snake (Poison and fast, low HP, high dodge) enemy -> change for being in supply create.
+// Scorpion (Necro-toxin, high armor, low hp and fast^) -> change for being in supply create.
+
+// Pyrocroc (slow, apply searing heat, avg hp/armor, consitant dmg like maces, no dodge)
+
+// Mosquito (high dodge, low hp, applies disiese, arcane, no armor)
+// Leech    (low everything except arcane, applies the leech (bleed) and kills it self)
+// Giant Toad (poison, arcane, immunity)
+
+// Wolf     (all-around stats. on turn start, for every other wolf in the room get +1 to accuracy and might)
+// Giant honey badger (good hp, otherwise average and. at the start of its turn if its health is below 10% boosts armor by 20)
+// Bat (sonic attak) change to pass a turn for a quarenteed critical strike on the next one.
+// Living vine (applies the seed) a lot of hp, low dodge, low armor, thorns 2
+// Vineling, on turn start applies entangled to everyone in the room for 1 turn.
+// Earth golem, high armor, high might, slow, no dodge, low hp. On turn start if health is less than 50% die... and spawn 2 small earth golems.
+// Small earth golem at 25% spawn 2 inty cute tiny earth golem
+// Tiny earth golem after 2 turns they dissapete.
+
+
+// Mutant Antlion (speed and dodge bad, if attacked applies sandpit that prevents escape and on turn end deals 1 damage per turn it has been active) Good loot in the room
+// Medusa, attacking it reduces speed, if this effect would bring your speed down to zero, you die!
+
+
+// Troll, has the great club, no dodge, no armor, a good bit of HP and a regen effect, that only works if the troll dosn't have status effects.
+
+
+// - Rooms:
+// underground swamp (mosquito, leech, giant toad)
+// snakepit (snakes)
+// ashlake (pyrocroc)
+// Beehive (has some containers, and a beehive that deals 1 damage per turn)
+
+
+// - Status effects:
+// Malaria: (disiese) lower speed and raise fumple, room 2 duration.
+// Leech: (bleed) on turn start take 1 damage for 5 turns.
+// Unbearable cold, on turn start reduce speed by 1 for every turn the effect has been active, if the effect would reduce your seep down to zero, you die.
+// Searing heat, on turn start reduce carrying capacity by 5 per turn for every turn this effect has been active, lasts 2 rooms, if this effect would reduce your carrying capacity down to zero, you die.
+// Necro-toxin, reduced vitality by 3, for 3 rounds.
+// Seed physical effect, has a 1 in 10 change per turn to then change to blossom and spawn a vineling and deals 1d6 damage to the host.
+// entangled, reduces dodge and armor by 5.
+
+
+// Grove altar( signing flower: 5% crit )
+// blood sacrifice thing.
+// healing shrine with offerings give food item
+// altar to gods
+// - 
+// Fake clones, that you have to inspect.
+// Hydra mechanic, if you kill a second head; two heads spawn.
+
+
+
 SIG void Finalize_Entity(Entity* entity, Entity* container, Game_State* game_state)
 {
     Set_Level_Based_On_Stats(entity);
@@ -50,7 +104,9 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     
     LOOP(3) Create_Healing_Potion(entity, game_state);
     LOOP(2) Create_Bomb(entity, game_state);
-    LOOP(2) Create_Jerky(entity, game_state);
+    LOOP(3) Create_Jerky(entity, game_state);
+    LOOP(3) Create_Bread(entity, game_state);
+    Create_Steak_And_Smashed_Potatoes(entity, game_state);
 
     return entity;
 }
@@ -238,7 +294,7 @@ SIG Entity* Create_Blight_Rat(Entity* room, Game_State* game_state)
         {
             if(instance)
             {
-                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Devouring_Plague(3, attacker, game_state), game_state);
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Devouring_Plague(2, attacker, game_state), game_state);
             }
         }
 
@@ -313,7 +369,6 @@ SIG Entity* Create_Enlarged_Ant(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 10;
-    // entity->bonus_exp_reward = -150;
     
     s16* stats = entity->_stats;
     stats[Stats::might]     = 3;
@@ -332,7 +387,7 @@ SIG Entity* Create_Enlarged_Ant(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Pinchers"), game_state);
-        Add_Dice(&effect, 1, 4);
+        Add_Dice(&effect, 2, 4);
         effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -367,6 +422,7 @@ SIG Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state)
                         {
                             Entity* ant = Create_Enlarged_Ant(space, game_state);
                             ant->bonus_exp_reward -= (s16)Exp_Reward(ant);
+                            
                             String message = Format_Message(game_state, "%s birts an %s.", effect_name.ptr, Name(ant, game_state).ptr);
                             Push_Message(message, game_state);
                         }
@@ -418,6 +474,11 @@ SIG Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state)
     Assert(apply == Apply_Effect_Result::success);
 
     Loot_Table table = Basic_Merged_Loot_Table(game_state);
+
+    if(Roll(5, game_state) == 1)
+    {
+        Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::equal, Rarity::epic).Finish(), game_state);
+    }
 
     Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::minimum, Rarity::magical).Finish(), game_state);
     Generate_From_Loot_Table(entity, table, Roll(3, game_state) - 1, Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), game_state);
@@ -504,6 +565,7 @@ SIG Entity* Create_Mutant_Hedgehog(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 60;
+    entity->bonus_exp_reward = 3;
     
     s16* stats = entity->_stats;
     stats[Stats::might]     = 2;
@@ -718,7 +780,7 @@ SIG Entity* Create_Chest(Entity* room, Game_State* game_state)
             entity, 
             Basic_Merged_Loot_Table(game_state), 
             Per_Count_Rolled_Square_Weighted_Random(10, game_state), 
-            Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+            {}, 
             game_state
         );
     }
@@ -756,7 +818,7 @@ SIG Entity* Create_Weapon_Rack(Entity* room, Game_State* game_state)
         entity, 
         Basic_Weapons_Loot_Table(game_state), 
         Per_Count_Rolled_Random(7, 5, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        {}, 
         game_state
     );
 
@@ -789,12 +851,79 @@ SIG Entity* Create_Armor_Rack(Entity* room, Game_State* game_state)
         entity, 
         Basic_Armors_Loot_Table(game_state), 
         Per_Count_Rolled_Random(7, 5, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        {}, 
         game_state
     );
 
     return entity;
 }
+
+
+SIG Entity* Create_Supply_Crate(Entity* room, Game_State* game_state)
+{
+    Entity* entity;
+    
+    entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Supply crate"), game_state);
+    entity->description_offset = Offset(STR("Used for efficient storage of foods."), game_state);
+    entity->flags |= EFlags::container;
+    entity->weight = 10;
+    
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 0;
+    stats[Stats::dodge]     = 0;
+    stats[Stats::speed]     = 0;
+    stats[Stats::accuracy]  = 0;
+    stats[Stats::vitality]  = 10;
+    stats[Stats::armor]     = 5;
+    
+    Finalize_Entity(entity, room, game_state);
+
+    Generate_From_Loot_Table
+    (
+        entity, 
+        Basic_Foods_Loot_Table(game_state), 
+        Per_Count_Rolled_Random(7, 5, game_state), 
+        {}, 
+        game_state
+    );
+
+    return entity;
+}
+
+
+SIG Entity* Create_Alchemists_Pouch(Entity* room, Game_State* game_state)
+{
+    Entity* entity;
+    
+    entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Alchemists Pouch"), game_state);
+    entity->description_offset = Offset(STR("Used for efficient storage of consumables."), game_state);
+    entity->flags |= EFlags::container;
+    entity->weight = 3;
+    
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 0;
+    stats[Stats::dodge]     = 0;
+    stats[Stats::speed]     = 0;
+    stats[Stats::accuracy]  = 0;
+    stats[Stats::vitality]  = 1;
+    stats[Stats::armor]     = 5;
+    
+    Finalize_Entity(entity, room, game_state);
+
+    Generate_From_Loot_Table
+    (
+        entity, 
+        Basic_Consumables_Loot_Table(game_state), 
+        Per_Count_Rolled_Random(7, 5, game_state), 
+        {}, 
+        game_state
+    );
+
+    return entity;
+}
+
 
 
 SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
@@ -952,8 +1081,6 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
 
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
-
-    Create_Blight_Rat(room, game_state);
 }
 
 
@@ -962,9 +1089,12 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
     struct local
     {
 
-        static void Ambush_Rodents(Game_State* game_state)
+        static void Ambush_Rodents(Game_State* game_state, f32 change)
         {
-            Reset_Ambush_Table(game_state, 0.1f);
+            if(change)
+            {
+                Set_Ambush_Change(change, game_state);
+            }
 
             {
                 Ambush_Option* option = Create_Ambush_Option(10, game_state);
@@ -983,6 +1113,19 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             }
         }
 
+        static void Ambush_Ants(Game_State* game_state, f32 change)
+        {
+            if(change)
+            {
+                Set_Ambush_Change(change, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(10, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Enlarged_Ant, game_state), 4, 6}, game_state);
+            }
+        }
+
 
         static Entity* Supply_Room(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
@@ -997,6 +1140,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 room->description_offset = Offset(STR(room_description), game_state);
 
                 Create_Chest(room, game_state);
+                Create_Supply_Crate(room, game_state);
+
                 u64 weapon_racks = 1 + Per_Count_Rolled_Square_Weighted_Random(2, game_state);
                 LOOP(weapon_racks) Create_Weapon_Rack(room, game_state);
 
@@ -1024,7 +1169,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
+                Ambush_Rodents(game_state, 0.1f);
 
                 room->name_offset = Offset(STR("a wide opening"), game_state);
                 char room_description[] = 
@@ -1057,10 +1202,11 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
 
         static Entity* Hallway(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
+            // TODO: Auto turret thing?
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
+                Ambush_Rodents(game_state, 0.01f);
 
                 room->name_offset = Offset(STR("a long hallway"), game_state);
                 char room_description[] = 
@@ -1092,7 +1238,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
+                Ambush_Rodents(game_state, 0.3f);
+                Ambush_Ants(game_state, 0);
 
                 room->name_offset = Offset(STR("a battlefield"), game_state);
                 char room_description[] = 
@@ -1134,7 +1281,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
+                Ambush_Rodents(game_state, 0.5f);
 
                 room->name_offset = Offset(STR("a mass grave"), game_state);
                 char room_description[] = 
@@ -1165,7 +1312,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 );
 
                 Restore(&game_state->scratch_buffer, snapshot);
-            
             }
 
             return room;
@@ -1177,7 +1323,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
+                Ambush_Rodents(game_state, 0.9f);
 
                 room->name_offset = Offset(STR("a small rat nest"), game_state);
                 char room_description[] = 
@@ -1218,13 +1364,13 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
-
                 room->name_offset = Offset(STR("a dead-end"), game_state);
                 char room_description[] = 
                 "You crawl through a crack in the wall, but it led only to small dead end room.\n"
                 "In the middle, there is a fresh corpse of a human. A creature is eating it.";
                 room->description_offset = Offset(STR(room_description), game_state);
+
+                Create_Mushroom(room, game_state);
 
                 u64 creature = Roll(10, game_state);
                 if(creature < 4)
@@ -1272,7 +1418,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::magical;
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
+                Ambush_Rodents(game_state, 0.7f);
+                Ambush_Ants(game_state, 0);
 
                 room->name_offset = Offset(STR("a battlefield"), game_state);
                 char room_description[] = 
@@ -1280,7 +1427,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 room->description_offset = Offset(STR(room_description), game_state);
 
                 u64 rats = 3 + (Roll(3, game_state) == 1);
-                u64 ants = 5 + Roll(8, game_state);
+                u64 ants = 5 + Roll(4, game_state);
 
                 if(Roll(4, game_state) == 1)
                 {
@@ -1314,6 +1461,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
+                Ambush_Ants(game_state, 1.0);
+
                 room->name_offset = Offset(STR("an ant nest"), game_state);
                 char room_description[] = 
                 "The blackess around you is moving. If you focus hard on single spot you realise that,\n"
@@ -1332,7 +1481,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
+                Ambush_Rodents(game_state, 0.1f);
+                Ambush_Ants(game_state, 0);
 
                 room->name_offset = Offset(STR("an abandoned camp"), game_state);
                 char room_description[] = 
@@ -1368,6 +1518,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                     game_state
                 );
 
+                Create_Supply_Crate(room, game_state);
+                
                 if(Roll(2, game_state) == 1)
                 {
                     Create_Weapon_Rack(room, game_state);
@@ -1390,8 +1542,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::magical;
             if(fill_room_if_greater_than_zero)
             {
-                Ambush_Rodents(game_state);
-
                 room->name_offset = Offset(STR("a beasts lair"), game_state);
                 char room_description[] = 
                 "In the middle of the room there is what looks to you to be a \"bed\" of sorts.\n"
@@ -1428,7 +1578,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         {local::Warzone},
         {local::Small_Rat_Nest},
         {local::Empty_Cavern},
-        {local::Beast_Lair},
+        {local::Beast_Lair, 100000},
         {local::Graveyard},
         {local::Recent_Battlefield},
         {local::Hallway},
@@ -1553,7 +1703,7 @@ SIG _inline Level_Segments Caves(Game_State* game_state)
 {
     local_storage Level_Segment segments[] = 
     {
-        {Caves_Wildlife_Section(game_state), 5}, 
+        {Caves_Wildlife_Section(game_state), 10}, 
         {Caves_Bandit_Section(game_state),   5}, 
         {Caves_Spider_Section(game_state),   5}, 
         {Caves_Boss(game_state), 1}
@@ -1562,8 +1712,3 @@ SIG _inline Level_Segments Caves(Game_State* game_state)
     Level_Segments level = {segments, Array_Length(segments)};
     return level;
 }
-
-
-
-
-

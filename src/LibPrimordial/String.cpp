@@ -369,6 +369,10 @@ u64 STRING_Pow64(u64 base, u64 exp)
 
 SIG u64 To_U64(String str)
 {
+    // TODO: proper overflow behaviour! --- this is a silly hack.
+    // If the string is too big, just chop off the end.
+    str.length = Min(str.length, u64(20));
+
     u64 result = 0;
     
     char* begin = str.ptr;

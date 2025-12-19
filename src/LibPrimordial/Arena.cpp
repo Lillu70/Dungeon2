@@ -134,6 +134,29 @@ SIG char* Push_String(Arena* arena, String str)
 }
 
 
+struct String_Builder
+{
+    Arena* arena;
+    u64 length;
+    char* base;
+
+    String_Builder(Arena* _arena, String str) : arena(_arena), length(0), base(Push_String(arena, str, &length)){}
+
+    String_Builder Next(String str)
+    {
+        Assert(base);
+        Push_String(arena, str, &length);
+        return *this;
+    }
+
+    String Finish()
+    {
+        Push(arena, 1); // NOTE: null terminator! (not included in the length)
+        return {base, length};
+    }
+};
+
+
 SIG Arena_Snapshot Snapshot(Arena* arena)
 {
     Arena_Snapshot position = { arena->used };

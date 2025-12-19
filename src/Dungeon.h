@@ -836,7 +836,6 @@ struct Game_State
 
 struct Character_Creator
 {
-    Game_State* game_state;
     Entity** class_templates;
     u64 template_count;
     u64 selected_idx;
@@ -1064,7 +1063,7 @@ enum class Call_Style
 
 struct Command
 {
-    CMD_Result::T (*fn)(Call_Style ccs, void* user_ptr, String args);
+    CMD_Result::T (*fn)(Call_Style ccs, void* user_ptr, String args, Game_State* game_state);
 };
 
 
