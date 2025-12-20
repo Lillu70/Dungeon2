@@ -532,6 +532,16 @@ struct Entity
 };
 
 
+struct Leveler
+{
+    Entity* actor;
+    s16 points;
+    s16 assigned[Stats::immunity];
+    bool summarize;
+    bool running;
+};
+
+
 struct Damage_Modifiers_Result
 {
     s32 damage;
@@ -1100,8 +1110,7 @@ constexpr char* inspect_command_args =
 constexpr char* proceed_command_description = 
 "Attempt to leave this room and delwe deeper into the Dungeon.\n"
 "This can be done freely if there are no hostiles in the room,\n"
-"but otherwise a speed check is rolled against all of the hostiles,\n"
-"that have not yet used their normal action.\n"
+"but otherwise a speed check is rolled against all of the hostiles in the room.\n"
 "If any of them roll better than you, they prevent you from fleeing.";
 
 constexpr char* attacks_command_description = 
@@ -1162,6 +1171,7 @@ Game_Command Player_Actions[] =
     { Kill_Command,         AT::free,   0, STR("kill"),         "Kills the target.",                target_args},
     { What_Is_Seed_Command, AT::free,   0, STR("what is seed?"),"Reveals the seed.",                target_args},
     { Set_Seed_Command,     AT::free,   0, STR("set seed"),     "Sets the random number generator seed.", "takes the new seed as the argument."},
+    { Get_Exp_Command,      AT::free,   0, STR("get exp"),      "Gives the user exp.",              "takes the the amount as the argument."},
     #endif
 };
 

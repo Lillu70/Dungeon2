@@ -40,6 +40,60 @@ SIG Effect_Offset Get_Might_Effect_Offset(Game_State* game_state)
 }
 
 
+SIG void Pack_Hunt_On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+{
+    if(instance)
+    {
+        u64 pack_members_count = 0;
+
+        String name = Get_String(target->name_offset, game_state);
+        Entity_Iterator iter = Make_Iterator(Pointer(target->residence, game_state), game_state);
+        while(Entity* entity = Next_Entity(&iter))
+        {
+            if(entity != target && Is_Alive(entity) && Match_Case_Sensitive(name, Get_String(entity->name_offset, game_state)))
+            {
+                pack_members_count += 1;
+            }
+        }
+
+        if(pack_members_count)
+        {
+            s8 v = (s8)Min(pack_members_count, u64(5));
+
+            Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
+
+            String pack_hunt_name = {};
+            pack_hunt_name.ptr = Push_String(&game_state->scratch_buffer, STR("Pack Hunt x"), &pack_hunt_name.length);
+            U64_To_String_Memory m;
+            Push_String(&game_state->scratch_buffer, To_String(v, &m), &pack_hunt_name.length);
+
+
+            Effect* effect = Request_Effect(game_state);
+            effect->name_offset = Offset(pack_hunt_name, game_state);
+            Restore(&game_state->scratch_buffer, snapshot);
+
+            effect->stat_modifiers[Stats::might]    = + v;
+            effect->stat_modifiers[Stats::accuracy] = + v;
+            effect->critical_success_range          = + v;
+            
+            Effect_Instance pack_hunt = {};
+            pack_hunt.source = instance->source;
+            pack_hunt.effect_offset = Offset(effect, game_state);
+            pack_hunt.zero_ticked = true;
+            pack_hunt.duration = 1;
+
+            Apply_Effect_Result apply = Apply_Effect(target, pack_hunt, game_state);
+            if(apply == Apply_Effect_Result::success)
+            {
+                Push_Generic_Apply_Effect_Message(Name(target, game_state), target, pack_hunt, apply, game_state);
+            }
+
+
+        }
+    }
+}
+
+
 SIG Effect_Offset Get_Enraged_Effect_Offset(Game_State* game_state)
 {
     struct local

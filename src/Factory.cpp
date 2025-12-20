@@ -179,6 +179,66 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Wolf(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Wolf"), game_state);
+    entity->description_offset = Offset(STR("Ferocious pack hunting canine."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 80;
+
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 3;
+    stats[Stats::dodge]     = 4;
+    stats[Stats::speed]     = 4;
+    stats[Stats::accuracy]  = 3;
+    stats[Stats::vitality]  = 4;
+    stats[Stats::armor]     = 4;
+    
+    Finalize_Entity(entity, room, game_state);
+    
+    
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Jaws"), game_state);
+        effect.critical_failure_range = + 1;
+        effect.on_turn_start_fn_offset = Offset(Pack_Hunt_On_Turn_Start, game_state);
+        Add_Dice(&effect, 1, 6);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+
+    Loot_Table table = Merge_Loot_Tables
+    (
+        Basic_Armors_Loot_Table(game_state), 
+        Basic_Trinkets_Loot_Table(game_state), 
+        Basic_Consumables_Loot_Table(game_state), 
+        &game_state->scratch_buffer
+    );
+
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::epic).Weight(Comparison::maximum, 3);
+    Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(5, 30, game_state), rules.Finish(), game_state);
+
+    return entity;
+}
+
+
 SIG Entity* Create_Giant_Rat(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -1081,6 +1141,8 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
 
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
+
+    LOOP(2) Create_Wolf(room, game_state);
 }
 
 

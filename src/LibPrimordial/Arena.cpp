@@ -183,3 +183,14 @@ SIG String To_String(Arena* arena)
     String str = {(char*)arena->memory, arena->used};
     return str;
 }
+
+
+SIG String Merge(String A, String B, Arena* arena)
+{
+    u64 combined_length = A.length + B.length;
+    String result = {(char*)Push(arena, combined_length), combined_length};
+    Mem_Copy(result.ptr, A.ptr, A.length);
+    Mem_Copy(result.ptr + A.length, B.ptr, B.length);
+
+    return result;
+}

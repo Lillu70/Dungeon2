@@ -57,18 +57,35 @@ SIG char At(String str, u64 idx)
 }
 
 
-SIG bool Is_Capital_Letter(char c)
+SIG bool Is_Uppercase_Letter(char c)
 {
     bool result = (c >= 'A' && c <= 'Z');
+    return result;
+}
+
+SIG bool Is_Lowercase_Letter(char c)
+{
+    bool result = (c >= 'a' && c <= 'z');
     return result;
 }
 
 
 SIG char To_Lowercase(char c)
 {
-    if(Is_Capital_Letter(c))
+    if(Is_Uppercase_Letter(c))
     {
         c += 'a' - 'A';
+    }
+    
+    return c;
+}
+
+
+SIG char To_Uppercase(char c)
+{
+    if(Is_Lowercase_Letter(c))
+    {
+        c -= 'a' - 'A';
     }
     
     return c;
@@ -434,18 +451,5 @@ SIG String To_String(u64 integer, U64_To_String_Memory* output)
     String result = {buffer + last_non_zero};
     result.length = Array_Length(output->b) - 1 - last_non_zero;
     
-    return result;
-}
-
-struct Arena;
-void* Push(Arena* arena, u64 size);
-
-SIG String Merge(String A, String B, Arena* arena)
-{
-    u64 combined_length = A.length + B.length;
-    String result = {(char*)Push(arena, combined_length), combined_length};
-    Mem_Copy(result.ptr, A.ptr, A.length);
-    Mem_Copy(result.ptr + A.length, B.ptr, B.length);
-
     return result;
 }

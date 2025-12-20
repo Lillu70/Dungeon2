@@ -2075,16 +2075,6 @@ SIG s32 Get_Stat_Value(Entity* entity, Stats::T stat, Game_State* game_state, u6
 }
 
 
-struct Leveler
-{
-    Entity* actor;
-    s16 points;
-    s16 assigned[Stats::armor];
-    bool summarize;
-    bool running;
-};
-
-
 SIG void Ding(Entity* actor, Game_State* game_state)
 {
     s16 actor_level_snapshot = actor->_lvl;
@@ -2135,7 +2125,7 @@ SIG void Ding(Entity* actor, Game_State* game_state)
 SIG s32 Exp_To_Level_Up(s32 _lvl)
 {
     f32 lvl = f32(_lvl);
-    s32 result = s32( -5.f + Round((1.f + Square(lvl)) / 3.f) * 5.f);
+    s32 result = s32( -5.f + Round((1.f + Square(lvl))) * 5.f);
     return result;
 }
 
@@ -2149,13 +2139,13 @@ SIG _inline s32 Exp_To_Level_Up(Entity* entity)
 
 SIG s16 Calculate_Level(Entity* entity)
 {
-    s64 total_stats = 0;
-    for(u64 i = 0; i < Stats::COUNT; ++i)
+    s32 total_stats = 0;
+    for(u64 i = 0; i < Stats::immunity; ++i)
     {
-        total_stats += entity->_stats[i] - 1;
+        total_stats += Max(0, s32(entity->_stats[i]));
     }
 
-    s16 lvl = Max(s16(1), s16(f32(total_stats / f32(Stats::points_per_lvl) + 0.5f)));
+    s16 lvl = Max(s16(1), s16(Round_To_S32(total_stats / f32(Stats::points_per_lvl))));
     return lvl;
 }
 
@@ -3585,7 +3575,7 @@ SIG void Open(Entity* actor, Game_State* game_state)
 }
 
 
-SIG u64 Longest_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_state, u64* out_count DEF(0))
+SIG u64 Longest_Visible_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_state, u64* out_count DEF(0))
 {
     Entity* storage = Pointer(actor->residence, game_state);
 
@@ -3594,7 +3584,7 @@ SIG u64 Longest_Entity_Name_In_Actor_Storage(Entity* actor, Game_State* game_sta
     Entity_Iterator iter = Make_Iterator(storage, game_state);
     while(Entity* entity = Next_Entity(&iter))
     {
-        if(entity != actor)
+        if(entity != actor && Is_Visible(entity, actor, game_state))
         {
             count += 1;
             result = Max(result, Name_Without_Color(entity, game_state).length);
@@ -3620,7 +3610,7 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
     if(actor_residence)
     {
         u64 entity_total_count;
-        s32 longest_entity_name = (s32)Longest_Entity_Name_In_Actor_Storage(actor, game_state, &entity_total_count);
+        s32 longest_entity_name = (s32)Longest_Visible_Entity_Name_In_Actor_Storage(actor, game_state, &entity_total_count);
         s32 digit_count = Digits(s32(entity_total_count));
 
         u32 entity_count = 0;
@@ -6187,7 +6177,7 @@ SIG CMD_Result::T Proceed_Command(Entity* actor, String args, Game_State* game_s
             Entity_Iterator iter = Make_Iterator(room, game_state);
             while(Entity* entity = Next_Entity(&iter))
             {
-                if(Is_Living_Active_Enemy_Of(entity, actor) && (entity->actions & AT::normal))
+                if(Is_Living_Active_Enemy_Of(entity, actor))
                 {
                     Roll_Result catch_roll = Stat_Roll(entity, Stats::speed, game_state);
                     *Push_Struct(&game_state->scratch_buffer, Catch_Attempt) = {catch_roll, entity};
@@ -6622,13 +6612,59 @@ SIG CMD_Result::T Status_Command(Entity* actor, String args, Game_State* game_st
     
     if(args.length == 0)
     {
-        Print("\nLevel: %d", Level(actor));
-        Print("\nHealth: [%d/%d]", actor->_health, Max_Health(actor, game_state));
-        Print("\nCarrying: [%d/%d]", Carrying_Amount(actor, game_state), Carry_Capacity(actor, game_state));
-        Print("\nExperience: [%d/%d]", actor->exp, Exp_To_Level_Up(actor));
+        s32 offset = (s32)STR("Experience").length;
+        
+        Print("\nStatus:");
+        Print("\n| %*s: %d", offset, "Level", Level(actor));
+
+        {
+            s32 health = actor->_health;
+            s32 max = Max_Health(actor, game_state);
+            Print("\n| %*s: [%d/%d]", offset, "Health", health, max);
+        }
+
+        {
+            s32 carrying = Carrying_Amount(actor, game_state);
+            s32 capacity = Carry_Capacity(actor, game_state);
+
+            Print("\n| %*s: [%d/%d]", offset, "Carrying", carrying, capacity);
+            if(carrying < capacity)
+            {
+                Print(" > %d", capacity - carrying);
+            }
+        }
+
+        Print("\n| %*s: [%d/%d]", offset, "Experience", actor->exp, Exp_To_Level_Up(actor));
         if(actor->exp >= Exp_To_Level_Up(actor))
         {
             Print(" - You have sufficent experience to level up! Rest to manifest your new found powers.");
+        }
+        else
+        {
+            s32 begin = Exp_To_Level_Up(Level(actor) - 1);
+            s32 end   = Exp_To_Level_Up(actor);
+            s32 exp_until_levelup = end - actor->exp;
+            s32 exp_into_level = actor->exp - begin;
+            s32 range = end - begin;
+            f32 ratio = f32(exp_into_level) / range;
+
+            Print(" > %d ", exp_until_levelup);
+            Print("|%s", game_state->exp_color.data);
+            u64 max = 10;
+            for(u64 i = 0; i < max; ++i)
+            {
+                f32 iratio = f32(i + 1) / max;
+                if(iratio <= ratio)
+                {
+                    Print("%c", 178);
+                }
+                else
+                {
+                    Print("%c", 176);
+                }
+            }
+            Print("%s|", game_state->default_color.data);
+
         }
 
         bool first = true;
@@ -6642,22 +6678,26 @@ SIG CMD_Result::T Status_Command(Entity* actor, String args, Game_State* game_st
             {
                 if(first)
                 {
-                    Print("\nActive Effects:");
+                    Print("\n|\n| Active Effects:");
                     first = false;
-                }
-
-                Print("\n[%s]", Effect_Name(instance, game_state).ptr);
-                if(instance->duration == UNLIMITED_DURATION)
-                {
-                    Print("\n| Duration: Unlimited.");
                 }
                 else
                 {
-                    char* format_string = (instance->duration == 1)? "\n| Duration: %llu %s." : "\n| Duration: %llu %ss.";
+                    Print("\n|");
+                }
+
+                Print("\n| [%s]", Effect_Name(instance, game_state).ptr);
+                if(instance->duration == UNLIMITED_DURATION)
+                {
+                    Print("\n| | Duration: Unlimited.");
+                }
+                else
+                {
+                    char* format_string = (instance->duration == 1)? "\n| | Duration: %llu %s." : "\n| | Duration: %llu %ss.";
                     Print(format_string, instance->duration, duration_type_names[u32(instance->duration_type)].ptr);
                 }
 
-                Describe_Effect(effect, 1, game_state);
+                Describe_Effect(effect, 2, game_state);
             }
         }
     }
@@ -7100,6 +7140,34 @@ SIG CMD_Result::T Set_Seed_Command(Entity* actor, String args, Game_State* game_
         game_state->random_state = *seed;
         game_state->initial_seed = *seed;
         Print("\nRandom Seed is set to: %d", game_state->random_state);
+    }
+    else
+    {
+        Print("\nThe set seed command requires a positive number as the argument.");
+        result = CMD_Result::invalid_args;
+    }
+
+    return result;
+}
+
+
+SIG CMD_Result::T Get_Exp_Command(Entity* actor, String args, Game_State* game_state)
+{
+    CMD_Result::T result = CMD_Result::success;
+    
+    s32 exp = 0;
+
+    String exp_string = Skip_Zeroes(args);
+    if(exp_string.length && Is_Positive_Integer(exp_string))
+    {
+        exp = (s32)To_U64(exp_string);
+    }
+    
+    if(exp)
+    {
+        actor->exp += exp;
+        Print("\nResived %d points of experience.", exp);
+        Print("\nLevel up progres: [%d/%d]", actor->exp, Exp_To_Level_Up(actor));
     }
     else
     {

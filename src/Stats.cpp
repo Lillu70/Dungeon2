@@ -12,9 +12,9 @@ namespace Stats
     X(dodge),           \
     X(accuracy),        \
     X(vitality),        \
-    X(armor),           \
     X(immunity),        \
     X(arcane),          \
+    X(armor),           \
 
 
     enum T
