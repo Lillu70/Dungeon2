@@ -386,10 +386,15 @@ namespace Class
 #define UNLIMITED_USES U32_MAX
 struct Effect_Instance
 {
+    // CONSIDER: Make the numbers in here a smaller type. 
+    // Duration could be a u8.. nothing will last more than 200 turns.
+    // Room and round applied is more complicated, but they could be at least 32 bit... or even 16.. not like the game will last for more than 60k rounds.
+
     u64 duration;
     Effect_Offset effect_offset;
     Entity_Offset source;
 
+    u64 room_applied;
     u64 round_applied;
     Duration_Type duration_type;
     bool zero_ticked;
@@ -477,6 +482,8 @@ enum class Faction : u8
     ants,
     undead,
     mimic,
+
+    general_hostility,
     COUNT
 };
 
@@ -809,14 +816,16 @@ struct Game_State
 
     Effect_Hash_Table permanent_effects;
 
-    u64 round;
+    u64 round; // TODO: Rename to round_count!
+    u64 room_count;
+    u32 level;
+    s32 distance_travelled;
+
     u64 initiative_count;
     u64 active_initiative_index;
     Entity_Root_Node initiative_order;
 
     PROTOTYPE_ENT_GS_Offset room_generation_override_fn_offset;
-    s32 distance_travelled;
-    u32 level;
     u32 initial_seed;
     u32 random_state;
     u64 prev_entity_ID;

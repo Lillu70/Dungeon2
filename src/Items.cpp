@@ -957,18 +957,7 @@ SIG Entity* Create_Ring_Of_Regeneration(Entity* room, Game_State* game_state)
             
             if(target)
             {
-                bool room_contains_an_acitve_hostile = false;
-                Entity_Iterator iter = Make_Iterator(Pointer(target->residence, game_state), game_state);
-                while(Entity* entity = Next_Entity(&iter))
-                {
-                    if(Is_Living_Active_Enemy_Of(entity, target))
-                    {
-                        room_contains_an_acitve_hostile = true;
-                        break;
-                    }
-                }
-                
-                if(room_contains_an_acitve_hostile)
+                if(Residence_Contains_An_Active_Hostile(target, game_state))
                 {
                     Heal(target, healing_amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
                 }
@@ -1566,7 +1555,7 @@ SIG Entity* Create_Barbarian_Loing_Cloth(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
-    entity->name_offset = Offset(STR("Barbarian loing cloth"), game_state);
+    entity->name_offset = Offset(STR("Barbarian loin cloth"), game_state);
     entity->description_offset = Offset(STR("Crafted and enchated by a tribal shaman."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     entity->rarity = Rarity::magical;

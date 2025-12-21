@@ -5,7 +5,10 @@
 // All rights reserved.
 // ===================================
 
-// TODO: Glance name lenght bug!
+
+// TODO: Static string storage.
+// TODO: Something like a #table for the dynamic strings.
+
 // TODO: Pierce and armor effects in the default deal damage print out.
 // TODO: Duration type part of the effect instead of The instance???
 // TODO: Test equipping the same ring twice.
@@ -20,13 +23,13 @@
 // TODO: Implement More attack modifiers
 // TODO: Make help command describe common effects.
 
-#define DEVMODE      1
+#define DEVMODE      0
 #define SEED         1
 #define RANDOM_SEED  1
 #define SAVE_ON_EXIT 0
-#define ENABLE_WAIT  0
+#define ENABLE_WAIT  1
 #define ENTRANCE     1
-#define QUICKSTART   1
+#define QUICKSTART   0
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -1751,6 +1754,33 @@ SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_st
 }
 
 
+SIG bool Contains_An_Active_Hostile(Entity* room, Entity* actor, Game_State* game_state)
+{
+    bool room_contains_an_acitive_hostile = false;
+    Entity_Iterator iter = Make_Iterator(room, game_state);
+    while(Entity* entity = Next_Entity(&iter))
+    {
+        if(Is_Living_Active_Enemy_Of(entity, actor))
+        {
+            room_contains_an_acitive_hostile = true;
+            break;
+        }
+    }
+
+    return room_contains_an_acitive_hostile;
+}
+
+
+SIG bool Residence_Contains_An_Active_Hostile(Entity* actor, Game_State* game_state)
+{
+    Entity* room = Pointer(actor->residence, game_state);
+    Assert(room);
+
+    bool result = Contains_An_Active_Hostile(room, actor, game_state);
+    return result;
+}
+
+
 SIG Ambush_Option* Request_Ambush_Option(Game_State* game_state)
 {
     Ambush_Option* ambush_option = Pointer(game_state->free_ambush_option_offset, game_state);
@@ -1896,8 +1926,11 @@ SIG bool Trigger_Ambush(Entity* room, Game_State* game_state, Entity*** out_spaw
                 Entity* entity = Pointer(spawner->gen_fn_offset, game_state)/*->*/(room, game_state);
                 Restore(&game_state->scratch_buffer, snapshot);
 
-                *Push_Struct(&game_state->scratch_buffer, Entity*) = entity;
-                spawned_count += 1;
+                if(entity)
+                {
+                    *Push_Struct(&game_state->scratch_buffer, Entity*) = entity;
+                    spawned_count += 1;
+                }
             }
 
             spawner = Pointer(spawner->next, game_state);
@@ -2303,7 +2336,11 @@ SIG bool Is_Alive(Entity* entity)
 
 SIG bool Is_Hostile_Against(Entity* A, Entity* B)
 {
-    bool result = A->faction != Faction::none && B->faction != Faction::none && A->faction != B->faction;
+    bool result = 
+        (A->faction == Faction::general_hostility) ||
+        (B->faction == Faction::general_hostility) ||
+        (A->faction != Faction::none && B->faction != Faction::none && A->faction != B->faction);
+    
     return result;
 }
 
@@ -2847,6 +2884,7 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
                 slot = New_Effect_Slot(&target->active_effects, game_state);
                 *slot = instance;
                 slot->round_applied = game_state->round;
+                slot->room_applied = game_state->room_count;
             }
             
             else if(shortest_duration->duration <= instance.duration && instance.duration != UNLIMITED_DURATION)
@@ -4018,6 +4056,11 @@ SIG void Attack(Entity* attacker, Entity* defender, Game_State* game_state, Atta
 
     Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
     
+    if(attacker->faction == defender->faction)
+    {
+        defender->faction = Faction::general_hostility;
+    }
+
     Apply_Or_Describe_Attak_Modifier(&attacker, &defender, modifier, game_state);
 
     if(attacker && defender)
@@ -4749,11 +4792,15 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
         {
             // Even if the user filled in a Rarity, the generation function is used to get the "True" rarity of the item.
             {
+                Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
+                
                 Entity* entity = entry->fn(0, game_state);
                 entry->rarity = entity->rarity;
                 entry->required_slots = entity->required_equipment_slots;
                 entry->weight = entity->weight;
                 Delete_Entity(entity, game_state);
+
+                Restore(&game_state->scratch_buffer, snapshot);
             }
 
             // But the change can be pre filled in... for what ever the reason.
@@ -5441,6 +5488,7 @@ SIG void Proceed(Game_State* game_state)
 
         if(!you_win)
         {
+            game_state->room_count += 1;
             Reset_Ambush_Table(game_state);
             
             Entity* room = 0;

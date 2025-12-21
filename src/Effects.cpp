@@ -87,9 +87,125 @@ SIG void Pack_Hunt_On_Turn_Start(Effect_Instance* instance, Entity* target, Game
             {
                 Push_Generic_Apply_Effect_Message(Name(target, game_state), target, pack_hunt, apply, game_state);
             }
-
-
         }
+    }
+    else
+    {
+        Print("Increases accuracy, might, and crit change by the amount of other living entities in the room, with the same name.");
+    }
+}
+
+
+SIG void Survival_Instinct_On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+{
+    f32 trigger_ratio = 0.2f;
+    s16 armor_buff = 20;
+    if(instance)
+    {
+        s32 health = target->_health;
+        s32 max_health = Max_Health(target, game_state);
+        s32 trigger_health = Round_To_S32(f32(max_health) * trigger_ratio);
+
+        if(health <= trigger_health)
+        {
+            Effect_Instance effect_instance = 
+            {
+                1, 
+                {}, 
+                Offset(target, game_state)
+            };
+            effect_instance.duration_type = Duration_Type::room;
+
+            Effect_Hash_Key key = EFFECT_KEY;
+            if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+            {
+                Effect effect = {};
+                effect.name_offset = Offset(STR("Survival Instinct"), game_state);
+                effect.stat_modifiers[Stats::armor] = armor_buff;
+                effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+            }
+
+            Apply_Effect_Result apply = Apply_Effect(target, effect_instance, game_state);
+            if(apply == Apply_Effect_Result::success)
+            {
+                Push_Generic_Apply_Effect_Message(Name(target, game_state), target, effect_instance, apply, game_state);
+            }
+        }
+
+    }
+    else
+    {
+        Print("If health is below %.2f%% increase armor by %d points.", trigger_ratio * 100, armor_buff);
+    }
+}
+
+
+SIG void Strength_Of_Earth_Small_On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+{
+    f32 trigger_ratio = 0.5f;
+    if(instance)
+    {
+        s32 health = target->_health;
+        s32 max_health = Max_Health(target, game_state);
+        s32 trigger_health = Round_To_S32(f32(max_health) * trigger_ratio);
+
+        if(health <= trigger_health)
+        {
+            Print("%s crumbles into 2 smaller golems", Name(target, game_state).ptr);
+            target->_health = 0;
+            Entity* room = Pointer(target->residence, game_state);
+            LOOP(2) Create_Small_Earth_Golem(room, game_state);
+        }
+    }
+    else
+    {
+        Print("If health is below %.2f%% split into 2 smaller golems", trigger_ratio * 100);
+    }
+}
+
+
+SIG void Strength_Of_Earth_Tiny_On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+{
+    f32 trigger_ratio = 0.5f;
+    if(instance)
+    {
+        s32 health = target->_health;
+        s32 max_health = Max_Health(target, game_state);
+        s32 trigger_health = Round_To_S32(f32(max_health) * trigger_ratio);
+
+        if(health <= trigger_health)
+        {
+            Print("%s crumbles into 2 smaller golems", Name(target, game_state).ptr);
+            target->_health = 0;
+            Entity* room = Pointer(target->residence, game_state);
+            LOOP(2) Create_Tiny_Earth_Golem(room, game_state);
+        }
+    }
+    else
+    {
+        Print("If health is below %.2f%% split into 2 smaller golems", trigger_ratio * 100);
+    }
+}
+
+
+SIG void Dissapate_After_Two_On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+{
+    u64 trigger_duration = 2;
+    if(instance)
+    {
+        
+        u64 round = game_state->round;
+        u64 applied = instance->round_applied;
+
+        if(round > applied + 2)
+        {
+            Print("%s dissipates.", Name(target, game_state).ptr);
+            target->_health = 0;
+        }
+    }
+    else
+    {
+        Print("%llu turns after the effect was applied, the afflicted dissipates.", trigger_duration);
     }
 }
 
@@ -413,6 +529,133 @@ SIG Effect_Instance Get_Devouring_Plague(u64 duration, Entity* source, Game_Stat
 }
 
 
+SIG Effect_Offset Get_Entangled_Effect_Offset(Game_State* game_state)
+{
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Entangled"), game_state);
+        effect.type = Effect_Type::physical;
+        
+        s16 v = 5;
+        effect.stat_modifiers[Stats::dodge] = - v;
+        effect.stat_modifiers[Stats::armor] = - v;
+        effect.thorns_damage                = 1;
+
+        result = Insert_Effect(effect, key, game_state);
+    }
+
+    return result;
+}
+
+
+SIG Effect_Instance Get_Entangled(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.effect_offset = Get_Entangled_Effect_Offset(game_state);
+    instance.source = Offset(source, game_state);
+    instance.duration = duration;
+    return instance;
+}
+
+
+SIG Effect_Offset Get_Seed_Effect_Offset(Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 change = 10;
+            Dice burst_damage_dice = {1, 6};
+            if(instance)
+            {
+                Entity* room = Pointer(target->residence, game_state);
+                if(Contains_An_Active_Hostile(room, target, game_state) && game_state->room_count > instance->room_applied)
+                {
+                    s32 blossom = Roll(change, game_state);
+                    u64 trigger = game_state->round - instance->round_applied + 1;
+                    bool result = blossom <= trigger;
+                    String message1 = Format_Message
+                    (
+                        game_state, 
+                        "%s attempts to blossom [%s]: 1d%d = %d (Success: <= %llu)",
+                        Effect_Name(instance, game_state).ptr,
+                        (result)? "success" : "failure",
+                        change,
+                        blossom,
+                        trigger
+                    );
+                    Push_Message(message1, game_state);
+
+                    if(result)
+                    {
+                        String effect_name = Effect_Name(instance, game_state);
+                        String message2 = Format_Message(game_state, "%s blossoms spawning a vineling!", effect_name.ptr);
+                        Push_Message(message2, game_state);
+                        Create_Vineling(room, game_state);
+
+                        s32 dmg = Roll(burst_damage_dice, game_state);
+                        Deal_Damage(target, instance->source, effect_name, dmg, {}, Damage_Type::magical, game_state, Verbose::yes);
+
+                        instance->duration = 1;
+                        instance->zero_ticked = true;
+                    }
+                }
+                else
+                {
+                    instance->round_applied += 1;
+                }
+            }
+            else
+            {
+                char* format_string = 
+                "Starting from the next room after the effect is applied. If there is an active hostile in the room, rolls a 1d%d.\n"
+                "\tOn a result greater than or equal to the amount of turns the seed has been implated, \n"
+                "\tthe seed blossoms, spawning a vineling and dealing %dd%d points of damage to the host.";
+
+                Print(format_string, change, burst_damage_dice.count, burst_damage_dice.faces);
+            }
+        }
+    };
+
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Seed"), game_state);
+        effect.type = Effect_Type::physical;
+        effect.stat_modifiers[Stats::arcane] = + 3;
+
+        effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
+        result = Insert_Effect(effect, key, game_state);
+    }
+
+    return result;
+}
+
+
+SIG Effect_Instance Get_Seed(Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration = UNLIMITED_DURATION;
+    instance.effect_offset = Get_Seed_Effect_Offset(game_state);
+    return instance;
+}
+
+
+void On_Hit_Apply_Seed(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+{
+    if(attacker)
+    {
+        Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Seed(attacker, game_state), game_state);
+    }
+}
+
+
 SIG Effect_Offset Get_Weak_Grip_Offset(Game_State* game_state)
 {
     struct local
@@ -661,7 +904,7 @@ SIG Effect_Instance Execute_Attack(Entity* attacker, Game_State* game_state)
     {
         static s32 Execute_Miss_Experience_Point_Reduction_Multiplier()
         {
-            return 10;
+            return 2;
         }
 
         static void Execute_On_Attack(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
@@ -1042,7 +1285,7 @@ SIG Effect_Instance Redirect_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("forces the target to attack on of it's allies (if able), but deals no damage and user will go last on next initiative.");
+        Print("Forces the target to attack one of it's allies (if able), but deals no damage and user will go last on next initiative.");
     }
     
     return instance;
