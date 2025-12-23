@@ -23,13 +23,13 @@
 // TODO: Implement More attack modifiers
 // TODO: Make help command describe common effects.
 
-#define DEVMODE      0
+#define DEVMODE      1
 #define SEED         1
 #define RANDOM_SEED  1
 #define SAVE_ON_EXIT 0
-#define ENABLE_WAIT  1
+#define ENABLE_WAIT  0
 #define ENTRANCE     1
-#define QUICKSTART   0
+#define QUICKSTART   1
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -56,6 +56,7 @@
 #include "Effects.cpp"
 #include "Items.cpp"
 #include "Factory.cpp"
+#include "Caves.cpp"
 
 
 SIG char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, u8 red, u8 green, u8 blue)
@@ -1738,6 +1739,7 @@ SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_st
 {
     if(storage_entity)
     {
+        entity->_threat = 0;
         entity->refnum = 0;
         entity->dublicate_identifier = 0;
         Remove_From_Residence(entity, game_state);
@@ -1958,6 +1960,7 @@ SIG bool Is_The_Same(Entity* A, Entity* B, Game_State* game_state)
         entity_view->refnum = {};               // Same as residence, it's about what context this was seen last. Does not effect the what this is.
         entity_view->residence = {};            // Where the entity is. Where something is stored has no relation to what something is.
         entity_view->dublicate_identifier = {}; // Used to distinguish two things with the same name, so not related to being the same or not.
+        entity_view->_threat = {};
     }
 
     bool result = true;
@@ -2199,6 +2202,7 @@ SIG s32 Exp_Reward(Entity* entity)
         result += Level(entity) * 2;
     }
     
+    result = Max(0, result); // NOTE: Let's not lose exp from mobs though.
     return result;
 }
 
@@ -2259,6 +2263,13 @@ SIG s32 Carrying_Amount(Entity* entity, Game_State* game_state)
         result += item->weight;
     }
     
+    return result;
+}
+
+
+SIG f32 Threat(Entity* entity)
+{
+    f32 result = 100.f + entity->_threat;
     return result;
 }
 
@@ -2452,6 +2463,8 @@ SIG Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose:
 
 SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offset, String source_name, s32 dmg, s32 pierce, Damage_Type type, Game_State* game_state, Verbose::T verbose)
 {
+    Entity* attacker = Pointer(attacker_offset, game_state);
+
     Deal_Damage_Result ddr = {};
 
     if(dmg > 0)
@@ -2489,6 +2502,11 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                 ddr.exp_reward = Exp_Reward(defender);
             }
 
+            if(attacker)
+            {
+                attacker->_threat += ddr.damage_after_mitigation;
+            }
+
             // NOTE: Proc on damage taken
             {
                 Effects_Iterator iter = Make_Iterator(&defender->active_effects, game_state);
@@ -2505,9 +2523,9 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
 
             if(defender->_health <= 0)
             {
-                if(Entity* e = Pointer(attacker_offset, game_state))
+                if(attacker)
                 {
-                    e->exp += ddr.exp_reward;
+                    attacker->exp += ddr.exp_reward;
                 }
 
                 // If this entity is an item equipped on someone... unequip it.
@@ -2567,9 +2585,9 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                     Push_Message(message, game_state);
 
                     char* attacker_name_ptr = 0;
-                    if(Entity* e = Pointer(attacker_offset, game_state))
+                    if(attacker)
                     {
-                        attacker_name_ptr = Name(e, game_state).ptr;
+                        attacker_name_ptr = Name(attacker, game_state).ptr;
                     }
                     
                     if(attacker_name_ptr && ddr.exp_reward)
@@ -2885,6 +2903,8 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
                 *slot = instance;
                 slot->round_applied = game_state->round;
                 slot->room_applied = game_state->room_count;
+
+                target->_health = Min(target->_health, Max_Health(target, game_state));
             }
             
             else if(shortest_duration->duration <= instance.duration && instance.duration != UNLIMITED_DURATION)
@@ -4304,6 +4324,34 @@ SIG Entity* Find_Attack_Target(Entity* actor, Game_State* game_state)
     Entity* room = Pointer(actor->residence, game_state);
     if(room)
     {
+        f32 total_threat = 0;
+        Entity_Iterator iter = Make_Iterator(room, game_state);
+        while(Entity* entity = Next_Entity(&iter))
+        {
+            if(Is_Living_Enemy_Of(entity, actor))
+            {
+                total_threat += Threat(entity);
+            }
+        }
+
+        f32 selector = Random_F32(game_state) * total_threat;
+        f32 accumilator = 0;
+
+        iter = Make_Iterator(room, game_state);
+        while(Entity* entity = Next_Entity(&iter))
+        {
+            if(Is_Living_Enemy_Of(entity, actor))
+            {
+                accumilator += Threat(entity);
+                if(selector <= accumilator)
+                {
+                    result = entity;
+                    break;
+                }
+            }
+        }
+
+        #if 0
         struct local
         {
             static bool Condition(Entity* entity, void* user_ptr, Game_State*)
@@ -4314,6 +4362,7 @@ SIG Entity* Find_Attack_Target(Entity* actor, Game_State* game_state)
         };
 
         result = Random_Entity_That_Matches_Criteria(&room->inventory, local::Condition, actor, game_state);
+        #endif
     }
     else
     {
@@ -5585,7 +5634,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
 
             if(visible_initiative_count > 1)
             {
-                Print("\n\nBegin of a new round of combat! Press [Enter] to roll initiative: ");
+                Print("\n\nBegin of a new round! Press [Enter] to roll initiative: ");
                 Get_User_Input(game_state);
 
                 Print("\nInitiative order is:");

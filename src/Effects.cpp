@@ -485,6 +485,35 @@ SIG Effect_Instance Get_Weakening_Blight(u64 duration, Entity* source, Game_Stat
 }
 
 
+SIG Effect_Offset Get_Neuro_Toxin_Offset(Game_State* game_state)
+{
+    Effect_Offset result;
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &result, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Neuro Toxin"), game_state);
+        effect.type = Effect_Type::poison;
+        effect.stat_modifiers[Stats::vitality] = - 3;
+        effect.stat_modifiers[Stats::arcane]   = - 5;
+
+        result = Insert_Effect(effect, key, game_state);
+    }
+
+    return result;
+}
+
+
+SIG Effect_Instance Get_Neuro_Toxin(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.effect_offset = Get_Neuro_Toxin_Offset(game_state);
+    instance.source = Offset(source, game_state);
+    instance.duration = duration;
+    return instance;
+}
+
+
 SIG Effect_Offset Get_Devouring_Plague_Offset(Game_State* game_state)
 {
     struct local

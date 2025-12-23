@@ -518,6 +518,7 @@ struct Entity
             s32 _temp_health;
             s32 _health;
             s32 exp;
+            f32 _threat;
 
             f32 burst_change;
             u32 required_equipment_slots;
