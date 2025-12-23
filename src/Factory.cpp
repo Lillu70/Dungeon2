@@ -7,8 +7,6 @@
 
 
 // - Enemies
-// Snake (Poison and fast, low HP, high dodge) enemy -> change for being in supply create.
-// Scorpion (Necro-toxin, high armor, low hp and fast^) -> change for being in supply create.
 
 // Pyrocroc (slow, apply searing heat, avg hp/armor, consitant dmg like maces, no dodge)
 
@@ -338,6 +336,182 @@ SIG Entity* Create_Vineling(Entity* room, Game_State* game_state)
     Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
     Assert(apply == Apply_Effect_Result::success);
 
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Leech(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(attacker)
+            {
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Leech(7, attacker, game_state), game_state);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Leech"), game_state);
+    entity->description_offset = Offset(STR("A black worm-like vampire creature."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 2;
+
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 2;
+    stats[Stats::dodge]     = 2;
+    stats[Stats::speed]     = 2;
+    stats[Stats::armor]     = 2;
+    stats[Stats::arcane]    = 2;
+    stats[Stats::immunity]  = 2;
+    stats[Stats::accuracy]  = 2;
+    stats[Stats::vitality]  = 2;
+        
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        Add_Dice(&effect, 1, 4);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Giant_Toad(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(attacker)
+            {
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Poison(5, attacker, game_state), game_state);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Giant Toad"), game_state);
+    entity->description_offset = Offset(STR("Its bright colors suggest danger."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 30;
+    entity->bonus_exp_reward = - 6;
+
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 7;
+    stats[Stats::dodge]     = 3;
+    stats[Stats::speed]     = 10;
+    stats[Stats::arcane]    = 8;
+    stats[Stats::immunity]  = 5;
+    stats[Stats::accuracy]  = 8;
+    stats[Stats::vitality]  = 6;
+        
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        Add_Dice(&effect, 1, 4);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical);
+    Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), Per_Count_Rolled_Random(3, 5, game_state), rules.Finish(), game_state);
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Mosquito(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(attacker)
+            {
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Malaria(2, attacker, game_state), game_state);
+
+                Effect_Instance filled = Get_Filled_With_Blood(UNLIMITED_DURATION, attacker, game_state);
+                Apply_Effect_Result apply = Apply_Effect(attacker, filled, game_state, Forced::yes);
+
+                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), attacker, filled, apply, game_state);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Mosquito"), game_state);
+    entity->description_offset = Offset(STR("A blood sucking demon bug."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 1;
+    entity->bonus_exp_reward = - 7;
+
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 1;
+    stats[Stats::dodge]     = 15;
+    stats[Stats::speed]     = 10;
+    stats[Stats::arcane]    = 8;
+    stats[Stats::accuracy]  = 5;
+    stats[Stats::vitality]  = 1;
+    
+    
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
 
     Finalize_Entity(entity, room, game_state);
     return entity;
@@ -1339,6 +1513,7 @@ SIG Entity* Create_Supply_Crate(Entity* room, Game_State* game_state)
     stats[Stats::armor]     = 5;
     
     Finalize_Entity(entity, room, game_state);
+    entity->bonus_exp_reward = (s16)Exp_Reward(entity) * -1;
 
     Loot_Table_Entry entries[] = 
     {
@@ -1414,6 +1589,9 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
     entity->burst_change = 0.3f;
     entity->weight = 1000;
     
+    entity->_stats[Stats::vitality] = 30;
+    entity->_stats[Stats::armor] = 10;
+
     Loot_Table table = Merge_Loot_Tables
     (
         Basic_Armors_Loot_Table(game_state), 
@@ -1454,6 +1632,7 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
     Generate_From_Loot_Table(entity, table, count, rules, game_state);
 
     Finalize_Entity(entity, room, game_state);
+    entity->bonus_exp_reward = (s16)Exp_Reward(entity) * -1;
     return entity;
 }
 

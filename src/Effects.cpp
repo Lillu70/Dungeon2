@@ -201,6 +201,7 @@ SIG void Dissapate_After_Two_On_Turn_Start(Effect_Instance* instance, Entity* ta
         {
             Print("%s dissipates.", Name(target, game_state).ptr);
             target->_health = 0;
+            target->flags = EFlags::hidden;
         }
     }
     else
@@ -363,21 +364,20 @@ SIG Effect_Instance Get_Poison(u64 duration, Entity* source, Game_State* game_st
         }
     };
 
-    Effect_Offset effect_offset;
+    Effect_Instance instance = {};
+    instance.duration = duration;
+    instance.source = Offset(source, game_state);
+
     Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &effect_offset, game_state))
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Poison"), game_state);
         effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
         effect.type = Effect_Type::poison;
-        effect_offset = Insert_Effect(effect, key, game_state);
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
-
-    Effect_Instance instance = {};
-    instance.duration = duration;
-    instance.source = Offset(source, game_state);
-    instance.effect_offset = effect_offset;
+    
     return instance;
 }
 
@@ -417,11 +417,15 @@ SIG Effect_Offset Get_Burning_Effect_Offset(Game_State* game_state)
 }
 
 
-SIG Effect_Offset Get_Festering_Rash_Effect_Offset(Game_State* game_state)
+SIG Effect_Instance Get_Festering_Rash(u64 duration, Entity* source, Game_State* game_state)
 {
-    Effect_Offset result;
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+
     Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &result, game_state))
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Festering rash"), game_state);
@@ -437,29 +441,22 @@ SIG Effect_Offset Get_Festering_Rash_Effect_Offset(Game_State* game_state)
         effect.critical_success_range = - 1;
         effect.critical_failure_range = + 1;
 
-        result = Insert_Effect(effect, key, game_state);
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
 
-    return result;
-}
-
-
-SIG Effect_Instance Get_Festering_Rash(u64 duration, Entity* source, Game_State* game_state)
-{
-    Effect_Instance instance = {};
-    instance.effect_offset = Get_Festering_Rash_Effect_Offset(game_state);
-    instance.source = Offset(source, game_state);
-    instance.duration_type = Duration_Type::room;
-    instance.duration = duration;
     return instance;
 }
 
 
-SIG Effect_Offset Get_Weakening_Blight_Offset(Game_State* game_state)
+SIG Effect_Instance Get_Weakening_Blight(u64 duration, Entity* source, Game_State* game_state)
 {
-    Effect_Offset result;
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+
     Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &result, game_state))
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Weakening Blight"), game_state);
@@ -467,29 +464,21 @@ SIG Effect_Offset Get_Weakening_Blight_Offset(Game_State* game_state)
         effect.stat_modifiers[Stats::might] = - 3;
         effect.carry_capacity_modifier      = - 10;
 
-        result = Insert_Effect(effect, key, game_state);
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
 
-    return result;
-}
-
-
-SIG Effect_Instance Get_Weakening_Blight(u64 duration, Entity* source, Game_State* game_state)
-{
-    Effect_Instance instance = {};
-    instance.effect_offset = Get_Weakening_Blight_Offset(game_state);
-    instance.source = Offset(source, game_state);
-    instance.duration_type = Duration_Type::room;
-    instance.duration = duration;
     return instance;
 }
 
 
-SIG Effect_Offset Get_Neuro_Toxin_Offset(Game_State* game_state)
+SIG Effect_Instance Get_Neuro_Toxin(u64 duration, Entity* source, Game_State* game_state)
 {
-    Effect_Offset result;
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration = duration;
+
     Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &result, game_state))
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Neuro Toxin"), game_state);
@@ -497,24 +486,136 @@ SIG Effect_Offset Get_Neuro_Toxin_Offset(Game_State* game_state)
         effect.stat_modifiers[Stats::vitality] = - 3;
         effect.stat_modifiers[Stats::arcane]   = - 5;
 
-        result = Insert_Effect(effect, key, game_state);
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
 
-    return result;
-}
-
-
-SIG Effect_Instance Get_Neuro_Toxin(u64 duration, Entity* source, Game_State* game_state)
-{
-    Effect_Instance instance = {};
-    instance.effect_offset = Get_Neuro_Toxin_Offset(game_state);
-    instance.source = Offset(source, game_state);
-    instance.duration = duration;
     return instance;
 }
 
 
-SIG Effect_Offset Get_Devouring_Plague_Offset(Game_State* game_state)
+SIG Effect_Instance Get_Leech(u64 duration, Entity* source, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Apply(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Entity* leech = Pointer(instance->source, game_state);
+                if(leech)
+                {
+                    leech->_health = 0;
+                    leech->flags = EFlags::hidden;
+                }
+            }
+            else
+            {
+                Print("Leech is removed from active play as it turns into the effect.");
+            }
+        }
+
+        static void On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 damage = 1;
+            if(instance)
+            {
+                Deal_Damage(target, instance->source, Effect_Name(instance, game_state), damage, {}, Damage_Type::magical, game_state, Verbose::yes);
+            }
+            else
+            {
+                Print("Take %d point%s of damage.", damage, (damage > 1)? "s" : "");
+            }
+        }
+    };
+
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::round;
+    instance.duration = duration;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Leech"), game_state);
+        effect.on_apply_fn_offset = Offset(local::On_Apply, game_state);
+        effect.on_turn_start_fn_offset = Offset(local::On_Turn_Start, game_state);
+        effect.stat_modifiers[Stats::immunity] = - 3;
+        effect.type = Effect_Type::bleed;
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    return instance;
+}
+
+
+SIG Effect_Instance Get_Filled_With_Blood(u64 duration, Entity* source, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 healing = 10;
+            if(instance)
+            {
+                Heal(target, healing, Effect_Name(instance, game_state), Verbose::yes, game_state);
+            }
+            else
+            {
+                Print("Heals the afflicted %d points.", healing);
+            }
+        }
+    };
+
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Filled With Blood"), game_state);
+        effect.type = Effect_Type::physical;
+        effect.stat_modifiers[Stats::speed]     = - 10;
+        effect.stat_modifiers[Stats::dodge]     = - 10;
+        effect.stat_modifiers[Stats::might]     = + 5;
+        effect.stat_modifiers[Stats::vitality]  = + 2;
+        effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
+        Add_Dice(&effect, 1, 5);
+
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    return instance;
+}
+
+
+SIG Effect_Instance Get_Malaria(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Malaria"), game_state);
+        effect.type = Effect_Type::disease;
+        effect.stat_modifiers[Stats::speed] = - 4;
+        effect.critical_failure_range       = + 4;
+
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    return instance;
+}
+
+
+SIG Effect_Instance Get_Devouring_Plague(u64 duration, Entity* source, Game_State* game_state)
 {
     struct local
     {
@@ -532,37 +633,34 @@ SIG Effect_Offset Get_Devouring_Plague_Offset(Game_State* game_state)
         }
     };
 
-    Effect_Offset result;
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+
+
     Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &result, game_state))
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Devouring plague"), game_state);
         effect.type = Effect_Type::disease;
         effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
-        result = Insert_Effect(effect, key, game_state);
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
 
-    return result;
-}
-
-
-SIG Effect_Instance Get_Devouring_Plague(u64 duration, Entity* source, Game_State* game_state)
-{
-    Effect_Instance instance = {};
-    instance.effect_offset = Get_Devouring_Plague_Offset(game_state);
-    instance.source = Offset(source, game_state);
-    instance.duration_type = Duration_Type::room;
-    instance.duration = duration;
     return instance;
 }
 
 
-SIG Effect_Offset Get_Entangled_Effect_Offset(Game_State* game_state)
+SIG Effect_Instance Get_Entangled(u64 duration, Entity* source, Game_State* game_state)
 {
-    Effect_Offset result;
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration = duration;
+
     Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &result, game_state))
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Entangled"), game_state);
@@ -573,19 +671,9 @@ SIG Effect_Offset Get_Entangled_Effect_Offset(Game_State* game_state)
         effect.stat_modifiers[Stats::armor] = - v;
         effect.thorns_damage                = 1;
 
-        result = Insert_Effect(effect, key, game_state);
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
 
-    return result;
-}
-
-
-SIG Effect_Instance Get_Entangled(u64 duration, Entity* source, Game_State* game_state)
-{
-    Effect_Instance instance = {};
-    instance.effect_offset = Get_Entangled_Effect_Offset(game_state);
-    instance.source = Offset(source, game_state);
-    instance.duration = duration;
     return instance;
 }
 

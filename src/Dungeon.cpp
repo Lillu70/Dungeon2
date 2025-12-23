@@ -5,7 +5,7 @@
 // All rights reserved.
 // ===================================
 
-
+// TODO: Make inspect show active effects on the target.
 // TODO: Static string storage.
 // TODO: Something like a #table for the dynamic strings.
 
@@ -24,8 +24,8 @@
 // TODO: Make help command describe common effects.
 
 #define DEVMODE      1
-#define SEED         1
-#define RANDOM_SEED  1
+#define SEED         743523
+#define RANDOM_SEED  0
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
@@ -2333,7 +2333,7 @@ SIG bool Is_Visible(Entity* entity, Entity* actor, Game_State* game_state)
 {
     bool visible = (entity->flags & EFlags::visible) > 0;
     bool parent = entity->residence.v == Offset(actor, game_state).v;
-    bool result = visible || (entity->flags & EFlags::actor) || entity->weight >= 10 || parent;
+    bool result = (visible || (entity->flags & EFlags::actor) || entity->weight >= 10 || parent) && !(entity->flags & EFlags::hidden);
     return result;
 }
 
@@ -2891,6 +2891,8 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
 
         if(Is_Alive(target) || forced == Forced::yes)
         {
+            s32 pre_max_health = Max_Health(target, game_state);
+
             Effect_Instance* slot = 0;
             Effect_Instance* shortest_duration = 0;
             u64 max_stacks = 1 + effect->bonus_stacks;
@@ -2899,12 +2901,12 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
             if(effect_count < max_stacks)
             {
                 result = Apply_Effect_Result::success;
+                
                 slot = New_Effect_Slot(&target->active_effects, game_state);
-                *slot = instance;
+                *slot = instance; // NOTE: Moment of application!
+                
                 slot->round_applied = game_state->round;
                 slot->room_applied = game_state->room_count;
-
-                target->_health = Min(target->_health, Max_Health(target, game_state));
             }
             
             else if(shortest_duration->duration <= instance.duration && instance.duration != UNLIMITED_DURATION)
@@ -2917,10 +2919,22 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
                 shortest_duration->zero_ticked = instance.zero_ticked;
             }
 
-            PROTOTYPE_EFFINST_ENT_GS* on_apply_fn = Pointer(effect->on_apply_fn_offset, game_state);
-            if(slot && on_apply_fn)
+            if(slot)
             {
-                on_apply_fn(slot, target, game_state);
+                if(PROTOTYPE_EFFINST_ENT_GS* on_apply_fn = Pointer(effect->on_apply_fn_offset, game_state))
+                {
+                    on_apply_fn(slot, target, game_state);
+                }
+
+                s32 post_max_health = Max_Health(target, game_state);
+
+                s32 diff = post_max_health - pre_max_health;
+                if(diff > 0)
+                {
+                    target->_health += diff;
+                }
+
+                target->_health = Min(target->_health, post_max_health);
             }
         }
     }

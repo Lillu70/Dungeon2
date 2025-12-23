@@ -96,6 +96,36 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         }
 
 
+        static void Ambush_Swamp(Game_State* game_state, f32 change)
+        {
+            if(change)
+            {
+                Set_Ambush_Change(change, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(10, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Mosquito, game_state), 1, 3}, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(10, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Giant_Toad, game_state), 1, 2}, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(10, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Leech, game_state), 2}, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(5, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Mosquito, game_state), 2}, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Giant_Toad, game_state), 1}, game_state);
+            }
+        }
+
+
         static Entity* Supply_Room(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
@@ -128,6 +158,58 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                     game_state
                 );
                 Restore(&game_state->scratch_buffer, snapshot);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Swamp(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::rare;
+            if(fill_room_if_greater_than_zero)
+            {
+                Ambush_Swamp(game_state, 0.2f);
+
+                room->name_offset = Offset(STR("a bog"), game_state);
+                char room_description[] = 
+                "As you take your next step, you suddenly sink waist deep into black water.\n"
+                "You find your self in an underground swamp.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                switch(Roll(4, game_state))
+                {
+                    case 1:
+                    {
+                        u64 mcount = 2 + Per_Count_Rolled_Square_Weighted_Random(2, game_state);
+                        LOOP(mcount) Create_Mosquito(room, game_state);
+
+                        Create_Leech(room, game_state);
+                        Create_Giant_Toad(room, game_state);
+                    }break;
+                    
+                    case 2:
+                    {
+                        Create_Mosquito(room, game_state);
+                        Create_Giant_Toad(room, game_state);
+                    }break;
+
+                    case 3:
+                    {
+                        Create_Leech(room, game_state);
+                        Create_Mosquito(room, game_state);
+                        Create_Snake(room, game_state);
+                    }break;
+
+                    case 4:
+                    {
+                        LOOP(2) Create_Mosquito(room, game_state);
+                        Create_Blight_Rat(room, game_state);
+                    }break;
+                }
+
+                Generate_Standard_Random_Loot(room, game_state);
             }
 
             return room;
@@ -366,7 +448,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Graveyard(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::magical;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.5f);
@@ -804,6 +886,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         {local::Earthen_Hall},
         {local::Mudpit},
         {local::Wounded_Bear},
+        {local::Swamp},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};

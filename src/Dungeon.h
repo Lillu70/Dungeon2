@@ -70,6 +70,7 @@ namespace EFlags
         redirected          = u64(1) << 10,
         can_be_stolen_from  = u64(1) << 11,
         visible             = u64(1) << 12,
+        hidden              = u64(1) << 13,
 
         started_turn        = u64(1) << 49,
         player_controlled   = u64(1) << 50,
