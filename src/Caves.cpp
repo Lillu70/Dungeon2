@@ -16,6 +16,9 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
 
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
+
+    Spawn_All_Items_In_Loot_Table(Basic_Weapons_Loot_Table(game_state), room, game_state);
+    Spawn_All_Items_In_Loot_Table(Basic_Armors_Loot_Table(game_state), room, game_state);
 }
 
 
@@ -866,27 +869,27 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
 
     local_storage Loot_Table_Entry entries[] = 
     {
-        {local::Opening},
-        {local::Carcase},
-        {local::Abandoned_Camp},
-        {local::Ant_Nest},
-        {local::Warzone},
-        {local::Small_Rat_Nest},
-        {local::Empty_Cavern},
-        {local::Beast_Lair},
-        {local::Graveyard},
-        {local::Recent_Battlefield},
-        {local::Hallway},
-        {local::Supply_Room},
-        {local::Den},
-        {local::Forest},
-        {local::Stream},
-        {local::Chamber},
-        {local::Burrow},
-        {local::Earthen_Hall},
-        {local::Mudpit},
-        {local::Wounded_Bear},
-        {local::Swamp},
+        {local::Opening},           // 1
+        {local::Carcase},           // 2
+        {local::Abandoned_Camp},    // 3
+        {local::Ant_Nest},          // 4
+        {local::Warzone},           // 5
+        {local::Small_Rat_Nest},    // 6
+        {local::Empty_Cavern},      // 7
+        {local::Beast_Lair},        // 8
+        {local::Graveyard},         // 9
+        {local::Recent_Battlefield},// 10
+        {local::Hallway},           // 11
+        {local::Supply_Room},       // 12
+        {local::Den},               // 13
+        {local::Forest},            // 14
+        {local::Stream},            // 15
+        {local::Chamber},           // 16
+        {local::Burrow},            // 17
+        {local::Earthen_Hall},      // 18
+        {local::Mudpit},            // 19
+        {local::Wounded_Bear},      // 20
+        {local::Swamp},             // 21
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};

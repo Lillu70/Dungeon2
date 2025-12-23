@@ -137,12 +137,28 @@ SIG Loot_Table Basic_Weapons_Loot_Table(Game_State* game_state)
         {Create_Straightsword},
         {Create_Long_Spear},
         {Create_Whip},
+        {Create_Gardening_Scythe},
+        {Create_War_Scythe},
+        {Create_Cestus},
+        {Create_Staff},
+        {Create_War_Staff},
+        {Create_Ram_Shield},
+        {Create_Assassins_Claws},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
     Fill_Loot_Table_Changes_And_Item_Rarity(&table, game_state);
 
     return table;
+}
+
+
+SIG void Spawn_All_Items_In_Loot_Table(Loot_Table table, Entity* room, Game_State* game_state)
+{
+    for(u64 i = 0; i < table.count; ++i)
+    {
+        table.array[i].fn(room, game_state);
+    }
 }
 
 
@@ -259,6 +275,286 @@ SIG Entity* Create_Long_Spear(Entity* room, Game_State* game_state)
     Finalize_Entity(entity, room, game_state);
     return entity;
 }
+
+
+SIG Entity* Create_Cestus(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Cestus"), game_state);
+    entity->description_offset = Offset(STR("A studded attack glove."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 3;
+    
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 1;
+        effect.stat_modifiers[Stats::dodge] = + 3;
+        Add_Dice(&effect, 2, 2);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_War_Staff(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("War Staff"), game_state);
+    entity->description_offset = Offset(STR("A long wooden staff with runes encraved on it."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = 
+        Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
+        Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+    
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 3;
+    
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might]     = + 5;
+        effect.stat_modifiers[Stats::arcane]    = + 6;
+        effect.critical_failure_range           = + 3;
+        Add_Dice(&effect, 2, 6);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Assassins_Claws(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Assassins claws"), game_state);
+    entity->description_offset = Offset(STR("Five long claws that attach to both hands."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = 
+        Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
+        Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+    
+    entity->weight = 5;
+    entity->_stats[Stats::vitality] = 3;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 1;
+        effect.stat_modifiers[Stats::dodge] = + 3;
+        effect.critical_success_range       = + 7;
+        effect.pierce                       = 7;
+        Add_Dice(&effect, 1, 16);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Staff(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Staff"), game_state);
+    entity->description_offset = Offset(STR("A short wooden staff with runes encraved on it."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 3;
+    
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 3;
+        effect.stat_modifiers[Stats::arcane] = + 3;
+        Add_Dice(&effect, 2, 3);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ram_Shield(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Ram shield"), game_state);
+    entity->description_offset = Offset(STR("A strange combination of a shield and a mace."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
+    
+    entity->weight = 11;
+    entity->_stats[Stats::vitality] = 10;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 5;
+        effect.stat_modifiers[Stats::armor] = + 3;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Battle_Axe(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Battle axe"), game_state);
+    entity->description_offset = Offset(STR("A twin bladed axe made."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
+    
+    entity->weight = 5;
+    entity->_stats[Stats::vitality] = 3;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 3;
+        Add_Dice(&effect, 4, 2);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Great_Axe(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Great axe"), game_state);
+    entity->description_offset = Offset(STR("A massive twin bladed axe made."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
+    
+    entity->required_equipment_slots = 
+        Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
+        Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+    
+    entity->weight = 10;
+    entity->_stats[Stats::vitality] = 3;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 6;
+        Add_Dice(&effect, 4, 4);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Gardening_Scythe(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Gardening Scythe"), game_state);
+    entity->description_offset = Offset(STR("A curved blade used for cutting down wheat."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
+    
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 1;
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.critical_success_range       = + 4;
+        effect.critical_failure_range       = + 5;
+        Add_Dice(&effect, 1, 10);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_War_Scythe(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("War Scythe"), game_state);
+    entity->description_offset = Offset(STR("A curved blade used for cutting down heads."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = 
+        Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
+        Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+    
+    entity->weight = 8;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};        
+        effect.stat_modifiers[Stats::might] = + 4;
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.critical_success_range       = + 6;
+        effect.critical_failure_range       = + 5;
+        Add_Dice(&effect, 1, 10);
+        Add_Dice(&effect, 1, 6);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
 
 
 SIG Entity* Create_Great_Club(Entity* room, Game_State* game_state)

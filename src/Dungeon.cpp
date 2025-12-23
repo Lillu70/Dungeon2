@@ -24,8 +24,8 @@
 // TODO: Make help command describe common effects.
 
 #define DEVMODE      1
-#define SEED         743523
-#define RANDOM_SEED  0
+#define SEED         0
+#define RANDOM_SEED  1
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
@@ -126,10 +126,12 @@ SIG _inline void Print_Messages(Game_State* game_state)
 {
     if(game_state->messages.count)
     {
+        f32 wait_time = Max(0.8f - 0.1f * f32(game_state->messages.count), 0.05f);
+        
         for(u64 i = 0; i < game_state->messages.count; ++i)
         {
             String str = game_state->messages.ctrl_block[i];
-            Wait(0.8, game_state);
+            Wait(wait_time, game_state);
             Print("\n%s", str.ptr);
         }
 
@@ -5661,7 +5663,8 @@ SIG void Prepare_Game_Round(Game_State* game_state)
 
                     if(init->visible)
                     {
-                        Wait(0.8, game_state);
+                        f32 wait_time = Max(0.05f, 0.8f - visible_initiative_count * 0.05f);
+                        Wait(wait_time, game_state);
 
                         s32 npadding = s32(longest_entity_name_lenght + 1);
                         s32 dpadding = s32(longest_digit_count);
@@ -7479,7 +7482,6 @@ SIG void Get_Level_Up_Commands(Command** out_commands, u64* out_count, Game_Stat
                         for(u64 i = 0; i < Array_Length(leveler->assigned); ++i)
                         {
                             s16 base = leveler->actor->_stats[i];
-                            Wait(0.3, game_state);
                             Print("\n| %*s: %*d", s32(longest_stat_name_length), Stats::name[i].ptr, biggest_stat_value_digit_count, base);
                             
                             s16 assigned = leveler->assigned[i];
