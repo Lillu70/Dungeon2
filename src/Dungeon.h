@@ -241,6 +241,7 @@ struct Effect
     s16 raw_damage_modifier;
     s16 thorns_damage;
     s16 pierce;
+    s16 healing_power;
     
     u8 bonus_stacks; // NOTE: Denotes how many times this effect can stack. Default is 1 and this is added on top (ZII).
     s8 critical_success_range;
@@ -572,7 +573,9 @@ struct Damage_Modifier
 
 struct Healing_Result
 {
-    s32 amount;
+    s32 raw_amount;
+    s32 power_bonus;
+    s32 total_amount;
     s32 max_health;
     s32 health_snapshot;
     s32 healing_done;

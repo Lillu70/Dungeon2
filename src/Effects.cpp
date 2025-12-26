@@ -1413,11 +1413,6 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
 {
     struct local
     {
-        static s32 Temp_Health_Mult()
-        {
-            return 3;
-        }
-
         static s8 Fumple_Boost()
         {
             return 8;
@@ -1437,12 +1432,11 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
                 burning.effect_offset = Get_Burning_Effect_Offset(game_state);
                 burning.duration = Burn_Duration();
 
-                Apply_Effect_Result apply = Apply_Effect(defender, burning, game_state);
-                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, burning, apply, game_state);
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), burning, game_state);
             }
             else
             {
-                Print("sets the taget on fire.");
+                Print("Attemps to set the taget on fire.");
             }
         }
     };
@@ -1455,7 +1449,7 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
         {
             case 1:
             {
-                s32 temp_health_amount = Level(attacker) * local::Temp_Health_Mult();
+                s32 temp_health_amount = Level(attacker);
                 Give_Temporary_Health(attacker, temp_health_amount, STR("Change attack"), Verbose::yes, game_state);
             }break;
 
@@ -1502,7 +1496,7 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("does one of 3 differenct effects: A) Resive temporary health equal to %d times user level, B) Give the target the \"burning\" effect for %d turns, C) Increased fumple range of this attack by %d.", local::Temp_Health_Mult(), local::Burn_Duration(), local::Fumple_Boost());
+        Print("does one of 3 differenct effects: A) Resive temporary health equal to user level, B) Give the target the \"burning\" effect for %d turns, C) Increased fumple range of this attack by %d.", local::Burn_Duration(), local::Fumple_Boost());
     }
     
     return instance;

@@ -47,7 +47,7 @@ SIG Loot_Table Basic_Consumables_Loot_Table(Game_State* game_state)
     local_storage Loot_Table_Entry entries[] =
     {
         {Create_Antidote},
-        {Create_Healing_Potion},
+        {Create_Healing_Potion, 200},
         {Create_Bomb},
         {Create_Fragmentation_Bomb},
     };
@@ -67,11 +67,28 @@ SIG Loot_Table Basic_Trinkets_Loot_Table(Game_State* game_state)
         {Create_Ring_Of_Rebirth},
         {Create_Ring_Of_Regeneration},
         {Create_Ring_Of_Strange_Fortunes},
+        {Create_Ring_Of_Life},
+        {Create_Ring_Of_Wrath},
+        {Create_Ring_Of_Avoidance},
+        {Create_Ring_Of_Precision},
+        {Create_Ring_Of_Protection},
+        {Create_Ring_Of_Mending},
+        {Create_Huntsmans_Ring},
+        {Create_Ring_Of_The_Reliable_Worker},
+        {Create_Ring_Of_Penetration},
+        {Create_Avengers_Rings},
+        {Create_Cowards_Ring},
+        {Create_Demon_Brand},
+        {Create_Ring_Of_Bloodshield},
+        {Create_Ring_Of_Clumsy_Regeneration},
+
+        // Should capes be here?
         {Create_Cape_Of_Dashing},
         {Create_Cape_Of_Avoidance},
         {Create_Cape_Of_Immunity},
         {Create_Arcane_Cape},
         {Create_Cape_Of_Spite},
+        {Create_Healers_Cape},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -111,6 +128,11 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Leather_Gloves},
         {Create_Chainmail_Gloves},
         {Create_Plate_Gloves},
+        {Create_Belt, 300},
+        {Create_Strong_Man_Belt},
+        {Create_Belt_Of_Atlas},
+        {Create_Plate_Codpiece},
+        {Create_Field_Medics_Gloves},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -998,12 +1020,38 @@ SIG Entity* Create_Cape_Of_Immunity(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Healers_Cape(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Healers cape"), game_state);
+    entity->description_offset = Offset(STR("Golden cape of the Lights Order."), game_state);
+    entity->rarity = Rarity::magical;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.healing_power = 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
 SIG Entity* Create_Arcane_Cape(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Arcane cape"), game_state);
-    entity->description_offset = Offset(STR("Draw the user closer to the souce it self."), game_state);
+    entity->description_offset = Offset(STR("Draws the user closer to the souce it self."), game_state);
     entity->rarity = Rarity::magical;
     
     entity->flags = EFlags::equippable | EFlags::item;
@@ -1015,6 +1063,113 @@ SIG Entity* Create_Arcane_Cape(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::arcane]  = + 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Belt(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Belt"), game_state);
+    entity->description_offset = Offset(STR("Made of leather. It has a couple of fasteners for attaching items on it."), game_state);
+    entity->rarity = Rarity::common;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::belt];
+    entity->weight = 2;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.carry_capacity_modifier = + 10;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Plate_Codpiece(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Plate Codpiece"), game_state);
+    entity->description_offset = Offset(STR("Steel covering for the valuables."), game_state);
+    entity->rarity = Rarity::rare;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::belt];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Strong_Man_Belt(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Strong Man Belt"), game_state);
+    entity->description_offset = Offset(STR("A tall belt that provied support when lifting things."), game_state);
+    entity->rarity = Rarity::rare;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::belt];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::might]   = + 1;
+        effect.carry_capacity_modifier = + 20;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Belt_Of_Atlas(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Belt Of Atlas"), game_state);
+    entity->description_offset = Offset(STR("The buckle looks like a man holding the Heavens."), game_state);
+    entity->rarity = Rarity::epic;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::belt];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::might]     = + 2;
+        effect.stat_modifiers[Stats::vitality]  = + 2;
+        effect.carry_capacity_modifier          = + 100;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -1141,15 +1296,403 @@ SIG Entity* Create_Ring_Of_Giants(Entity* room, Game_State* game_state)
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
-    entity->weight = 30;
+    entity->weight = 20;
     entity->_stats[Stats::vitality] = 50;
 
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]    = +10;
-        effect.stat_modifiers[Stats::vitality] = +10;
+        effect.stat_modifiers[Stats::might]    = + 10;
+        effect.stat_modifiers[Stats::vitality] = + 10;
+        effect.carry_capacity_modifier         = + 10;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Bloodshield(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(ar->is_critical_success)
+                {
+                    s32 dmg = ar->deal_damage_result.damage_after_mitigation;
+                    Give_Temporary_Health(attacker, dmg, Effect_Name(instance, game_state), Verbose::yes, game_state);
+                }
+            }
+            else
+            {
+                Print("If the attack is a critical success, provides temporary health equal to damage done.");
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Bloodshield"), game_state);
+    entity->description_offset = Offset(STR("A favorite amongst the assassins, as it ensures a safe get a way."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Clumsy_Regeneration(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Miss(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            s32 healing_amount = 1;
+            if(instance)
+            {
+                Heal(attacker, healing_amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+            }
+            else
+            {
+                Print("Heals the user %d point%s of health.", healing_amount, (healing_amount > 1)? "s" : "");
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Clumsy Regeneration"), game_state);
+    entity->description_offset = Offset(STR("A legend tells of a boy who never hit his target, but somehow still survived all his battles."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_miss_fn_offset = Offset(local::On_Miss, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Avengers_Rings(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Avengers Ring"), game_state);
+    entity->description_offset = Offset(STR("Black and formless."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.thorns_damage = 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Cowards_Ring(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Cowards Ring"), game_state);
+    entity->description_offset = Offset(STR("Worn by a man who was too afraid to try anything."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 5;
+        effect.critical_failure_range       = + 5;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Demon_Brand(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Demon Brand"), game_state);
+    entity->description_offset = Offset(STR("A circle of fire."), game_state);
+    entity->rarity = Rarity::magical;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::might]     = + 2;
+        effect.stat_modifiers[Stats::vitality]  = + 2;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Protection(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Protection"), game_state);
+    entity->description_offset = Offset(STR("Blessed by a cleric from the Knights order of Silver Blossom."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Precision(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Precision"), game_state);
+    entity->description_offset = Offset(STR("Especially valued by hunters and marksmen."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::accuracy] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Avoidance(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Avoidance"), game_state);
+    entity->description_offset = Offset(STR("Hand crafted and freely given out by the Battle Monks."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::dodge] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Wrath(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Wrath"), game_state);
+    entity->description_offset = Offset(STR("Worn by the mountainmen during raids into the civilized lands."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::might] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Life(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Life"), game_state);
+    entity->description_offset = Offset(STR("A simple wooden ring."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::vitality] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Penetration(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Penetration"), game_state);
+    entity->description_offset = Offset(STR("A common enchantment for both war and murder."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.pierce = 2;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Mending(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Mending"), game_state);
+    entity->description_offset = Offset(STR("On it there is a glowing green gem."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.healing_power = + 2;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Huntsmans_Ring(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Huntsmans Ring"), game_state);
+    entity->description_offset = Offset(STR("Carved from antler bone."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.critical_success_range += 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_The_Reliable_Worker(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring Of The Reliable Worker"), game_state);
+    entity->description_offset = Offset(STR("Given to those, whose work is too important for anything to go wrong."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.critical_failure_range -= 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -1338,6 +1881,33 @@ SIG Entity* Create_Leather_Gloves(Entity* room, Game_State* game_state)
     Finalize_Entity(entity, room, game_state);
     return entity;
 }
+
+
+SIG Entity* Create_Field_Medics_Gloves(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Field Medics gloves"), game_state);
+    entity->description_offset = Offset(STR("Being a Field Medic a dangerous role indeed, as the forces of evil hate seeing their hard work undone."), game_state);
+    entity->rarity = Rarity::rare;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::gloves];
+    entity->weight = 2;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.healing_power = + 3;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
 
 
 SIG Entity* Create_Chainmail_Gloves(Entity* room, Game_State* game_state)

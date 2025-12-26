@@ -17,6 +17,7 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
 
+    Spawn_All_Items_In_Loot_Table(Basic_Trinkets_Loot_Table(game_state), room, game_state);
     Spawn_All_Items_In_Loot_Table(Basic_Weapons_Loot_Table(game_state), room, game_state);
     Spawn_All_Items_In_Loot_Table(Basic_Armors_Loot_Table(game_state), room, game_state);
 }
@@ -142,6 +143,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 room->description_offset = Offset(STR(room_description), game_state);
 
                 Create_Chest(room, game_state);
+                Create_Bookshelf(room, game_state);
                 Create_Supply_Crate(room, game_state);
                 Create_Alchemists_Pouch(room, game_state);
 
@@ -170,7 +172,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Swamp(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
                 Ambush_Swamp(game_state, 0.2f);
@@ -395,7 +397,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             {
                 Generic_Ambush(game_state, 0.05f);
 
-                room->name_offset = Offset(STR(" a burrow"), game_state);
+                room->name_offset = Offset(STR("a burrow"), game_state);
                 char room_description[] = 
                 "A dark and tight space. There is very little room to manuver.\n";
                 room->description_offset = Offset(STR(room_description), game_state);
@@ -657,6 +659,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 LOOP(2) Create_Small_Earth_Golem(room, game_state);
 
                 LOOP(2) Create_Chest(room, game_state);
+                Create_Bookshelf(room, game_state);
             }
 
             return room;
@@ -669,7 +672,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
-                Generic_Ambush(game_state, 0.25f);
+                Generic_Ambush(game_state, 0.15f);
 
                 room->name_offset = Offset(STR("Mud pit"), game_state);
                 char room_description[] = 
@@ -818,6 +821,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 );
 
                 Create_Supply_Crate(room, game_state);
+                
+                if(Roll(3, game_state) == 1) Create_Bookshelf(room, game_state);
                 
                 if(Roll(2, game_state) == 1)
                 {

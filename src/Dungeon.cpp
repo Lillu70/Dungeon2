@@ -11,7 +11,6 @@
 
 // TODO: Pierce and armor effects in the default deal damage print out.
 // TODO: Duration type part of the effect instead of The instance???
-// TODO: Test equipping the same ring twice.
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
 // TODO: Level up / Rest mechanic.
@@ -2238,7 +2237,7 @@ SIG f32 Critical_Multiplier(Entity* entity, Game_State* game_state)
 
 SIG s32 Carry_Capacity(Entity* entity, Game_State* game_state)
 {
-    s32 result = 70;
+    s32 result = 50;
     s32 mod = 0;
     Effects_Iterator iter = Make_Iterator(&entity->active_effects, game_state);
     while(Effect* effect = Next_Effect(&iter))
@@ -2374,6 +2373,8 @@ SIG bool Is_Living_Active_Enemy_Of(Entity* actor, Entity* target)
 
 SIG s32 Give_Temporary_Health(Entity* entity, s32 amount, String source_name, Verbose::T verbose, Game_State* game_state)
 {
+    // CONSIDER: Should temp health scale of healing power?
+
     s32 shield_amount = 0;
     if(amount > 0)
     {
@@ -2395,10 +2396,13 @@ SIG s32 Give_Temporary_Health(Entity* entity, s32 amount, String source_name, Ve
 
 SIG Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose::T verbose, Game_State* game_state)
 {
+    s32 healing_power = 0;
     Effects_Iterator iter = Make_Iterator(&entity->active_effects, game_state);
     while(Effect_Instance* instance = Next(&iter))
     {
         Effect* effect = Pointer(instance->effect_offset, game_state);
+        healing_power += effect->healing_power;
+
         if(PROTOTYPE_EFFINST_ENT_S32PTR_STR_GS* fn = Pointer(effect->on_heal_fn_offset, game_state))
         {
             fn(instance, entity, &amount, source_name, game_state);
@@ -2410,16 +2414,20 @@ SIG Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose:
         amount = 0;
     }
 
-    Healing_Result result = {amount};
-    
-    result.health_snapshot = entity->_health;
-    result.max_health = Max_Health(entity, game_state);
-
-    entity->_health = Min(entity->_health + amount, result.max_health);
-    result.healing_done = {entity->_health - result.health_snapshot};
-    result.overhealing = amount - result.healing_done;
+    Healing_Result result = {};
     if(amount)
     {
+        result.raw_amount = amount;
+        result.power_bonus = healing_power;
+        result.total_amount = amount + healing_power;
+        
+        amount += healing_power;
+        result.health_snapshot = entity->_health;
+        result.max_health = Max_Health(entity, game_state);
+
+        entity->_health = Min(entity->_health + amount, result.max_health);
+        result.healing_done = {entity->_health - result.health_snapshot};
+        result.overhealing = amount - result.healing_done;
         result.overhealing_percentage = f32(result.overhealing) / f32(amount) * 100.f;
         
         if(verbose)
@@ -2439,20 +2447,38 @@ SIG Healing_Result Heal(Entity* entity, s32 amount, String source_name, Verbose:
                     result.overhealing, 
                     result.overhealing_percentage
                 );
-
             }
             else
             {
-                message = Format_Message
-                (
-                    game_state,
-                    "%s heals %s for %d points [overhealing: %d = %.2f%%].", 
-                    source_name.ptr, 
-                    entity_name.ptr, 
-                    result.healing_done, 
-                    result.overhealing, 
-                    result.overhealing_percentage
-                );
+                if(healing_power)
+                {
+                    message = Format_Message
+                    (
+                        game_state,
+                        "%s heals %s for %d (%d + %d[healing power]) points [overhealing: %d = %.2f%%].", 
+                        source_name.ptr, 
+                        entity_name.ptr, 
+                        result.healing_done, 
+                        result.raw_amount,
+                        result.power_bonus,
+                        result.overhealing, 
+                        result.overhealing_percentage
+                    );
+                }
+                else
+                {
+                    message = Format_Message
+                    (
+                        game_state,
+                        "%s heals %s for %d (%d) points [overhealing: %d = %.2f%%].", 
+                        source_name.ptr, 
+                        entity_name.ptr, 
+                        result.healing_done, 
+                        result.raw_amount,
+                        result.overhealing, 
+                        result.overhealing_percentage
+                    );
+                }
             }
 
             Push_Message(message, game_state);
@@ -3071,11 +3097,17 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
             Print("Pierce: %d", effect->pierce);
         }
 
+        if(effect->healing_power)
+        {
+            local::Line(depth);
+            Print("Healing Power: %d", effect->healing_power);
+        }
+
         if(effect->carry_capacity_modifier)
         {
             char c = (effect->carry_capacity_modifier > 0)? '+' : '-';
             local::Line(depth);
-            Print("Carrying capacity modifeir: %c %d", c, Abs(effect->carry_capacity_modifier));
+            Print("Carrying capacity modifier: %c %d", c, Abs(effect->carry_capacity_modifier));
         }
         
 

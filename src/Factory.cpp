@@ -86,6 +86,7 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
 
     Set_Level_Based_On_Stats(entity);
     
+
     Equip(entity, Create_Straightsword(entity, game_state), game_state);
     Equip(entity, Create_Wooden_Shield(entity, game_state), game_state);
 
@@ -98,6 +99,8 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     LOOP(3) Create_Bread(entity, game_state);
     Create_Steak_And_Smashed_Potatoes(entity, game_state);
 
+    // Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
+    
     return entity;
 }
 
@@ -531,11 +534,11 @@ SIG Entity* Create_Wolf(Entity* room, Game_State* game_state)
 
     s16* stats = entity->_stats;
     stats[Stats::might]     = 4;
-    stats[Stats::dodge]     = 4;
+    stats[Stats::dodge]     = 3;
     stats[Stats::speed]     = 4;
-    stats[Stats::accuracy]  = 4;
+    stats[Stats::accuracy]  = 3;
     stats[Stats::vitality]  = 4;
-    stats[Stats::armor]     = 4;
+    stats[Stats::armor]     = 3;
     
     
     Effect_Instance effect_instance = 
@@ -569,8 +572,8 @@ SIG Entity* Create_Wolf(Entity* room, Game_State* game_state)
         &game_state->scratch_buffer
     );
 
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Weight(Comparison::maximum, 3);
-    Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(5, 30, game_state), rules.Finish(), game_state);
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical);
+    Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(5, 5, game_state), rules.Finish(), game_state);
 
     Finalize_Entity(entity, room, game_state);
     return entity;
@@ -766,7 +769,7 @@ SIG Entity* Create_Giant_Rat(Entity* room, Game_State* game_state)
     );
 
     Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Weight(Comparison::maximum, 3);
-    Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(5, 30, game_state), rules.Finish(), game_state);
+    Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(5, 15, game_state), rules.Finish(), game_state);
 
     return entity;
 }
@@ -885,8 +888,8 @@ SIG Entity* Create_Blight_Rat(Entity* room, Game_State* game_state)
         &game_state->scratch_buffer
     );
 
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::epic).Weight(Comparison::maximum, 3);
-    Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(3, 7, game_state), rules.Finish(), game_state);
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::epic);
+    Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(3, 2, game_state), rules.Finish(), game_state);
 
     return entity;
 }
@@ -1450,7 +1453,7 @@ SIG Entity* Create_Armor_Rack(Entity* room, Game_State* game_state)
     (
         entity, 
         Basic_Armors_Loot_Table(game_state), 
-        Per_Count_Rolled_Random(7, 5, game_state), 
+        Per_Count_Rolled_Random(6, 4, game_state), 
         {}, 
         game_state
     );
@@ -1615,20 +1618,13 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
 
     Loot_Table_Entry rats[] =
     {
-        {Create_Giant_Rat, total_change * 0.8f},
+        {Create_Giant_Rat, total_change * 0.5f},
     };
 
     table = Merge_Loot_Tables(table, {rats, Array_Length(rats), true}, &game_state->scratch_buffer);
 
-    u64 count = Roll(2, game_state) - 1;
-    for(u32 i = 0; i < 5; ++i)
-    {
-        if(Roll(Square(i + 2), game_state) == 1)
-        {
-            count += 1;
-        }
-    }
-
+    u64 count = Roll(2, game_state) + Per_Count_Rolled_Square_Weighted_Random(10, game_state) - 1;
+    
     Generate_From_Loot_Table(entity, table, count, rules, game_state);
 
     Finalize_Entity(entity, room, game_state);
@@ -1837,7 +1833,9 @@ SIG void Generate_Standard_Random_Loot(Entity* container, Game_State* game_state
 {
     u64 count = 0;
 
-    if(Roll(1, game_state) == 3)
+    if(Roll(6, game_state) == 1) Create_Alchemists_Pouch(container, game_state);
+
+    if(Roll(3, game_state) > 1)
     {
         u64 max = 5 + Per_Count_Rolled_Random(8, 5, game_state);
         count = 1 + Per_Count_Rolled_Square_Weighted_Random(max, game_state);
