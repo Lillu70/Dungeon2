@@ -17,6 +17,7 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
 
+    Spawn_All_Items_In_Loot_Table(Basic_Consumables_Loot_Table(game_state), room, game_state);
     Spawn_All_Items_In_Loot_Table(Basic_Trinkets_Loot_Table(game_state), room, game_state);
     Spawn_All_Items_In_Loot_Table(Basic_Weapons_Loot_Table(game_state), room, game_state);
     Spawn_All_Items_In_Loot_Table(Basic_Armors_Loot_Table(game_state), room, game_state);

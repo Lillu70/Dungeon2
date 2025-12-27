@@ -142,12 +142,24 @@ struct String_Builder
 
     String_Builder(Arena* _arena, String str) : arena(_arena), length(0), base(Push_String(arena, str, &length)){}
 
+    String_Builder(Arena* _arena) : arena(_arena), length(0), base((char*)Push(arena, 0)){}
+
     String_Builder Next(String str)
     {
         Assert(base);
         Push_String(arena, str, &length);
         return *this;
     }
+
+
+    String_Builder Next(u64 v)
+    {
+        Assert(base);
+        U64_To_String_Memory m;
+        String str = To_String(v, &m);
+        return Next(str);
+    }
+
 
     String Finish()
     {

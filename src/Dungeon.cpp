@@ -5656,11 +5656,11 @@ SIG void Prepare_Game_Round(Game_State* game_state)
 
                 if(Roll_Initiative(entity, game_state))
                 {
-                    longest_digit_count = Max(longest_digit_count, Digits(entity->initiative.value.total_result));
-                    longest_entity_name_lenght = Max(longest_entity_name_lenght, Name_Without_Color(entity, game_state).length);
                     game_state->initiative_count += 1;
                     if(entity->initiative.visible)
                     {
+                        longest_entity_name_lenght = Max(longest_entity_name_lenght, Name_Without_Color(entity, game_state).length);
+                        longest_digit_count = Max(longest_digit_count, Digits(entity->initiative.value.total_result));
                         visible_initiative_count += 1;
                     }
 

@@ -47,9 +47,21 @@ SIG Loot_Table Basic_Consumables_Loot_Table(Game_State* game_state)
     local_storage Loot_Table_Entry entries[] =
     {
         {Create_Antidote},
-        {Create_Healing_Potion, 200},
+        {Create_Cure},
+        {Create_Bandage},
+        {Create_Dispeller},
+        {Create_Herbal_Remedy, 250},
+        {Create_Healing_Potion},
+        {Create_Restoration_Potion, 150},
         {Create_Bomb},
         {Create_Fragmentation_Bomb},
+        {Create_Dodge_Elixir},
+        {Create_Might_Elixir},
+        {Create_Vitality_Elixir},
+        {Create_Accuracy_Elixir},
+        {Create_Speed_Elixir},
+        {Create_Immunity_Elixir},
+        {Create_Arcane_Elixir},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -72,6 +84,7 @@ SIG Loot_Table Basic_Trinkets_Loot_Table(Game_State* game_state)
         {Create_Ring_Of_Avoidance},
         {Create_Ring_Of_Precision},
         {Create_Ring_Of_Protection},
+        {Create_Ring_Of_Quickening},
         {Create_Ring_Of_Mending},
         {Create_Huntsmans_Ring},
         {Create_Ring_Of_The_Reliable_Worker},
@@ -775,7 +788,7 @@ SIG Entity* Create_Mace(Entity* room, Game_State* game_state)
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
     
-    entity->weight = 10;
+    entity->weight = 6;
     entity->_stats[Stats::vitality] = 3;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -863,7 +876,7 @@ SIG Entity* Create_Morning_Star(Entity* room, Game_State* game_state)
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
     
-    entity->weight = 14;
+    entity->weight = 7;
     entity->_stats[Stats::vitality] = 2;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -1399,6 +1412,31 @@ SIG Entity* Create_Ring_Of_Clumsy_Regeneration(Entity* room, Game_State* game_st
 }
 
 
+SIG Entity* Create_Ring_Of_Survival_Instinct(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Survival Instinct"), game_state);
+    entity->description_offset = Offset(STR("Set with a large blue tearstone. It embodies unbreakable will to live."), game_state);
+    entity->rarity = Rarity::epic;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_turn_start_fn_offset = Offset(Survival_Instinct_On_Turn_Start, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Avengers_Rings(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -1468,6 +1506,31 @@ SIG Entity* Create_Demon_Brand(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.stat_modifiers[Stats::might]     = + 2;
         effect.stat_modifiers[Stats::vitality]  = + 2;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_Quickening(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Ring of Quickening"), game_state);
+    entity->description_offset = Offset(STR("Order of the Silver Blossom equips their messangers with these."), game_state);
+    entity->rarity = Rarity::common;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+    entity->weight = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::speed] = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -2580,7 +2643,449 @@ SIG Entity* Create_Antidote(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Antidote"), game_state);
     entity->description_offset = Offset(STR("An amber colored concuction that serves as a remedy to all things poison."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Cure(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Effect_Type::T type = Effect_Type::disease;
+
+            if(item)
+            {
+                u64 removed_count = Remove_Effects_Of_Type(user, type, game_state, Verbose::yes);
+                if(!removed_count)
+                {
+                    Print("\n%s wasn't under the the effect of any %s.", Name(user, game_state).ptr, Effect_Type::names[type].ptr);
+                }
+            }
+            else
+            {
+                Print("Removes all effects of type: %s", Effect_Type::names[type].ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Cure"), game_state);
+    entity->description_offset = Offset(STR("A vial of green viscous fluid. Hopefully it tastes better than it smells."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Bandage(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Effect_Type::T type = Effect_Type::bleed;
+
+            if(item)
+            {
+                u64 removed_count = Remove_Effects_Of_Type(user, type, game_state, Verbose::yes);
+                if(!removed_count)
+                {
+                    Print("\n%s wasn't under the the effect of any %s.", Name(user, game_state).ptr, Effect_Type::names[type].ptr);
+                }
+            }
+            else
+            {
+                Print("Removes all effects of type: %s", Effect_Type::names[type].ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Bandage"), game_state);
+    entity->description_offset = Offset(STR("A clean bandage used for treating open wounds."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Dispeller(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Effect_Type::T type = Effect_Type::magic;
+
+            if(item)
+            {
+                u64 removed_count = Remove_Effects_Of_Type(user, type, game_state, Verbose::yes);
+                if(!removed_count)
+                {
+                    Print("\n%s wasn't under the the effect of any %s.", Name(user, game_state).ptr, Effect_Type::names[type].ptr);
+                }
+            }
+            else
+            {
+                Print("Removes all effects of type: %s", Effect_Type::names[type].ptr);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Dispeller"), game_state);
+    entity->description_offset = Offset(STR("Its shape is a regular tetrahedron. How do you even use this thing?"), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Speed_Elixir(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice duration_dice = {1, 4};
+            if(item)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::speed] = (s16)Get_Stat_Value(user, Stats::arcane, game_state);
+                effect->type = Effect_Type::magic;
+                effect->name_offset = item->name_offset;
+                
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.effect_offset = Offset(effect, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases [speed] by [arcane] for %dd%d turn(s).", duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Speed Elixir"), game_state);
+    entity->description_offset = Offset(STR("A concution that enhances mind and body, making the user much faster."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Might_Elixir(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice duration_dice = {1, 4};
+            if(item)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::might] = (s16)Get_Stat_Value(user, Stats::arcane, game_state);
+                effect->type = Effect_Type::magic;
+                effect->name_offset = item->name_offset;
+                
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.effect_offset = Offset(effect, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases [might] by [arcane] for %dd%d turn(s).", duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Might Elixir"), game_state);
+    entity->description_offset = Offset(STR("Used by executioners to ensure a clean kill."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Accuracy_Elixir(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice duration_dice = {1, 4};
+            if(item)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::accuracy] = (s16)Get_Stat_Value(user, Stats::arcane, game_state);
+                effect->type = Effect_Type::magic;
+                effect->name_offset = item->name_offset;
+                
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.effect_offset = Offset(effect, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases [accuracy] by [arcane] for %dd%d turn(s).", duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Accuracy Elixir"), game_state);
+    entity->description_offset = Offset(STR("Enhances accuracy."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Dodge_Elixir(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice duration_dice = {1, 4};
+            if(item)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::dodge] = (s16)Get_Stat_Value(user, Stats::arcane, game_state);
+                effect->type = Effect_Type::magic;
+                effect->name_offset = item->name_offset;
+                
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.effect_offset = Offset(effect, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases [dodge] by [arcane] for %dd%d turn(s).", duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Dodge Elixir"), game_state);
+    entity->description_offset = Offset(STR("Produced by the Alchemist Monks of the Order Enchantux."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Vitality_Elixir(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice duration_dice = {1, 4};
+            if(item)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::vitality] = (s16)Get_Stat_Value(user, Stats::arcane, game_state);
+                effect->type = Effect_Type::magic;
+                effect->name_offset = item->name_offset;
+                
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.effect_offset = Offset(effect, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases [vitality] by [arcane] for %dd%d turn(s).", duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Vitality Elixir"), game_state);
+    entity->description_offset = Offset(STR("A key ingredient is blood of the virgin. On of the many reasons the mountainmen raid in civilized lands."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Immunity_Elixir(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice duration_dice = {1, 4};
+            if(item)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::immunity] = (s16)Get_Stat_Value(user, Stats::arcane, game_state);
+                effect->type = Effect_Type::magic;
+                effect->name_offset = item->name_offset;
+                
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.effect_offset = Offset(effect, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases [immunity] by [arcane] for %dd%d turn(s).", duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Immunity Elixir"), game_state);
+    entity->description_offset = Offset(STR("According to myth these work by introducing weak variants of toxins and diseases to boost immunity."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Arcane_Elixir(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            Dice duration_dice = {1, 4};
+            if(item)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::arcane] = (s16)Get_Stat_Value(user, Stats::arcane, game_state);
+                effect->type = Effect_Type::magic;
+                effect->name_offset = item->name_offset;
+                
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.effect_offset = Offset(effect, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Increases [arcane] by [arcane] for %dd%d turn(s).", duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Arcane Elixir"), game_state);
+    entity->description_offset = Offset(STR("The label says \"Always use before any other elixir. - Sold by Enchantux\"."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -2596,13 +3101,13 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
 {
     struct local
     {
-        static void on_use_fn(Entity* entity, Entity* target, Game_State* game_state)
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
         {
             s16 dice_faces = 6;
 
-            if(entity)
+            if(item)
             {
-                s16 level = Level(target);
+                s16 level = Level(user);
                 Dice dice = {1, level};
                 Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
 
@@ -2618,7 +3123,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
                 // This though is fast! No memory allocations really happening here.
 
                 u64 length = 0;
-                char* message_base = Push_String(arena, Name(entity, game_state), &length);
+                char* message_base = Push_String(arena, Name(item, game_state), &length);
                 
                 U64_To_String_Memory m;
                 Push_String(arena, STR(" potency is: "), &length);
@@ -2638,8 +3143,8 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
                 Restore(&game_state->scratch_buffer, snapshot);
                 
                 Push_Message(message, game_state);
-                String source_name = Name(entity, game_state);
-                Heal(target, potency, source_name, Verbose::yes, game_state);
+                String source_name = Name(item, game_state);
+                Heal(user, potency, source_name, Verbose::yes, game_state);
             }
             else
             {
@@ -2665,68 +3170,115 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
 }
 
 
-SIG Entity* Create_Jerky(Entity* room, Game_State* game_state)
+SIG Entity* Create_Restoration_Potion(Entity* container, Game_State* game_state)
 {
-    Entity* entity = Request_Entity(game_state);
-    entity->name_offset = Offset(STR("Jerky"), game_state);
-    entity->description_offset = Offset(STR("Dried and salted meat."), game_state);
-    entity->food_quality = Food_Quality::appetizer;
-    entity->weight = 1;
+    struct local
+    {
+        static s32 Healing_Amount()
+        {
+            return 1;
+        }
 
-    Finalize_Entity(entity, room, game_state);
+        static void On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 amount = Healing_Amount();
+            if(instance)
+            {
+                Heal(target, amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+            }
+            else
+            {
+                Print("Heals the afflicted by %d point%s.", amount, (amount > 1)? "s" : "");
+            }
+        }
+
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            s32 duration = 5;
+            if(item)
+            {
+                Effect_Instance instance = {};
+                instance.source = Offset(item, game_state);
+                instance.duration = duration;
+
+                Effect_Hash_Key key = EFFECT_KEY;
+                if(!Retrive_Effect(key, &instance.effect_offset, game_state))
+                {
+                    Effect effect = {};
+                    effect.type = Effect_Type::magic;
+                    effect.on_turn_start_fn_offset = Offset(local::On_Turn_Start, game_state);
+                    instance.effect_offset = Insert_Effect(effect, key, game_state);
+                }
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Heals %d point%s for %d turn%s.", Healing_Amount(), (Healing_Amount() > 1)? "s" : "", duration, (duration > 1)? "s" : "");
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Restoration Potion"), game_state);
+    entity->description_offset = Offset(STR("Feels warm when drinking."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
+    entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
     return entity;
 }
 
 
-SIG Entity* Create_Bread(Entity* room, Game_State* game_state)
+SIG Entity* Create_Herbal_Remedy(Entity* container, Game_State* game_state)
 {
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            if(item)
+            {
+                s16 level = Level(user);
+                s32 potency = level;
+
+                String message = 
+                String_Builder(&game_state->scratch_buffer)
+                .Next(Name(item, game_state))
+                .Next(STR(" potency is: "))
+                .Next(potency)
+                .Finish();
+                
+                Push_Message(message, game_state);
+                String source_name = Name(item, game_state);
+                Heal(user, potency, source_name, Verbose::yes, game_state);
+            }
+            else
+            {
+                Print("Heals the user by amount equal to level.");
+            }
+        }
+    };
+
     Entity* entity = Request_Entity(game_state);
-    entity->name_offset = Offset(STR("Bread"), game_state);
-    entity->description_offset = Offset(STR("A bread loaf."), game_state);
-    entity->food_quality = Food_Quality::snack;
+
+    entity->name_offset = Offset(STR("Herbal remedy"), game_state);
+    entity->description_offset = Offset(STR("Crafted from common herbs."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::common;
+
     entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
 
-    Finalize_Entity(entity, room, game_state);
-    return entity;
-}
-
-
-SIG Entity* Create_BBQ_Wings(Entity* room, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-    entity->name_offset = Offset(STR("Barbequed wings"), game_state);
-    entity->description_offset = Offset(STR("Chicken wings with a spicy sause."), game_state);
-    entity->food_quality = Food_Quality::lunch;
-    entity->weight = 1;
-
-    Finalize_Entity(entity, room, game_state);
-    return entity;
-}
-
-
-SIG Entity* Create_Steak_And_Smashed_Potatoes(Entity* room, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-    entity->rarity = Rarity::magical;
-    entity->name_offset = Offset(STR("Steak & mashed potatoes"), game_state);
-    entity->description_offset = Offset(STR("Medium rare."), game_state);
-    entity->food_quality = Food_Quality::meal;
-    entity->weight = 2;
-
-    Finalize_Entity(entity, room, game_state);
-    return entity;
-}
-
-
-SIG Entity* Create_Mushroom(Entity* room, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-    entity->name_offset = Offset(STR("Mushroom"), game_state);
-    entity->description_offset = Offset(STR("Looks edible, but with mushrooms... who knows?"), game_state);
-    entity->food_quality = Food_Quality::snack;
-    entity->weight = 1;
-
-    Finalize_Entity(entity, room, game_state);
+    Finalize_Entity(entity, container, game_state);
     return entity;
 }
 
@@ -2866,6 +3418,72 @@ SIG Entity* Create_Fragmentation_Bomb(Entity* container, Game_State* game_state)
     entity->interactable.uses_count = 1;
 
     Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Mushroom(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Mushroom"), game_state);
+    entity->description_offset = Offset(STR("Looks edible, but with mushrooms... who knows?"), game_state);
+    entity->food_quality = Food_Quality::snack;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Jerky(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Jerky"), game_state);
+    entity->description_offset = Offset(STR("Dried and salted meat."), game_state);
+    entity->food_quality = Food_Quality::appetizer;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Bread(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Bread"), game_state);
+    entity->description_offset = Offset(STR("A bread loaf."), game_state);
+    entity->food_quality = Food_Quality::snack;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_BBQ_Wings(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Barbequed wings"), game_state);
+    entity->description_offset = Offset(STR("Chicken wings with a spicy sause."), game_state);
+    entity->food_quality = Food_Quality::lunch;
+    entity->weight = 1;
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Steak_And_Smashed_Potatoes(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->rarity = Rarity::magical;
+    entity->name_offset = Offset(STR("Steak & mashed potatoes"), game_state);
+    entity->description_offset = Offset(STR("Medium rare."), game_state);
+    entity->food_quality = Food_Quality::meal;
+    entity->weight = 2;
+
+    Finalize_Entity(entity, room, game_state);
     return entity;
 }
 

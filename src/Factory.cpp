@@ -9,35 +9,23 @@
 // - Enemies
 
 // Pyrocroc (slow, apply searing heat, avg hp/armor, consitant dmg like maces, no dodge)
-
-// Mosquito (high dodge, low hp, applies disiese, arcane, no armor)
-// Leech    (low everything except arcane, applies the leech (bleed) and kills it self)
-// Giant Toad (poison, arcane, immunity)
-
-
 // Bat (sonic attak) change to pass a turn for a quarenteed critical strike on the next one.
 
 
 // Mutant Antlion (speed and dodge bad, if attacked applies sandpit that prevents escape and on turn end deals 1 damage per turn it has been active) Good loot in the room
 // Medusa, attacking it reduces speed, if this effect would bring your speed down to zero, you die!
 
-
 // Troll, has the great club, no dodge, no armor, a good bit of HP and a regen effect, that only works if the troll dosn't have status effects.
 
-
 // - Rooms:
-// underground swamp (mosquito, leech, giant toad)
 // snakepit (snakes)
 // ashlake (pyrocroc)
 // Beehive (has some containers, and a beehive that deals 1 damage per turn)
 
 
 // - Status effects:
-// Malaria: (disiese) lower speed and raise fumple, room 2 duration.
-// Leech: (bleed) on turn start take 1 damage for 5 turns.
 // Unbearable cold, on turn start reduce speed by 1 for every turn the effect has been active, if the effect would reduce your seep down to zero, you die.
 // Searing heat, on turn start reduce carrying capacity by 5 per turn for every turn this effect has been active, lasts 2 rooms, if this effect would reduce your carrying capacity down to zero, you die.
-// Necro-toxin, reduced vitality by 3, for 3 rounds.
 
 
 // Grove altar( signing flower: 5% crit )
@@ -218,9 +206,14 @@ SIG Entity* Create_Giant_Honey_Badger(Entity* room, Game_State* game_state)
         entity, 
         Basic_Merged_Loot_Table(game_state), 
         1 + Per_Count_Rolled_Random(2, 5, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Weight(Comparison::maximum, 10).Finish(), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
         game_state
     );
+
+    if(Roll(100, game_state) == 1)
+    {
+        Create_Ring_Of_Survival_Instinct(entity, game_state);
+    }
 
     Finalize_Entity(entity, room, game_state);
     return entity;
@@ -1659,9 +1652,9 @@ SIG Entity* Create_Snake(Entity* room, Game_State* game_state)
 
     s16* stats = entity->_stats;
     stats[Stats::might]     = 1;
-    stats[Stats::speed]     = 10;
-    stats[Stats::dodge]     = 11;
-    stats[Stats::accuracy]  = 11;
+    stats[Stats::speed]     = 9;
+    stats[Stats::dodge]     = 9;
+    stats[Stats::accuracy]  = 5;
     stats[Stats::vitality]  = 1;
     stats[Stats::armor]     = 1;
     stats[Stats::arcane]    = 7;
