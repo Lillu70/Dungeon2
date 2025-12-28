@@ -234,12 +234,12 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 char room_description[] = 
                 "As you approach, the hard rock under your feet gives away to soft soil.\n"
                 "Plants grow here, even trees. The roof opens up and up above you can see the sky!\n"
-                "The open air feels fresh, but cold.";
+                "The open air feels cold, but fresh.";
                 room->description_offset = Offset(STR(room_description), game_state);
 
                 if(Roll(3, game_state) > 1)
                 {
-                    u64 count = 1 + Per_Count_Rolled_Random(4, 3, game_state);
+                    u64 count = 1 + Per_Count_Rolled_Random(3, 3, game_state);
                     LOOP(count) Create_Wolf(room, game_state);
                 }
                 else
@@ -328,6 +328,50 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         }
 
 
+        static Entity* Mound(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                Generic_Ambush(game_state, 0.5f);
+
+                room->name_offset = Offset(STR("the breeding drounds"), game_state);
+                char room_description[] = 
+                "It looks (and smells) like this is where the foul rats come to breed.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+
+                u64 mounds = 3 + Per_Count_Rolled_Square_Weighted_Random(3, game_state);
+                LOOP(mounds) Create_Rat_Mound(room, game_state);
+                
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Cave(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                Generic_Ambush(game_state, 0.5f);
+
+                room->name_offset = Offset(STR("a cave"), game_state);
+                char room_description[] = 
+                "Walls are naturaly formed stone. The path leads downwards.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                Create_Giant_Rat(room, game_state);
+                
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
         static Entity* Opening(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
@@ -337,8 +381,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
 
                 room->name_offset = Offset(STR("a wide opening"), game_state);
                 char room_description[] = 
-                "The stone walls extend into the unseeable darkness.\n"
-                "The ceiling must be very far away.\n" 
+                "The stone walls extend into the unseeable darkness. The ceiling must be very far away.\n"
                 "In the black you can see bright glowing eyes moving towards you.";
                 room->description_offset = Offset(STR(room_description), game_state);
 
@@ -392,7 +435,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
 
         static Entity* Burrow(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
-            // TODO: Auto turret thing?
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
@@ -556,11 +598,11 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 
                 Loot_Table_Entry entries[] = 
                 {
-                    {Create_Giant_Rat,          10},
+                    {Create_Giant_Rat,          15},
                     {Create_Mutant_Hedgehog,    3},
                     {Create_Giant_Honey_Badger, 3},
                     {Create_Blight_Rat,         6},
-                    {Create_Wolf,               6},
+                    {Create_Wolf,               8},
                 };
                 
                 Loot_Table table = {entries, Array_Length(entries), true};
@@ -580,12 +622,12 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Empty_Cavern(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::magical;
             if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a cavern"), game_state);
                 char room_description[] = 
-                "There doesn't seem to anything of interest here.";
+                "There doesn't seem to be anything of interest here.";
                 room->description_offset = Offset(STR(room_description), game_state);
             }
 
@@ -670,7 +712,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Mudpit(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.15f);
@@ -896,6 +937,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         {local::Mudpit},            // 19
         {local::Wounded_Bear},      // 20
         {local::Swamp},             // 21
+        {local::Mound},             // 22
+        {local::Cave},              // 23
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};

@@ -28,7 +28,7 @@
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
-#define QUICKSTART   1
+#define QUICKSTART   0
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -1353,7 +1353,7 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
     {
         char* w = Is_Item(defender)? "broken" : "dead";
 
-        Print("but, %s is already %s.", defender_name.ptr, w);
+        Print(" but, %s is already %s.", defender_name.ptr, w);
     }
 }
 
@@ -2237,7 +2237,7 @@ SIG f32 Critical_Multiplier(Entity* entity, Game_State* game_state)
 
 SIG s32 Carry_Capacity(Entity* entity, Game_State* game_state)
 {
-    s32 result = 50;
+    s32 result = 60;
     s32 mod = 0;
     Effects_Iterator iter = Make_Iterator(&entity->active_effects, game_state);
     while(Effect* effect = Next_Effect(&iter))
@@ -3721,6 +3721,12 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
 
         u32 entity_count = 0;
         
+        f32 wait_time = 0.3f;
+        if(entity_total_count > 4)
+        {
+            wait_time = Max(0.05f, wait_time - entity_total_count * 0.05f);
+        }
+
         Entity_Iterator iter = Make_Iterator(actor_residence, game_state);
         while(Entity* entity = Next_Entity(&iter))
         {
@@ -3733,11 +3739,11 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
                 if(first)
                 {
                     Print("\nYou glance around the room and see:");
-                    Wait(0.2, game_state);
+                    Wait(0.5, game_state);
                     first = false;
                 }
 
-                Wait(0.1, game_state);
+                Wait(wait_time, game_state);
                 Print
                 (
                     "\n| - %-*d %s%*s%s", 
@@ -5388,7 +5394,7 @@ SIG void Create_Player_Charater(Game_State* game_state)
 
     u64 available_classes = 
         Class_Mask(Class::adventurer) | 
-        Class_Mask(Class::knight) | 
+        Class_Mask(Class::mountaineer) | 
         Class_Mask(Class::wretched);
 
     Character_Creator cc = {(Entity**)Push(&game_state->scratch_buffer, 0)};
@@ -6092,7 +6098,7 @@ SIG CMD_Result::T Pickup_Command(Entity* actor, String args, Game_State* game_st
         
         s16 target_weight = target->weight;
         
-        if(Is_Alive(target) && !target->stunned && !(actor->flags & EFlags::godmode))
+        if(Is_Alive(target) && !target->stunned && !(actor->flags & EFlags::godmode) && !(target->flags & EFlags::container))
         {
             Print("\nYou try to pickup %s but its alive!!!\n%s gets a free attack against you: ", target_name.ptr, target_name.ptr);
             Attack(target, actor, game_state);
@@ -7788,6 +7794,7 @@ SIG void Get_Character_Creator_Commands(Command** out_commands, u64* out_count, 
                             refnum += 1;
                             Wait(1, game_state);
                             Entity* e = cc->class_templates[i];
+                            e->refnum = refnum;
                             Print("\n| %llu - %s", refnum, Name(e, game_state).ptr);    
                         }
                     }

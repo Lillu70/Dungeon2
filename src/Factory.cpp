@@ -93,6 +93,46 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
 }
 
 
+SIG Entity* Create_Class_Mountaineer(Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    entity->name_offset = Offset(STR("Mountaineer"), game_state);
+    entity->description_offset = Offset(STR("A glasscannon with limited supplies."), game_state);
+    entity->flags |= EFlags::actor;
+
+    s16* stats = entity->_stats;
+    stats[Stats::might]     = 6;
+    stats[Stats::speed]     = 4;
+    stats[Stats::dodge]     = 5;
+    stats[Stats::accuracy]  = 6;
+    stats[Stats::vitality]  = 4;
+    stats[Stats::armor]     = 1;
+    stats[Stats::arcane]    = 1;
+    stats[Stats::immunity]  = 1;
+    Full_Heal(entity,  game_state);
+
+    entity->known_attack_modifiers |= 
+    (
+        Attack_Modifier_Mask(Attack_Mod::execute)  |
+        Attack_Modifier_Mask(Attack_Mod::allin)
+    );
+
+    Set_Level_Based_On_Stats(entity);
+    
+
+    Equip(entity, Create_Great_Axe(entity, game_state), game_state);
+    
+    Equip(entity, Create_Leather_Tights(entity, game_state), game_state);
+    
+    LOOP(1) Create_Healing_Potion(entity, game_state);
+    LOOP(2) Create_Jerky(entity, game_state);
+    
+    // Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
+    
+    return entity;
+}
+
+
 SIG Entity* Create_Class_Wretched(Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -1375,7 +1415,7 @@ SIG Entity* Create_Chest(Entity* room, Game_State* game_state)
         (
             entity, 
             Basic_Merged_Loot_Table(game_state), 
-            Per_Count_Rolled_Square_Weighted_Random(10, game_state), 
+            1 + Per_Count_Rolled_Random(4, 5, game_state), 
             {}, 
             game_state
         );

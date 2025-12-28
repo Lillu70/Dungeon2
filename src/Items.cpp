@@ -146,6 +146,13 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Belt_Of_Atlas},
         {Create_Plate_Codpiece},
         {Create_Field_Medics_Gloves},
+        {Create_Mountaineer_Boots},
+        {Create_Knights_Plate_Boots},
+        {Create_Huntsmans_Gambeson},
+        {Create_Warrior_Poncho},
+        {Create_Assassins_Corset},
+        {Create_Crusaders_Breastplate},
+        {Create_Knights_Breastplate},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -1090,7 +1097,7 @@ SIG Entity* Create_Belt(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Belt"), game_state);
-    entity->description_offset = Offset(STR("Made of leather. It has a couple of fasteners for attaching items on it."), game_state);
+    entity->description_offset = Offset(STR("Made of leather. It has fasteners for attaching items on it."), game_state);
     entity->rarity = Rarity::common;
     
     entity->flags = EFlags::equippable | EFlags::item;
@@ -2222,7 +2229,7 @@ SIG Entity* Create_Gambeson(Entity* room, Game_State* game_state)
     
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
-    entity->weight = 7;
+    entity->weight = 6;
     entity->_stats[Stats::vitality] = 8;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -2230,6 +2237,92 @@ SIG Entity* Create_Gambeson(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 4;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Huntsmans_Gambeson(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Huntsmans Gambeson"), game_state);
+    entity->description_offset = Offset(STR("The armor has been through a lot."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::rare;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 4;
+        effect.stat_modifiers[Stats::accuracy]  = + 2;
+        effect.critical_failure_range           = - 1;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Warrior_Poncho(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Warrior Poncho"), game_state);
+    entity->description_offset = Offset(STR("On the fabric there are depictions of many a battle."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::rare;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 2;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::might] = + 5;
+        effect.stat_modifiers[Stats::dodge] = + 2;
+        effect.critical_success_range       = + 1;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Assassins_Corset(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Assassins corset"), game_state);
+    entity->description_offset = Offset(STR("Most famous of the guilds that offer assissinations is called the \"Last Chapter\"."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::magical;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.critical_success_range           = + 2;
+        effect.stat_modifiers[Stats::arcane]    = + 3;
+        effect.stat_modifiers[Stats::armor]     = + 3;
+        effect.stat_modifiers[Stats::dodge]     = + 3;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2249,7 +2342,7 @@ SIG Entity* Create_Breastplate(Entity* room, Game_State* game_state)
     entity->rarity = Rarity::rare;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
-    entity->weight = 15;
+    entity->weight = 14;
     entity->_stats[Stats::vitality] = 10;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -2260,6 +2353,67 @@ SIG Entity* Create_Breastplate(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::speed] = - 2;
         effect.stat_modifiers[Stats::dodge] = - 2;
         effect.critical_failure_range       = + 1;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Knights_Breastplate(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Knights Breastplate"), game_state);
+    entity->description_offset = Offset(STR("Depicting a large silver flower on the chest."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::magical;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 13;
+    entity->_stats[Stats::vitality] = 10;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 8;
+        effect.stat_modifiers[Stats::immunity]  = + 2;
+        effect.stat_modifiers[Stats::speed]     = - 1;
+        effect.critical_failure_range           = + 1;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Crusaders_Breastplate(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Crusaders Breastplate"), game_state);
+    entity->description_offset = Offset(STR("Knights trained and equipped to hunt down heretics."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::epic;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 11;
+    entity->_stats[Stats::vitality] = 10;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::immunity]  = + 5;
+        effect.stat_modifiers[Stats::vitality]  = + 1; 
+        effect.stat_modifiers[Stats::armor]     = + 10;
+        effect.stat_modifiers[Stats::might]     = + 2;
+        effect.critical_failure_range           = + 1;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2563,6 +2717,61 @@ SIG Entity* Create_Sabatons(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Knights_Plate_Boots(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Knights Plate Boots"), game_state);
+    entity->description_offset = Offset(STR("On the steel there are outlines of flowers made of embedded silver."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::magical;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::speed]     = - 1;
+        effect.stat_modifiers[Stats::immunity]  = + 2;
+        effect.stat_modifiers[Stats::armor]     = + 5;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Mountaineer_Boots(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Mountaineer Boots"), game_state);
+    entity->description_offset = Offset(STR("The Mountainmen is a generic term for the barbarian tribes living on the Casper mountains. They often decent up the civilized lands to raid for coin and women."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
+    entity->weight = 3;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::speed] = + 3;
+        effect.stat_modifiers[Stats::armor] = + 2;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Gladiator_Sandals(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -2570,7 +2779,7 @@ SIG Entity* Create_Gladiator_Sandals(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Gladiator sandals"), game_state);
     entity->description_offset = Offset(STR("Permanently stained with blood."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
     entity->weight = 2;

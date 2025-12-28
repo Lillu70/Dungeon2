@@ -356,12 +356,10 @@ namespace Food_Quality
 
 namespace Class
 {
-    #define CLASSES(X, F)                           \
-    X(F(adventurer, Create_Class_Adventurer)),      \
-    X(F(knight,     0)),    \
-    X(F(barbarian,  0)),    \
-    X(F(thief,      0)),    \
-    X(F(wretched,   Create_Class_Wretched)),        \
+    #define CLASSES(X, F)                               \
+    X(F(adventurer,         Create_Class_Adventurer)),  \
+    X(F(mountaineer,        Create_Class_Mountaineer)), \
+    X(F(wretched,   Create_Class_Wretched)),            \
     
 
     enum T : u8
