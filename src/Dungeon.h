@@ -1096,7 +1096,7 @@ constexpr char* target_args =
 constexpr char* no_args = "Takes no arguments.";
 constexpr char* help_command_description = "Lists all available commands, or describes a specific command if given as an argument.";
 constexpr char* help_command_arguments = "Can be used with no arguments or a name of a command.";
-constexpr char* invetory_target_args = 
+constexpr char* inventory_target_args = 
 "From the inventory; a name of the target, or a reference number\n"
 "Use the \"inventory\" command to see the reference numbers.";
 
@@ -1131,6 +1131,13 @@ constexpr char* attacks_command_description =
 "provides a detailed description of said attack modifeir.";
 
 
+constexpr char* camp_command_description =
+"Attempt to rest and recuperate. A food item must be provided as an argument, that item is comsumed.\n"
+"The user will go to sleep, during that sleep there is a change for an ambush! Said change dependens on the current room.\n"
+"some rooms are more dangerous than other. If no abmush occurs then the user will recover health depeding on the quality of the food item used.\n"
+"At this point a if the user has enough experience points he can also level up.";
+
+
 constexpr char* search_command_description      = "Thoroughly search through the space for anything of interest.";
 constexpr char* attack_command_description      = "Make an attempt to strike at a target.";
 constexpr char* loot_command_description        = "Everything inside the target will be moved into the room space.";
@@ -1154,7 +1161,7 @@ Game_Command Player_Actions[] =
 {
     { Help_Command,         AT::free,   0, STR("help"),         help_command_description,           help_command_arguments},
     { Proceed_Command,      AT::normal, 0, STR("proceed"),      proceed_command_description,        no_args},
-    { Camp_Command,         AT::normal, 0, STR("camp"),         "TODO: FILL IN",                    no_args},
+    { Camp_Command,         AT::normal, 0, STR("camp"),         camp_command_description,           inventory_target_args},
     { Search_Command,       AT::normal, 0, STR("search"),       search_command_description,         no_args},
     { Inspect_Command,      AT::free,   0, STR("inspect"),      inspect_command_description,        inspect_command_args},
     { Glance_Command,       AT::free,   0, STR("glance"),       glance_command_description,         no_args},
@@ -1163,14 +1170,14 @@ Game_Command Player_Actions[] =
     { Pass_Command,         AT::free,   1, STR("pass"),         "Ends your turn.",                  no_args},
     { Pickup_Command,       AT::normal, 0, STR("pickup"),       pickup_command_description,         target_args},
     { Loot_Command,         AT::normal, 0, STR("loot"),         loot_command_description,           target_args},
-    { Drop_Command,         AT::normal, 0, STR("drop"),         drop_command_description,           invetory_target_args},
+    { Drop_Command,         AT::normal, 0, STR("drop"),         drop_command_description,           inventory_target_args},
     { Stats_Command,        AT::free,   0, STR("stats"),        "Lists stat values.",               no_args},
     { Status_Command,       AT::free,   0, STR("status"),       status_command_description,         no_args},
     { Equipment_Command,    AT::free,   0, STR("equipment"),    equipment_command_description,      no_args},
     { Inventory_Command,    AT::free,   0, STR("inventory"),    inventory_command_description,      no_args},
-    { Equip_Command,        AT::normal, 0, STR("equip"),        equip_command_description,          invetory_target_args},
-    { Use_Command,          AT::bonus,  0, STR("use"),          use_command_description,            invetory_target_args},
-    { Unequip_Command,      AT::free,   0, STR("unequip"),      unequip_command_description,        invetory_target_args},
+    { Equip_Command,        AT::normal, 0, STR("equip"),        equip_command_description,          inventory_target_args},
+    { Use_Command,          AT::bonus,  0, STR("use"),          use_command_description,            inventory_target_args},
+    { Unequip_Command,      AT::free,   0, STR("unequip"),      unequip_command_description,        inventory_target_args},
     { Restart_Command,      AT::free,   1, STR("restart"),      "Restart the game.",                no_args_or_bangoverride},
     { Exit_Command,         AT::free,   1, STR("exit"),         "Quit the game.",                   no_args_or_bangoverride},
     { Toggle_Dramatic_Pause,AT::free,   0, STR("dramatic pause"),"Toggles dramatic pausing.",       no_args},

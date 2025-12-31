@@ -132,7 +132,7 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Leather_Tights},
         {Create_Padded_Pants},
         {Create_Warrior_Kilt},
-        {Create_Barbarian_Loing_Cloth},
+        {Create_Barbarian_Loingcloth},
         {Create_Travel_Boots},
         {Create_Sabatons},
         {Create_Gladiator_Sandals},
@@ -178,6 +178,7 @@ SIG Loot_Table Basic_Weapons_Loot_Table(Game_State* game_state)
         {Create_Three_Headed_Flail},
         {Create_Straightsword},
         {Create_Long_Spear},
+        {Create_Short_Spear},
         {Create_Whip},
         {Create_Gardening_Scythe},
         {Create_War_Scythe},
@@ -186,6 +187,9 @@ SIG Loot_Table Basic_Weapons_Loot_Table(Game_State* game_state)
         {Create_War_Staff},
         {Create_Ram_Shield},
         {Create_Assassins_Claws},
+        {Create_Battle_Axe},
+        {Create_Great_Axe},
+        {Create_Rapier},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -506,7 +510,7 @@ SIG Entity* Create_Great_Axe(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Great axe"), game_state);
-    entity->description_offset = Offset(STR("A massive twin bladed axe made."), game_state);
+    entity->description_offset = Offset(STR("A massive twin bladed axe"), game_state);
     
     entity->flags = EFlags::equippable | EFlags::item;
     
@@ -523,7 +527,8 @@ SIG Entity* Create_Great_Axe(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};        
-        effect.stat_modifiers[Stats::might] = + 6;
+        effect.stat_modifiers[Stats::might] = + 5;
+        effect.critical_failure_range       = + 4;
         Add_Dice(&effect, 4, 4);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -1892,6 +1897,7 @@ SIG Entity* Create_Ring_Of_Regeneration(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
+        effect.name_offset = Offset(STR("Restoration"), game_state);
         effect.on_turn_start_fn_offset = Offset(local::Regeneration_On_Turn_Start_FN, game_state);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2352,7 +2358,7 @@ SIG Entity* Create_Breastplate(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::armor] = + 7;
         effect.stat_modifiers[Stats::speed] = - 2;
         effect.stat_modifiers[Stats::dodge] = - 2;
-        effect.critical_failure_range       = + 1;
+        effect.critical_failure_range       = + 2;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2372,7 +2378,7 @@ SIG Entity* Create_Knights_Breastplate(Entity* room, Game_State* game_state)
     entity->rarity = Rarity::magical;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
-    entity->weight = 13;
+    entity->weight = 14;
     entity->_stats[Stats::vitality] = 10;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -2382,7 +2388,7 @@ SIG Entity* Create_Knights_Breastplate(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::armor]     = + 8;
         effect.stat_modifiers[Stats::immunity]  = + 2;
         effect.stat_modifiers[Stats::speed]     = - 1;
-        effect.critical_failure_range           = + 1;
+        effect.critical_failure_range           = + 2;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2402,7 +2408,7 @@ SIG Entity* Create_Crusaders_Breastplate(Entity* room, Game_State* game_state)
     entity->rarity = Rarity::epic;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
-    entity->weight = 11;
+    entity->weight = 15;
     entity->_stats[Stats::vitality] = 10;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -2411,7 +2417,7 @@ SIG Entity* Create_Crusaders_Breastplate(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.stat_modifiers[Stats::immunity]  = + 5;
         effect.stat_modifiers[Stats::vitality]  = + 1; 
-        effect.stat_modifiers[Stats::armor]     = + 10;
+        effect.stat_modifiers[Stats::armor]     = + 9;
         effect.stat_modifiers[Stats::might]     = + 2;
         effect.critical_failure_range           = + 1;
         
@@ -2634,11 +2640,11 @@ SIG Entity* Create_Warrior_Kilt(Entity* room, Game_State* game_state)
 }
 
 
-SIG Entity* Create_Barbarian_Loing_Cloth(Entity* room, Game_State* game_state)
+SIG Entity* Create_Barbarian_Loingcloth(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
-    entity->name_offset = Offset(STR("Barbarian loin cloth"), game_state);
+    entity->name_offset = Offset(STR("Barbarian loincloth"), game_state);
     entity->description_offset = Offset(STR("Crafted and enchated by a tribal shaman."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     entity->rarity = Rarity::magical;
@@ -2727,16 +2733,16 @@ SIG Entity* Create_Knights_Plate_Boots(Entity* room, Game_State* game_state)
     entity->rarity = Rarity::magical;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
-    entity->weight = 6;
+    entity->weight = 5;
     entity->_stats[Stats::vitality] = 5;
     
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::speed]     = - 1;
-        effect.stat_modifiers[Stats::immunity]  = + 2;
         effect.stat_modifiers[Stats::armor]     = + 5;
+        effect.stat_modifiers[Stats::immunity]  = + 2;
+        effect.critical_failure_range           = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     

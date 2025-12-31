@@ -941,7 +941,7 @@ SIG Effect_Instance Allin_Attack(Entity* attacker, Game_State* game_state)
         effect->name_offset = Offset(STR("Allin attack"), game_state);
         effect->type = Effect_Type::physical;
 
-        s16 v = Level(attacker) * 2;
+        s16 v = Level(attacker);
         effect->stat_modifiers[Stats::accuracy] += v;
         effect->raw_damage_modifier             += v;
         effect->critical_success_range          += s8(crit_boost);
@@ -954,7 +954,7 @@ SIG Effect_Instance Allin_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("gives %d bonus crit range, accuracy aqual to two times the users level and the same amount of bonus damage, but user is stunned after the attack.", crit_boost);
+        Print("gives %d bonus crit range, accuracy aqual to the users level and the same amount of bonus damage, but user is stunned after the attack.", crit_boost);
     }
     
     return instance;

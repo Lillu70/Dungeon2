@@ -335,9 +335,9 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             {
                 Generic_Ambush(game_state, 0.5f);
 
-                room->name_offset = Offset(STR("the breeding drounds"), game_state);
+                room->name_offset = Offset(STR("the breeding grounds"), game_state);
                 char room_description[] = 
-                "It looks (and smells) like this is where the foul rats come to breed.";
+                "It looks (and smells) like, this is where the foul rats come to breed.";
                 room->description_offset = Offset(STR(room_description), game_state);
 
 
@@ -496,7 +496,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Graveyard(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::magical;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.5f);

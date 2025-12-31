@@ -28,7 +28,7 @@
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
-#define QUICKSTART   0
+#define QUICKSTART   1
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -5398,6 +5398,7 @@ SIG void Create_Player_Charater(Game_State* game_state)
         Class_Mask(Class::wretched);
 
     Character_Creator cc = {(Entity**)Push(&game_state->scratch_buffer, 0)};
+    cc.selected_idx = 1;
 
     for(u64 i = 0; i < Class::COUNT; ++i)
     {

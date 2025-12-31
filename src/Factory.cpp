@@ -113,8 +113,8 @@ SIG Entity* Create_Class_Mountaineer(Game_State* game_state)
 
     entity->known_attack_modifiers |= 
     (
-        Attack_Modifier_Mask(Attack_Mod::execute)  |
-        Attack_Modifier_Mask(Attack_Mod::allin)
+        Attack_Modifier_Mask(Attack_Mod::execute) | 
+        Attack_Modifier_Mask(Attack_Mod::berserking)
     );
 
     Set_Level_Based_On_Stats(entity);
@@ -626,6 +626,7 @@ SIG Entity* Create_Earth_Golem(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 200;
+    entity->bonus_exp_reward = 6;
 
     s16* stats = entity->_stats;
     stats[Stats::might]     = 10;
