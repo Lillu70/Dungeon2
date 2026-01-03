@@ -7,11 +7,11 @@
 namespace Stats
 {
     #define STATS(X)    \
+    X(vitality),        \
     X(might),           \
-    X(speed),           \
     X(dodge),           \
     X(accuracy),        \
-    X(vitality),        \
+    X(speed),           \
     X(immunity),        \
     X(arcane),          \
     X(armor),           \
@@ -32,4 +32,5 @@ namespace Stats
     #undef STATS
 
     constexpr s16 points_per_lvl = 5;
+    constexpr u64 PRIMARY_STAT_END = speed;
 };

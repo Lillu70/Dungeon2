@@ -177,4 +177,25 @@ SIG void* OS_Get_Executable_Base_Address()
 }
 
 
+SIG u64 OS_Get_Executable_Size()
+{
+    u64 result = 0;
+    
+    char buffer[Kilobytes(1)] = {};
+    u64 bytes_written = GetModuleFileNameA(0, buffer, Array_Length(buffer));
+    if(bytes_written)
+    {
+        WHandle file_handle = CreateFileA(buffer, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        Assert(file_handle != INVALID_HANDLE_VALUE);
+        u32 highbits = {};
+        u32 lowbits = GetFileSize(file_handle, &highbits);
+        CloseHandle(file_handle);
+
+        result = Weld(highbits, lowbits);
+    }
+
+    return result;
+}
+
+
 #endif

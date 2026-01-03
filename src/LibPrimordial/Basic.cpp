@@ -8,23 +8,25 @@
 #include "Basic_Generated.cpp"
 
 
-SIG u64 Kilobytes(u64 v)
+SIG constexpr u64 Kilobytes(u64 v)
 {
     u64 result = v * 1024;
     return result;
 }
 
 
-SIG u64 Megabytes(u64 v)
+SIG constexpr u64 Megabytes(u64 v)
 {
-    u64 result = v * Square(Kilobytes(1));
+    u64 k = Kilobytes(1);
+    u64 result = v * (k * k);
     return result;
 }
 
 
-SIG u64 Gigabytes(u64 v)
+SIG constexpr u64 Gigabytes(u64 v)
 {
-    u64 result = v * Cube(Kilobytes(1));
+    u64 k = Kilobytes(1);
+    u64 result = v * (k * k * k);
     return result;
 }
 

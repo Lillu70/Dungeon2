@@ -54,15 +54,14 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     entity->description_offset = Offset(STR("A well rounded and beginer friendly. Has a good stockpile of supplies."), game_state);
     entity->flags |= EFlags::actor;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 5;
-    stats[Stats::speed]     = 5;
-    stats[Stats::dodge]     = 5;
-    stats[Stats::accuracy]  = 5;
-    stats[Stats::vitality]  = 5;
-    stats[Stats::armor]     = 1;
-    stats[Stats::arcane]    = 1;
-    stats[Stats::immunity]  = 1;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 5;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 5;
+    }
+
     Full_Heal(entity,  game_state);
 
     entity->known_attack_modifiers |= 
@@ -74,7 +73,6 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
 
     Set_Level_Based_On_Stats(entity);
     
-
     Equip(entity, Create_Straightsword(entity, game_state), game_state);
     Equip(entity, Create_Wooden_Shield(entity, game_state), game_state);
 
@@ -100,15 +98,14 @@ SIG Entity* Create_Class_Mountaineer(Game_State* game_state)
     entity->description_offset = Offset(STR("A glasscannon with limited supplies."), game_state);
     entity->flags |= EFlags::actor;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 6;
-    stats[Stats::speed]     = 4;
-    stats[Stats::dodge]     = 5;
-    stats[Stats::accuracy]  = 6;
-    stats[Stats::vitality]  = 4;
-    stats[Stats::armor]     = 1;
-    stats[Stats::arcane]    = 1;
-    stats[Stats::immunity]  = 1;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 4;
+        stats[Stats::might]     = 6;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 6;
+    }
+
     Full_Heal(entity,  game_state);
 
     entity->known_attack_modifiers |= 
@@ -119,15 +116,12 @@ SIG Entity* Create_Class_Mountaineer(Game_State* game_state)
 
     Set_Level_Based_On_Stats(entity);
     
-
     Equip(entity, Create_Great_Axe(entity, game_state), game_state);
     
     Equip(entity, Create_Leather_Tights(entity, game_state), game_state);
     
     LOOP(1) Create_Healing_Potion(entity, game_state);
     LOOP(2) Create_Jerky(entity, game_state);
-    
-    // Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
     
     return entity;
 }
@@ -140,15 +134,17 @@ SIG Entity* Create_Class_Wretched(Game_State* game_state)
     entity->description_offset = Offset(STR("A pathetic and useless class that starts with nothing.\nIt does not get weaker than this."), game_state);
     entity->flags |= EFlags::actor;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 1;
-    stats[Stats::speed]     = 1;
-    stats[Stats::dodge]     = 1;
-    stats[Stats::accuracy]  = 1;
-    stats[Stats::vitality]  = 1;
-    stats[Stats::armor]     = 1;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 1;
+        stats[Stats::might]     = 1;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 1;
+    }
+    
     Full_Heal(entity,  game_state);
     Set_Level_Based_On_Stats(entity);
+    
     return entity;
 }
 
@@ -164,12 +160,17 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     entity->faction = Faction::bandit;
     entity->weight = 100;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 5;
-    stats[Stats::speed]     = 5;
-    stats[Stats::dodge]     = 5;
-    stats[Stats::accuracy]  = 5;
-    stats[Stats::vitality]  = 5;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 5;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 10;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
 
     Finalize_Entity(entity, room, game_state);
     
@@ -211,14 +212,17 @@ SIG Entity* Create_Giant_Honey_Badger(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 80;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 5;
-    stats[Stats::dodge]     = 4;
-    stats[Stats::speed]     = 4;
-    stats[Stats::accuracy]  = 4;
-    stats[Stats::vitality]  = 7;
-    stats[Stats::immunity]  = 4;
-    stats[Stats::armor]     = 0;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 7;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 4;
+        stats[Stats::accuracy]  = 4;
+        stats[Stats::speed]     = 8;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 10;
+        stats[Stats::armor]     = 0;
+    }
         
     Effect_Instance effect_instance = 
     {
@@ -271,13 +275,17 @@ SIG Entity* Create_Living_Vine(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 180;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 3;
-    stats[Stats::dodge]     = 2;
-    stats[Stats::speed]     = 13;
-    stats[Stats::accuracy]  = 3;
-    stats[Stats::vitality]  = 7;
-    stats[Stats::arcane]    = 3;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 7;
+        stats[Stats::might]     = 6;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 6;
+        stats[Stats::speed]     = 10;
+        stats[Stats::arcane]    = 8;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
         
     Effect_Instance effect_instance = 
     {
@@ -325,10 +333,17 @@ SIG Entity* Create_Vineling(Entity* room, Game_State* game_state)
     entity->faction = Faction::player;
     entity->weight = 1;
 
-    s16* stats = entity->_stats;
-    stats[Stats::dodge]     = 9;
-    stats[Stats::accuracy]  = 4;
-    stats[Stats::vitality]  = 5;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 5;
+        stats[Stats::might]     = 6;
+        stats[Stats::dodge]     = 9;
+        stats[Stats::accuracy]  = 1;
+        stats[Stats::speed]     = 1;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
         
     Effect_Instance effect_instance = 
     {
@@ -400,15 +415,17 @@ SIG Entity* Create_Leech(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 2;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 2;
-    stats[Stats::dodge]     = 2;
-    stats[Stats::speed]     = 2;
-    stats[Stats::armor]     = 2;
-    stats[Stats::arcane]    = 2;
-    stats[Stats::immunity]  = 2;
-    stats[Stats::accuracy]  = 2;
-    stats[Stats::vitality]  = 2;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 2;
+        stats[Stats::might]     = 2;
+        stats[Stats::dodge]     = 2;
+        stats[Stats::accuracy]  = 2;
+        stats[Stats::speed]     = 12;
+        stats[Stats::arcane]    = 7;
+        stats[Stats::immunity]  = 7;
+        stats[Stats::armor]     = 2;
+    }
         
     Effect_Instance effect_instance = 
     {
@@ -455,16 +472,18 @@ SIG Entity* Create_Giant_Toad(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 30;
-    entity->bonus_exp_reward = - 6;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 7;
-    stats[Stats::dodge]     = 3;
-    stats[Stats::speed]     = 10;
-    stats[Stats::arcane]    = 8;
-    stats[Stats::immunity]  = 5;
-    stats[Stats::accuracy]  = 8;
-    stats[Stats::vitality]  = 6;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 6;
+        stats[Stats::might]     = 7;
+        stats[Stats::dodge]     = 2;
+        stats[Stats::accuracy]  = 8;
+        stats[Stats::speed]     = 15;
+        stats[Stats::arcane]    = 13;
+        stats[Stats::immunity]  = 15;
+        stats[Stats::armor]     = 1;
+    }
         
     Effect_Instance effect_instance = 
     {
@@ -519,16 +538,19 @@ SIG Entity* Create_Mosquito(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 1;
-    entity->bonus_exp_reward = - 7;
-
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 1;
-    stats[Stats::dodge]     = 15;
-    stats[Stats::speed]     = 10;
-    stats[Stats::arcane]    = 8;
-    stats[Stats::accuracy]  = 5;
-    stats[Stats::vitality]  = 1;
     
+
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 1;
+        stats[Stats::might]     = 1;
+        stats[Stats::dodge]     = 15;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 20;
+        stats[Stats::arcane]    = 8;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 0;
+    }
     
     Effect_Instance effect_instance = 
     {
@@ -565,14 +587,17 @@ SIG Entity* Create_Wolf(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 80;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 4;
-    stats[Stats::dodge]     = 3;
-    stats[Stats::speed]     = 4;
-    stats[Stats::accuracy]  = 3;
-    stats[Stats::vitality]  = 4;
-    stats[Stats::armor]     = 3;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 4;
+        stats[Stats::might]     = 4;
+        stats[Stats::dodge]     = 3;
+        stats[Stats::accuracy]  = 3;
+        stats[Stats::speed]     = 8;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 3;
+    }
     
     Effect_Instance effect_instance = 
     {
@@ -626,15 +651,19 @@ SIG Entity* Create_Earth_Golem(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 200;
-    entity->bonus_exp_reward = 6;
-
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 10;
-    stats[Stats::accuracy]  = 4;
-    stats[Stats::vitality]  = 6;
-    stats[Stats::immunity]  = 10;
-    stats[Stats::armor]     = 8;
     
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 6;
+        stats[Stats::might]     = 10;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 4;
+        stats[Stats::speed]     = 1;
+        stats[Stats::arcane]    = 1;
+        stats[Stats::immunity]  = 15;
+        stats[Stats::armor]     = 8;
+    }
+
     Effect_Instance effect_instance = 
     {
         UNLIMITED_DURATION, 
@@ -672,13 +701,18 @@ SIG Entity* Create_Small_Earth_Golem(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 100;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 5;
-    stats[Stats::accuracy]  = 4;
-    stats[Stats::vitality]  = 3;
-    stats[Stats::immunity]  = 10;
-    stats[Stats::armor]     = 8;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 3;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 4;
+        stats[Stats::speed]     = 1;
+        stats[Stats::arcane]    = 1;
+        stats[Stats::immunity]  = 15;
+        stats[Stats::armor]     = 8;
+    }
+
     Effect_Instance effect_instance = 
     {
         UNLIMITED_DURATION, 
@@ -716,13 +750,18 @@ SIG Entity* Create_Tiny_Earth_Golem(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 10;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 2;
-    stats[Stats::accuracy]  = 4;
-    stats[Stats::vitality]  = 1;
-    stats[Stats::immunity]  = 10;
-    stats[Stats::armor]     = 8;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 1;
+        stats[Stats::might]     = 2;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 4;
+        stats[Stats::speed]     = 1;
+        stats[Stats::arcane]    = 1;
+        stats[Stats::immunity]  = 15;
+        stats[Stats::armor]     = 8;
+    }
+
     Effect_Instance effect_instance = 
     {
         UNLIMITED_DURATION, 
@@ -760,14 +799,18 @@ SIG Entity* Create_Giant_Rat(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 60;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 6;
-    stats[Stats::dodge]     = 4;
-    stats[Stats::speed]     = 4;
-    stats[Stats::accuracy]  = 3;
-    stats[Stats::vitality]  = 3;
-    stats[Stats::armor]     = 3;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 3;
+        stats[Stats::might]     = 6;
+        stats[Stats::dodge]     = 4;
+        stats[Stats::accuracy]  = 3;
+        stats[Stats::speed]     = 8;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 3;
+    }
+
     Finalize_Entity(entity, room, game_state);
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -820,16 +863,18 @@ SIG Entity* Create_Blight_Rat(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 80;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 4;
-    stats[Stats::dodge]     = 3;
-    stats[Stats::speed]     = 3;
-    stats[Stats::accuracy]  = 6;
-    stats[Stats::vitality]  = 7;
-    stats[Stats::armor]     = 1;
-    stats[Stats::immunity]  = 10;
-    stats[Stats::arcane]    = 6;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 7;
+        stats[Stats::might]     = 4;
+        stats[Stats::dodge]     = 3;
+        stats[Stats::accuracy]  = 6;
+        stats[Stats::speed]     = 6;
+        stats[Stats::arcane]    = 8;
+        stats[Stats::immunity]  = 15;
+        stats[Stats::armor]     = 1;
+    }
+
     Finalize_Entity(entity, room, game_state);
     
     u32 weapon = Roll(3, game_state);
@@ -940,14 +985,18 @@ SIG Entity* Create_Enlarged_Ant(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 10;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 3;
-    stats[Stats::dodge]     = 2;
-    stats[Stats::speed]     = 2;
-    stats[Stats::accuracy]  = 2;
-    stats[Stats::vitality]  = 1;
-    stats[Stats::armor]     = 1;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 1;
+        stats[Stats::might]     = 3;
+        stats[Stats::dodge]     = 2;
+        stats[Stats::accuracy]  = 2;
+        stats[Stats::speed]     = 5;
+        stats[Stats::arcane]    = 1;
+        stats[Stats::immunity]  = 1;
+        stats[Stats::armor]     = 1;
+    }
+
     Finalize_Entity(entity, room, game_state);
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -1013,14 +1062,18 @@ SIG Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state)
     entity->weight = 300;
     entity->bonus_exp_reward = + 5;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 1;
-    stats[Stats::dodge]     = 1;
-    stats[Stats::speed]     = 1;
-    stats[Stats::accuracy]  = 1;
-    stats[Stats::vitality]  = 12;
-    stats[Stats::armor]     = 8;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 12;
+        stats[Stats::might]     = 1;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 1;
+        stats[Stats::speed]     = 1;
+        stats[Stats::arcane]    = 1;
+        stats[Stats::immunity]  = 1;
+        stats[Stats::armor]     = 8;
+    }
+
     Finalize_Entity(entity, room, game_state);
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -1068,13 +1121,17 @@ SIG Entity* Create_Bear_Cub(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 80;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 8;
-    stats[Stats::dodge]     = 4;
-    stats[Stats::speed]     = 4;
-    stats[Stats::accuracy]  = 3;
-    stats[Stats::vitality]  = 8;
-    stats[Stats::armor]     = 2;
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 8;
+        stats[Stats::might]     = 8;
+        stats[Stats::dodge]     = 4;
+        stats[Stats::accuracy]  = 3;
+        stats[Stats::speed]     = 8;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 2;
+    }
     
     Finalize_Entity(entity, room, game_state);
     
@@ -1129,15 +1186,19 @@ SIG Entity* Create_Cave_Bear(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 200;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 14;
-    stats[Stats::dodge]     = 5;
-    stats[Stats::speed]     = 8;
-    stats[Stats::accuracy]  = 9;
-    stats[Stats::vitality]  = 12;
-    stats[Stats::armor]     = 7;
-    stats[Stats::immunity]  = 5;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 12;
+        stats[Stats::might]     = 14;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 9;
+        stats[Stats::speed]     = 13;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 10;
+        stats[Stats::armor]     = 7;
+    }
+
+
     Finalize_Entity(entity, room, game_state);
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -1197,16 +1258,19 @@ SIG Entity* Create_Mutant_Hedgehog(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 60;
-    entity->bonus_exp_reward = 3;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 2;
-    stats[Stats::dodge]     = 1;
-    stats[Stats::speed]     = 1;
-    stats[Stats::accuracy]  = 2;
-    stats[Stats::vitality]  = 6;
-    stats[Stats::armor]     = 7;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 6;
+        stats[Stats::might]     = 2;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 2;
+        stats[Stats::speed]     = 3;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 1;
+        stats[Stats::armor]     = 7;
+    }
+
     Finalize_Entity(entity, room, game_state);
     
     {
@@ -1260,28 +1324,6 @@ SIG Entity* Create_Mutant_Hedgehog(Entity* room, Game_State* game_state)
         game_state
     );
 
-    return entity;
-}
-
-
-SIG Entity* Create_Training_Dummmy(Entity* room, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-
-    entity->name_offset = Offset(STR("Training dummy"), game_state);
-    entity->description_offset = Offset(STR("Sturdy human shaped dummy, made for practising the usage of weapons."), game_state);
-
-    entity->weight = 100;
-    
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 0;
-    stats[Stats::dodge]     = 0;
-    stats[Stats::speed]     = 0;
-    stats[Stats::accuracy]  = 0;
-    stats[Stats::vitality]  = 100;
-    stats[Stats::armor]     = 5;
-    
-    Finalize_Entity(entity, room, game_state);
     return entity;
 }
 
@@ -1353,14 +1395,18 @@ SIG Entity* Create_Mimic(Entity* room, Game_State* game_state)
     entity->weight = 201;
     entity->faction = Faction::mimic;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 10;
-    stats[Stats::dodge]     = 0;
-    stats[Stats::speed]     = 0;
-    stats[Stats::accuracy]  = 8;
-    stats[Stats::vitality]  = 15;
-    stats[Stats::armor]     = 12;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 15;
+        stats[Stats::might]     = 10;
+        stats[Stats::dodge]     = 0;
+        stats[Stats::accuracy]  = 8;
+        stats[Stats::speed]     = 0;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 12;
+    }
+
     Effect_Instance mimic_effect = {};
     mimic_effect.duration = UNLIMITED_DURATION;
     mimic_effect.source = Offset(entity, game_state);
@@ -1599,7 +1645,7 @@ SIG Entity* Create_Alchemists_Pouch(Entity* room, Game_State* game_state)
     (
         entity, 
         Basic_Consumables_Loot_Table(game_state), 
-        Per_Count_Rolled_Random(7, 5, game_state), 
+        Per_Count_Rolled_Random(7, 6, game_state), 
         {}, 
         game_state
     );
@@ -1689,17 +1735,19 @@ SIG Entity* Create_Snake(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 5;
-    entity->bonus_exp_reward = - 9;
-
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 1;
-    stats[Stats::speed]     = 9;
-    stats[Stats::dodge]     = 9;
-    stats[Stats::accuracy]  = 5;
-    stats[Stats::vitality]  = 1;
-    stats[Stats::armor]     = 1;
-    stats[Stats::arcane]    = 7;
     
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 1;
+        stats[Stats::might]     = 1;
+        stats[Stats::dodge]     = 9;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 14;
+        stats[Stats::arcane]    = 13;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
+
     Effect_Instance effect_instance = 
     {
         UNLIMITED_DURATION, 
@@ -1746,17 +1794,19 @@ SIG Entity* Create_Scorpion(Entity* room, Game_State* game_state)
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
     entity->weight = 5;
-    entity->bonus_exp_reward = - 5;
 
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 1;
-    stats[Stats::speed]     = 10;
-    stats[Stats::dodge]     = 1;
-    stats[Stats::accuracy]  = 11;
-    stats[Stats::vitality]  = 1;
-    stats[Stats::armor]     = 15;
-    stats[Stats::arcane]    = 7;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 1;
+        stats[Stats::might]     = 1;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 14;
+        stats[Stats::arcane]    = 13;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 12;
+    }
+
     Effect_Instance effect_instance = 
     {
         UNLIMITED_DURATION, 
@@ -1803,14 +1853,19 @@ SIG Entity* Create_Spider(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 30;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 4;
-    stats[Stats::speed]     = 10;
-    stats[Stats::dodge]     = 10;
-    stats[Stats::accuracy]  = 6;
-    stats[Stats::vitality]  = 2;
-    stats[Stats::armor]     = 1;
-    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 5;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 10;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
+
+
     Finalize_Entity(entity, room, game_state);
     return entity;
 }
@@ -1832,13 +1887,17 @@ SIG Entity* Create_Boss_Spider(Entity* room, Game_State* game_state)
     entity->faction = Faction::nature;
     entity->weight = 1000;
     
-    s16* stats = entity->_stats;
-    stats[Stats::might]     = 7;
-    stats[Stats::speed]     = 2;
-    stats[Stats::dodge]     = 4;
-    stats[Stats::accuracy]  = 8;
-    stats[Stats::vitality]  = 10;
-    stats[Stats::armor]     = 8;
+     {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 5;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 10;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
     
     Finalize_Entity(entity, room, game_state);
 

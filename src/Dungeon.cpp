@@ -5,7 +5,7 @@
 // All rights reserved.
 // ===================================
 
-// TODO: Make inspect show active effects on the target.
+
 // TODO: Static string storage.
 // TODO: Something like a #table for the dynamic strings.
 
@@ -22,13 +22,14 @@
 // TODO: Implement More attack modifiers
 // TODO: Make help command describe common effects.
 
+
 #define DEVMODE      1
 #define SEED         0
 #define RANDOM_SEED  1
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
-#define QUICKSTART   1
+#define QUICKSTART   0
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -2177,12 +2178,14 @@ SIG _inline s32 Exp_To_Level_Up(Entity* entity)
 SIG s16 Calculate_Level(Entity* entity)
 {
     s32 total_stats = 0;
-    for(u64 i = 0; i < Stats::immunity; ++i)
+    for(u64 i = 0; i < Stats::speed; ++i)
     {
         total_stats += Max(0, s32(entity->_stats[i]));
     }
 
-    s16 lvl = Max(s16(1), s16(Round_To_S32(total_stats / f32(Stats::points_per_lvl))));
+    total_stats += (Max(s16(1), entity->_stats[Stats::armor]) - 1);
+
+    s16 lvl = 1 + Max(s16(0), s16(Round_To_S32(total_stats / f32(Stats::points_per_lvl))));
     return lvl;
 }
 
@@ -3229,7 +3232,7 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
         if(PROTOTYPE_EFFINST_ENT_STAT_S32PTR_S16PTR_GS* on_get_stat_value_fn = Pointer(effect->on_get_stat_value_fn_offset, game_state))
         {
             local::Line(depth);
-            Print("[On on read stat value]: ");
+            Print("[On read stat value]: ");
             on_get_stat_value_fn(0, 0, Stats::T(0), 0, 0, 0);
         }
     }
@@ -3322,6 +3325,8 @@ SIG void Inspect(Entity* target, Game_State* game_state)
     }
 
     Print_Equiped_Weapons(target, true, game_state);
+
+    List_Active_Effects(target, game_state);
 }
 
 
@@ -3417,6 +3422,194 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
     }
 
     return result;
+}
+
+
+SIG void Inventory(Entity* actor, Game_State* game_state)
+{
+    s16 heaviest_weight = 0;
+    u64 longest_item_name_length = 0;
+    struct Inventory_Display_Item
+    {
+        Entity* entity;
+        u64 count;
+        bool equipped;
+    };
+
+    Inventory_Display_Item* display_items = Push_Array(&game_state->scratch_buffer, Inventory_Display_Item, 0);
+    u64 display_item_count = 0;
+    u64 highest_idi_count = 0;
+
+    Entity_Iterator iter = Make_Iterator(&actor->inventory, game_state);
+    while(Entity* entity = Next_Entity(&iter))
+    {
+        entity->flags |= EFlags::visible;
+        entity->dublicate_identifier = 0;
+        Entity* first_dublicate_name_hit = 0;
+        u64 dublicate_names_count = 0;
+        
+        bool unique = true;
+        bool is_equipped = Is_Equipped(actor, entity, game_state);
+        if(!is_equipped)
+        {
+            String entity_name = Get_String(entity->name_offset, game_state);
+            for(u64 i = 0; i < display_item_count; ++i)
+            {
+                Inventory_Display_Item* idi = display_items + i;
+                
+                if(!idi->equipped && Is_The_Same(entity, idi->entity, game_state))
+                {
+                    unique = false;
+                    idi->count += 1;
+                    highest_idi_count = Max(highest_idi_count, idi->count);
+                    break;
+                }
+                
+                String idi_name = Get_String(idi->entity->name_offset, game_state);
+                if(Match_Case_Sensitive(entity_name, idi_name))
+                {
+                    dublicate_names_count += 1;
+                    if(!first_dublicate_name_hit)
+                    {
+                        first_dublicate_name_hit = idi->entity;
+                    }
+                }
+            }
+        }
+
+        if(unique)
+        {
+            if(dublicate_names_count == 1)
+            {
+                first_dublicate_name_hit->dublicate_identifier = 1;
+                entity->dublicate_identifier = 2;
+            }
+            else if(dublicate_names_count > 1)
+            {
+                entity->dublicate_identifier = dublicate_names_count + 1;
+            }
+
+            display_item_count += 1;
+            entity->refnum = display_item_count;
+
+            String entity_name = Name_Without_Color(entity, game_state);
+            longest_item_name_length = Max(longest_item_name_length, entity_name.length);
+            heaviest_weight = Max(heaviest_weight, entity->weight);
+            *Push_Struct(&game_state->scratch_buffer, Inventory_Display_Item) = {entity, 1, is_equipped};
+        }
+    }
+
+    s32 count_digit_count = Digits((s32)display_item_count);
+    s32 heaviest_weight_digit_count = Digits((s32)heaviest_weight);
+
+    u64 count_string_lenght = 0;
+    if(highest_idi_count > 1)
+    {
+        count_string_lenght = 2 + Digits((s32)highest_idi_count);
+    }
+
+    for(u64 i = 0; i < display_item_count; ++i)
+    {
+        Inventory_Display_Item* idi = display_items + i;
+
+        String count_string = {};
+        count_string.length = count_string_lenght;
+        count_string.ptr = (char*)Push(&game_state->scratch_buffer, count_string.length + 1);
+        u64 writehead = 0;
+        if(idi->count > 1)
+        {
+            U64_To_String_Memory m;
+            String num_string = To_String(idi->count, &m);
+            count_string.ptr[writehead++] = 'x';
+            Mem_Copy(count_string.ptr + writehead, num_string.ptr, num_string.length);
+            writehead += num_string.length;
+        }
+        
+        for(u64 j = writehead; j < count_string.length; ++j)
+        {
+            count_string.ptr[j] = ' ';
+        }
+
+        Print
+        (
+            "\n| %s %-*llu %s%-*s%s %s[Weight: %*d]", 
+            (idi->equipped)? "*" : "-", 
+            count_digit_count,
+            idi->entity->refnum, 
+            Entity_Color(idi->entity, game_state),
+            s32(longest_item_name_length),
+            Name_Without_Color(idi->entity, game_state).ptr, 
+            game_state->default_color.data,
+            count_string.ptr,
+            heaviest_weight_digit_count,
+            idi->entity->weight
+        );
+
+        if(idi->entity->_health <= 0)
+        {
+            if(Is_Item(idi->entity))
+            {
+                Print(" [BROKEN]");
+            }
+            
+            if(idi->entity->flags & EFlags::actor)
+            {
+                Print(" [DEAD]");
+            }
+        }
+
+        if(idi->entity->interactable.uses_count || (idi->entity->flags & EFlags::interactable))
+        {
+            Print(" [");
+            Print_Uses(idi->entity);
+            Print("]");
+        }
+
+        if(idi->entity->flags & EFlags::equippable)
+        {
+            Print(" [Slots: ");
+            Print_Required_Equipment_Slots(idi->entity);
+            Print("]");
+        }
+    }
+}
+
+
+SIG void List_Active_Effects(Entity* actor, Game_State* game_state)
+{
+    bool first = true;
+        
+    Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
+    while(Effect_Instance* instance = Next(&iter))
+    {
+        Effect* effect = Pointer(instance->effect_offset, game_state);
+
+        if(effect->type)
+        {
+            if(first)
+            {
+                Print("\n|\n| Active Effects:");
+                first = false;
+            }
+            else
+            {
+                Print("\n|");
+            }
+
+            Print("\n| [%s]", Effect_Name(instance, game_state).ptr);
+            if(instance->duration == UNLIMITED_DURATION)
+            {
+                Print("\n| | Duration: Unlimited.");
+            }
+            else
+            {
+                char* format_string = (instance->duration == 1)? "\n| | Duration: %llu %s." : "\n| | Duration: %llu %ss.";
+                Print(format_string, instance->duration, duration_type_names[u32(instance->duration_type)].ptr);
+            }
+
+            Describe_Effect(effect, 2, game_state);
+        }
+    }
 }
 
 
@@ -5398,14 +5591,20 @@ SIG void Create_Player_Charater(Game_State* game_state)
         Class_Mask(Class::wretched);
 
     Character_Creator cc = {(Entity**)Push(&game_state->scratch_buffer, 0)};
-    cc.selected_idx = 1;
+    //cc.selected_idx = 1;
 
     for(u64 i = 0; i < Class::COUNT; ++i)
     {
         u64 mask = Class_Mask(Class::T(i));
         if((available_classes & mask) && Class::create_fn[i])
         {
-            *Push_Struct(&game_state->scratch_buffer, Entity*) = Class::create_fn[i](game_state);
+            Entity* entity = Class::create_fn[i](game_state);
+            entity->_stats[Stats::speed]    = 10;
+            entity->_stats[Stats::arcane]   = 5;
+            entity->_stats[Stats::immunity] = 5;
+            entity->_stats[Stats::armor]    = 1;
+
+            *Push_Struct(&game_state->scratch_buffer, Entity*) = entity;
             cc.template_count += 1;
         }
     }
@@ -5867,7 +6066,8 @@ SIG void Reset_Game_State(Game_State* game_state)
     String_Table* string_table_address = Push_Struct(&game_state->permanent_storage, String_Table);
     game_state->string_table.table_offset = Storage_Offset(string_table_address, game_state);
     game_state->executable_base_address = (char*)OS_Get_Executable_Base_Address();
-
+    game_state->executable_size = OS_Get_Executable_Size();
+    
     #if ENABLE_WAIT
     game_state->enable_dramatic_pausing = true;
     #endif
@@ -6139,156 +6339,12 @@ SIG CMD_Result::T Inventory_Command(Entity* actor, String args, Game_State* game
     
     if(args.length == 0)
     {
-        Entity_Iterator iter = Make_Iterator(&actor->inventory, game_state);
-        if(iter.count)
+        if(Has_Content(&actor->inventory))
         {
-            s16 heaviest_weight = 0;
-            u64 longest_item_name_length = 0;
-            struct Inventory_Display_Item
-            {
-                Entity* entity;
-                u64 count;
-                bool equipped;
-            };
-
-            Inventory_Display_Item* display_items = Push_Array(&game_state->scratch_buffer, Inventory_Display_Item, 0);
-            u64 display_item_count = 0;
-            u64 highest_idi_count = 0;
-
-            while(Entity* entity = Next_Entity(&iter))
-            {
-                entity->flags |= EFlags::visible;
-                entity->dublicate_identifier = 0;
-                Entity* first_dublicate_name_hit = 0;
-                u64 dublicate_names_count = 0;
-                
-                bool unique = true;
-                bool is_equipped = Is_Equipped(actor, entity, game_state);
-                if(!is_equipped)
-                {
-                    String entity_name = Get_String(entity->name_offset, game_state);
-                    for(u64 i = 0; i < display_item_count; ++i)
-                    {
-                        Inventory_Display_Item* idi = display_items + i;
-                        
-                        if(!idi->equipped && Is_The_Same(entity, idi->entity, game_state))
-                        {
-                            unique = false;
-                            idi->count += 1;
-                            highest_idi_count = Max(highest_idi_count, idi->count);
-                            break;
-                        }
-                        
-                        String idi_name = Get_String(idi->entity->name_offset, game_state);
-                        if(Match_Case_Sensitive(entity_name, idi_name))
-                        {
-                            dublicate_names_count += 1;
-                            if(!first_dublicate_name_hit)
-                            {
-                                first_dublicate_name_hit = idi->entity;
-                            }
-                        }
-                    }
-                }
-
-                if(unique)
-                {
-                    if(dublicate_names_count == 1)
-                    {
-                        first_dublicate_name_hit->dublicate_identifier = 1;
-                        entity->dublicate_identifier = 2;
-                    }
-                    else if(dublicate_names_count > 1)
-                    {
-                        entity->dublicate_identifier = dublicate_names_count + 1;
-                    }
-
-                    display_item_count += 1;
-                    entity->refnum = display_item_count;
-
-                    String entity_name = Name_Without_Color(entity, game_state);
-                    longest_item_name_length = Max(longest_item_name_length, entity_name.length);
-                    heaviest_weight = Max(heaviest_weight, entity->weight);
-                    *Push_Struct(&game_state->scratch_buffer, Inventory_Display_Item) = {entity, 1, is_equipped};
-                }
-            }
-
-            s32 count_digit_count = Digits((s32)display_item_count);
-            s32 heaviest_weight_digit_count = Digits((s32)heaviest_weight);
-
-            u64 count_string_lenght = 0;
-            if(highest_idi_count > 1)
-            {
-                count_string_lenght = 2 + Digits((s32)highest_idi_count);
-            }
-
             s32 carrying_amount = Carrying_Amount(actor, game_state);
             s32 carry_capacity = Carry_Capacity(actor, game_state);
             Print("\nYour inventory [%d/%d] contains:", carrying_amount, carry_capacity);
-            for(u64 i = 0; i < display_item_count; ++i)
-            {
-                Inventory_Display_Item* idi = display_items + i;
-
-                String count_string = {};
-                count_string.length = count_string_lenght;
-                count_string.ptr = (char*)Push(&game_state->scratch_buffer, count_string.length + 1);
-                u64 writehead = 0;
-                if(idi->count > 1)
-                {
-                    U64_To_String_Memory m;
-                    String num_string = To_String(idi->count, &m);
-                    count_string.ptr[writehead++] = 'x';
-                    Mem_Copy(count_string.ptr + writehead, num_string.ptr, num_string.length);
-                    writehead += num_string.length;
-                }
-                
-                for(u64 j = writehead; j < count_string.length; ++j)
-                {
-                    count_string.ptr[j] = ' ';
-                }
-
-                Print
-                (
-                    "\n| %s %-*llu %s%-*s%s %s[Weight: %*d]", 
-                    (idi->equipped)? "*" : "-", 
-                    count_digit_count,
-                    idi->entity->refnum, 
-                    Entity_Color(idi->entity, game_state),
-                    s32(longest_item_name_length),
-                    Name_Without_Color(idi->entity, game_state).ptr, 
-                    game_state->default_color.data,
-                    count_string.ptr,
-                    heaviest_weight_digit_count,
-                    idi->entity->weight
-                );
-
-                if(idi->entity->_health <= 0)
-                {
-                    if(Is_Item(idi->entity))
-                    {
-                        Print(" [BROKEN]");
-                    }
-                    
-                    if(idi->entity->flags & EFlags::actor)
-                    {
-                        Print(" [DEAD]");
-                    }
-                }
-
-                if(idi->entity->interactable.uses_count || (idi->entity->flags & EFlags::interactable))
-                {
-                    Print(" [");
-                    Print_Uses(idi->entity);
-                    Print("]");
-                }
-
-                if(idi->entity->flags & EFlags::equippable)
-                {
-                    Print(" [Slots: ");
-                    Print_Required_Equipment_Slots(idi->entity);
-                    Print("]");
-                }
-            }
+            Inventory(actor, game_state);
         }
         else
         {
@@ -6816,43 +6872,11 @@ SIG CMD_Result::T Status_Command(Entity* actor, String args, Game_State* game_st
                     Print("%c", 176);
                 }
             }
+            
             Print("%s|", game_state->default_color.data);
-
         }
 
-        bool first = true;
-        
-        Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
-        while(Effect_Instance* instance = Next(&iter))
-        {
-            Effect* effect = Pointer(instance->effect_offset, game_state);
-
-            if(effect->type)
-            {
-                if(first)
-                {
-                    Print("\n|\n| Active Effects:");
-                    first = false;
-                }
-                else
-                {
-                    Print("\n|");
-                }
-
-                Print("\n| [%s]", Effect_Name(instance, game_state).ptr);
-                if(instance->duration == UNLIMITED_DURATION)
-                {
-                    Print("\n| | Duration: Unlimited.");
-                }
-                else
-                {
-                    char* format_string = (instance->duration == 1)? "\n| | Duration: %llu %s." : "\n| | Duration: %llu %ss.";
-                    Print(format_string, instance->duration, duration_type_names[u32(instance->duration_type)].ptr);
-                }
-
-                Describe_Effect(effect, 2, game_state);
-            }
-        }
+        List_Active_Effects(actor, game_state);
     }
     else
     {
@@ -7687,11 +7711,10 @@ SIG void Get_Level_Up_Commands(Command** out_commands, u64* out_count, Game_Stat
 
     Command commands[] = 
     {
+        STAT_ALLOCATE_PASS_THROUGH(vitality),
         STAT_ALLOCATE_PASS_THROUGH(might),
-        STAT_ALLOCATE_PASS_THROUGH(speed),
         STAT_ALLOCATE_PASS_THROUGH(dodge),
         STAT_ALLOCATE_PASS_THROUGH(accuracy),
-        STAT_ALLOCATE_PASS_THROUGH(vitality),
 
         local::summary,
         local::reset,
@@ -7940,7 +7963,7 @@ SIG void Get_Character_Creator_Commands(Command** out_commands, u64* out_count, 
                         Print("\nDescription: %s", Get_String(e->description_offset, game_state).ptr);
                         Print("\nLevel: %d", Level(e));
                         Print("\nStats:");
-                        for(u64 j = 0; j < Stats::COUNT - 1; ++j)
+                        for(u64 j = 0; j < Stats::PRIMARY_STAT_END; ++j)
                         {
                             Print("\n|%11s: %d", Stats::name[j].ptr, e->_stats[j]);
                         }
@@ -7956,17 +7979,8 @@ SIG void Get_Character_Creator_Commands(Command** out_commands, u64* out_count, 
                             }
                         }
 
-                        if(e->inventory.node_offset.v)
-                        {
-                            Print("\n\nEquipment:");
-                            u64 refnum = 0;
-                            Entity_Iterator iter = Make_Iterator(e, game_state);
-                            while(Entity* item = Next_Entity(&iter))
-                            {
-                                refnum += 1;
-                                Print("\n| %llu - %s", refnum, Name(item, game_state).ptr);
-                            }
-                        }
+                        Print("\n\nEquipment:");
+                        Inventory(e, game_state);
                     }
                     else
                     {

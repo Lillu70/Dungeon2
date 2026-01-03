@@ -153,6 +153,7 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Assassins_Corset},
         {Create_Crusaders_Breastplate},
         {Create_Knights_Breastplate},
+        {Create_Gloves_Of_Careful_Attacking},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -246,7 +247,7 @@ SIG Entity* Create_Great_Sword(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::might] = + 6;
-        effect.stat_modifiers[Stats::speed] = - 1;
+        effect.stat_modifiers[Stats::speed] = - 4;
         effect.critical_failure_range       = + 3;
         Add_Dice(&effect, 2, 8);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -279,7 +280,7 @@ SIG Entity* Create_Halberd(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.pierce                       = + 4;
         effect.stat_modifiers[Stats::might] = + 6;
-        effect.stat_modifiers[Stats::speed] = + 2;
+        effect.stat_modifiers[Stats::speed] = + 4;
         effect.critical_failure_range       = + 2;
         Add_Dice(&effect, 1, 16);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -312,7 +313,7 @@ SIG Entity* Create_Long_Spear(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.pierce                       = + 14;
         effect.stat_modifiers[Stats::might] = + 5;
-        effect.stat_modifiers[Stats::speed] = + 5;
+        effect.stat_modifiers[Stats::speed] = + 6;
         effect.critical_success_range       = + 4;
         Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -343,6 +344,7 @@ SIG Entity* Create_Cestus(Entity* room, Game_State* game_state)
         Effect effect = {};        
         effect.stat_modifiers[Stats::might] = + 1;
         effect.stat_modifiers[Stats::dodge] = + 3;
+        effect.stat_modifiers[Stats::speed] = + 1;
         Add_Dice(&effect, 2, 2);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -408,8 +410,9 @@ SIG Entity* Create_Assassins_Claws(Entity* room, Game_State* game_state)
         Effect effect = {};        
         effect.stat_modifiers[Stats::might] = + 1;
         effect.stat_modifiers[Stats::dodge] = + 3;
+        effect.stat_modifiers[Stats::speed] = + 2;
         effect.critical_success_range       = + 7;
-        effect.pierce                       = 7;
+        effect.pierce                       = + 7;
         Add_Dice(&effect, 1, 16);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -437,8 +440,8 @@ SIG Entity* Create_Staff(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};        
-        effect.stat_modifiers[Stats::might] = + 3;
-        effect.stat_modifiers[Stats::arcane] = + 3;
+        effect.stat_modifiers[Stats::might]     = + 3;
+        effect.stat_modifiers[Stats::arcane]    = + 3;
         Add_Dice(&effect, 2, 3);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -469,6 +472,7 @@ SIG Entity* Create_Ram_Shield(Entity* room, Game_State* game_state)
         Effect effect = {};        
         effect.stat_modifiers[Stats::might] = + 5;
         effect.stat_modifiers[Stats::armor] = + 3;
+        effect.stat_modifiers[Stats::speed] = - 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -529,6 +533,7 @@ SIG Entity* Create_Great_Axe(Entity* room, Game_State* game_state)
         Effect effect = {};        
         effect.stat_modifiers[Stats::might] = + 5;
         effect.critical_failure_range       = + 4;
+        effect.stat_modifiers[Stats::speed] = - 4;
         Add_Dice(&effect, 4, 4);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -591,6 +596,7 @@ SIG Entity* Create_War_Scythe(Entity* room, Game_State* game_state)
         Effect effect = {};        
         effect.stat_modifiers[Stats::might] = + 4;
         effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::speed] = - 3;
         effect.critical_success_range       = + 6;
         effect.critical_failure_range       = + 5;
         Add_Dice(&effect, 1, 10);
@@ -617,7 +623,7 @@ SIG Entity* Create_Great_Club(Entity* room, Game_State* game_state)
         Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
         Equipment_Slots::flag[Equipment_Slots::secondary_hand];
     
-    entity->weight = 20;
+    entity->weight = 15;
     entity->_stats[Stats::vitality] = 20;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -625,7 +631,7 @@ SIG Entity* Create_Great_Club(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::might]     = + 16;
-        effect.stat_modifiers[Stats::speed]     = - 3;
+        effect.stat_modifiers[Stats::speed]     = - 8;
         effect.stat_modifiers[Stats::accuracy]  = + 2;
         effect.critical_failure_range           = + 8;
         Add_Dice(&effect, 1, 3);
@@ -685,7 +691,7 @@ SIG Entity* Create_Magma_Hammer(Entity* room, Game_State* game_state)
         Equipment_Slots::flag[Equipment_Slots::primary_hand] | 
         Equipment_Slots::flag[Equipment_Slots::secondary_hand];
     
-    entity->weight = 25;
+    entity->weight = 17;
     entity->_stats[Stats::vitality] = 100;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -693,6 +699,7 @@ SIG Entity* Create_Magma_Hammer(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::might]     = + 7;
+        effect.stat_modifiers[Stats::speed]     = - 3;
         effect.critical_failure_range           = + 3;
         Add_Dice(&effect, 2, 10);
         effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
@@ -807,7 +814,8 @@ SIG Entity* Create_Mace(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]  = + 8;
+        effect.stat_modifiers[Stats::might] = + 8;
+        effect.stat_modifiers[Stats::speed] = - 2;
         Add_Dice(&effect, 1, 2);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -837,6 +845,7 @@ SIG Entity* Create_Rapier(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.stat_modifiers[Stats::accuracy] = + 3;
         effect.stat_modifiers[Stats::might]    = + 4;
+        effect.stat_modifiers[Stats::speed]    = + 1;
         effect.critical_success_range          = + 6;
         effect.critical_failure_range          = + 2;
         Add_Dice(&effect, 1, 6);
@@ -897,6 +906,7 @@ SIG Entity* Create_Morning_Star(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.pierce                       = + 3;
         effect.stat_modifiers[Stats::might] = + 9;
+        effect.stat_modifiers[Stats::speed] = - 2;
         Add_Dice(&effect, 1, 2);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -926,6 +936,7 @@ SIG Entity* Create_Three_Headed_Flail(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.pierce                       = + 5;
         effect.stat_modifiers[Stats::might] = + 5;
+        effect.stat_modifiers[Stats::speed] = - 2;
         Add_Dice(&effect, 3, 5);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -955,7 +966,7 @@ SIG Entity* Create_Dagger(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.critical_success_range        = + 2;
         effect.stat_modifiers[Stats::might]  = + 3;
-        effect.stat_modifiers[Stats::speed]  = + 1;
+        effect.stat_modifiers[Stats::speed]  = + 2;
         effect.pierce                        = 2;
         Add_Dice(&effect, 1, 4);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -1006,7 +1017,7 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.critical_success_range        = + 2;
         effect.stat_modifiers[Stats::might]  = + 3;
-        effect.stat_modifiers[Stats::speed]  = + 1;
+        effect.stat_modifiers[Stats::speed]  = + 2;
         effect.pierce                        = 2;
         Add_Dice(&effect, 1, 4);
         effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
@@ -1076,7 +1087,7 @@ SIG Entity* Create_Arcane_Cape(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Arcane cape"), game_state);
-    entity->description_offset = Offset(STR("Draws the user closer to the souce it self."), game_state);
+    entity->description_offset = Offset(STR("Draws the user closer to the source it self."), game_state);
     entity->rarity = Rarity::magical;
     
     entity->flags = EFlags::equippable | EFlags::item;
@@ -1165,8 +1176,8 @@ SIG Entity* Create_Strong_Man_Belt(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]   = + 1;
-        effect.carry_capacity_modifier = + 20;
+        effect.stat_modifiers[Stats::might] = + 1;
+        effect.carry_capacity_modifier      = + 20;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -1209,7 +1220,7 @@ SIG Entity* Create_Cape_Of_Spite(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Cape of Spite"), game_state);
-    entity->description_offset = Offset(STR("Made of living metal. When its wearer is hurt it forms into a spike and thrusts it self into the attacker."), game_state);
+    entity->description_offset = Offset(STR("Made of living metal. When its wearer is hurt, it forms into a spike and thrusts it self into the attacker."), game_state);
     entity->rarity = Rarity::epic;
     
     entity->flags = EFlags::equippable | EFlags::item;
@@ -1792,8 +1803,8 @@ SIG Entity* Create_Ring_Of_Strange_Fortunes(Entity* room, Game_State* game_state
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.critical_success_range = +10;
-        effect.critical_failure_range = +10;
+        effect.critical_success_range = + 10;
+        effect.critical_failure_range = + 10;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -1959,6 +1970,31 @@ SIG Entity* Create_Leather_Gloves(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Gloves_Of_Careful_Attacking(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Gloves Of Careful Attacking"), game_state);
+    entity->description_offset = Offset(STR("Probably not actually blessed, but thinking they are is effective in it self."), game_state);
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::gloves];
+    entity->weight = 2;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.critical_failure_range = - 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Field_Medics_Gloves(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -2030,6 +2066,7 @@ SIG Entity* Create_Plate_Gloves(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 3;
+        effect.stat_modifiers[Stats::speed] = - 1;
         effect.critical_failure_range       = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2057,6 +2094,7 @@ SIG Entity* Create_Wooden_Shield(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::speed] = - 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2109,6 +2147,7 @@ SIG Entity* Create_Kite_Shield(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 4;
+        effect.stat_modifiers[Stats::speed] = - 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2135,7 +2174,7 @@ SIG Entity* Create_Barn_Door_Shield(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 5;
         effect.stat_modifiers[Stats::dodge] = - 5;
-        effect.stat_modifiers[Stats::speed] = - 5;
+        effect.stat_modifiers[Stats::speed] = - 7;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2355,10 +2394,11 @@ SIG Entity* Create_Breastplate(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::armor] = + 7;
-        effect.stat_modifiers[Stats::speed] = - 2;
-        effect.stat_modifiers[Stats::dodge] = - 2;
-        effect.critical_failure_range       = + 2;
+        effect.stat_modifiers[Stats::armor]     = + 7;
+        effect.stat_modifiers[Stats::speed]     = - 4;
+        effect.stat_modifiers[Stats::dodge]     = - 2;
+        effect.stat_modifiers[Stats::arcane]    = - 2;
+        effect.critical_failure_range           = + 2;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2386,8 +2426,9 @@ SIG Entity* Create_Knights_Breastplate(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor]     = + 8;
+        effect.stat_modifiers[Stats::speed]     = - 4;
+        effect.stat_modifiers[Stats::arcane]    = - 2;
         effect.stat_modifiers[Stats::immunity]  = + 2;
-        effect.stat_modifiers[Stats::speed]     = - 1;
         effect.critical_failure_range           = + 2;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -2419,6 +2460,8 @@ SIG Entity* Create_Crusaders_Breastplate(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::vitality]  = + 1; 
         effect.stat_modifiers[Stats::armor]     = + 9;
         effect.stat_modifiers[Stats::might]     = + 2;
+        effect.stat_modifiers[Stats::arcane]    = - 1;
+        effect.stat_modifiers[Stats::speed]     = - 4;
         effect.critical_failure_range           = + 1;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -2523,9 +2566,11 @@ SIG Entity* Create_Barbute(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::armor]    = + 5;
-        effect.stat_modifiers[Stats::accuracy] = - 2;
-        effect.critical_failure_range          = + 1;
+        effect.stat_modifiers[Stats::armor]     = + 5;
+        effect.stat_modifiers[Stats::accuracy]  = - 2;
+        effect.stat_modifiers[Stats::arcane]    = - 1;
+        effect.stat_modifiers[Stats::speed]     = - 1;
+        effect.critical_failure_range           = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2551,10 +2596,11 @@ SIG Entity* Create_Plate_Leggings(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::armor] = + 6;
-        effect.stat_modifiers[Stats::speed] = - 2;
-        effect.stat_modifiers[Stats::dodge] = - 2;
-        effect.critical_failure_range       = + 1;
+        effect.stat_modifiers[Stats::armor]     = + 5;
+        effect.stat_modifiers[Stats::speed]     = - 3;
+        effect.stat_modifiers[Stats::arcane]    = - 2;
+        effect.stat_modifiers[Stats::dodge]     = - 2;
+        effect.critical_failure_range           = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2630,7 +2676,7 @@ SIG Entity* Create_Warrior_Kilt(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might] = + 2;
+        effect.stat_modifiers[Stats::might] = + 3;
         effect.stat_modifiers[Stats::armor] = + 2;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2657,8 +2703,9 @@ SIG Entity* Create_Barbarian_Loingcloth(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might] = + 3;
+        effect.stat_modifiers[Stats::might] = + 4;
         effect.critical_success_range       = + 3;
+        effect.stat_modifiers[Stats::speed] = + 2;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2685,6 +2732,7 @@ SIG Entity* Create_Travel_Boots(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 1;
+        effect.stat_modifiers[Stats::speed] = + 1;
         effect.carry_capacity_modifier = + 10;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2711,10 +2759,11 @@ SIG Entity* Create_Sabatons(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::armor] = + 4;
-        effect.stat_modifiers[Stats::speed] = - 1;
-        effect.stat_modifiers[Stats::dodge] = - 1;
-        effect.critical_failure_range       = + 1;
+        effect.stat_modifiers[Stats::armor]     = + 4;
+        effect.stat_modifiers[Stats::speed]     = - 1;
+        effect.stat_modifiers[Stats::dodge]     = - 1;
+        effect.stat_modifiers[Stats::arcane]    = - 1;
+        effect.critical_failure_range           = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2742,6 +2791,8 @@ SIG Entity* Create_Knights_Plate_Boots(Entity* room, Game_State* game_state)
         Effect effect = {};
         effect.stat_modifiers[Stats::armor]     = + 5;
         effect.stat_modifiers[Stats::immunity]  = + 2;
+        effect.stat_modifiers[Stats::speed]     = - 1;
+        effect.stat_modifiers[Stats::arcane]    = - 1;
         effect.critical_failure_range           = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2796,7 +2847,7 @@ SIG Entity* Create_Gladiator_Sandals(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::might] = + 2;
-        effect.stat_modifiers[Stats::speed] = + 1;
+        effect.stat_modifiers[Stats::speed] = + 3;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -3514,21 +3565,20 @@ SIG Entity* Create_Bomb(Entity* container, Game_State* game_state)
                 u64 length = 0;
                 
                 // Bomb potency is: %d ([acrane]:%d + %dd%d = %d)
-                U64_To_String_Memory m;
                 String source_name = Name(item, game_state);
                 String message = String_Builder(&game_state->messages_buffer, source_name)
                 .Next(STR(" potency is: "))
-                .Next(To_String(damage, &m))
+                .Next(damage)
                 .Next(STR(" (["))
                 .Next(Stats::name[Stats::arcane])
                 .Next(STR("]:"))
-                .Next(To_String(base, &m))
+                .Next(base)
                 .Next(STR(" + "))
-                .Next(To_String(dice.count, &m))
+                .Next(dice.count)
                 .Next(STR("d"))
-                .Next(To_String(dice.faces, &m))
+                .Next(dice.faces)
                 .Next(STR(" = "))
-                .Next(To_String(dice_result, &m))
+                .Next(dice_result)
                 .Next(STR(")"))
                 .Finish();
                 
@@ -3584,21 +3634,20 @@ SIG Entity* Create_Fragmentation_Bomb(Entity* container, Game_State* game_state)
                 u64 length = 0;
                 
                 // Bomb potency is: %d ([acrane]:%d + %dd%d = %d)
-                U64_To_String_Memory m;
                 String source_name = Name(item, game_state);
                 String message = String_Builder(&game_state->messages_buffer, source_name)
                 .Next(STR(" potency is: "))
-                .Next(To_String(damage, &m))
+                .Next(damage)
                 .Next(STR(" (["))
                 .Next(Stats::name[Stats::arcane])
                 .Next(STR("]:"))
-                .Next(To_String(base, &m))
+                .Next(base)
                 .Next(STR(" + "))
-                .Next(To_String(dice.count, &m))
+                .Next(dice.count)
                 .Next(STR("d"))
-                .Next(To_String(dice.faces, &m))
+                .Next(dice.faces)
                 .Next(STR(" = "))
-                .Next(To_String(dice_result, &m))
+                .Next(dice_result)
                 .Next(STR(")"))
                 .Finish();
                 

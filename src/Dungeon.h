@@ -104,9 +104,18 @@ struct Entity_Node_Offset
 };
 
 
+enum class Storage : u8
+{
+    dynamic,
+    static,
+};
+
+
 struct String_Offset
 {
     u64 v; // Used as an offset to a String_Wrapper.
+    u64 length;
+    Storage storage;
 };
 
 
@@ -544,7 +553,7 @@ struct Leveler
 {
     Entity* actor;
     s16 points;
-    s16 assigned[Stats::immunity];
+    s16 assigned[Stats::PRIMARY_STAT_END];
     bool summarize;
     bool running;
 };
@@ -804,8 +813,11 @@ struct Game_State
     Arena permanent_storage;
     Arena scratch_buffer;
     Arena messages_buffer;
-    char* executable_base_address;
     
+    char* executable_base_address; // NOTE: Pointers are not allowed, but this one does not count!
+    u64 executable_size;
+    
+
     String_Table_Root string_table;
     
     Entity_Offset free_entity_offset;
