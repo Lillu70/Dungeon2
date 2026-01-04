@@ -29,7 +29,28 @@
 #define SAVE_ON_EXIT 0
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
-#define QUICKSTART   0
+#define QUICKSTART   1
+#define CUSTOM_START 0
+
+
+enum class Custom_Start
+{
+    level_1_zone_1, // 90% -- playable
+    level_1_zone_2,
+    level_1_zone_3,
+
+    level_2_zone_1,
+    level_2_zone_2,
+    level_2_zone_3,
+
+    level_3_zone_1,
+    level_3_zone_2,
+    level_3_zone_3,
+};
+#if CUSTOM_START
+constexpr Custom_Start _global_custom_start = Custom_Start::level_1_zone_2;
+#endif
+
 
 #include <stdio.h>
 #include <stdarg.h> // TODO: Dig in this include and see what the fuck it does. Maybe I can do it my self and remove the include.
@@ -455,6 +476,11 @@ SIG String Unwrap_String(String_Wrapper* strw, Game_State* game_state)
 SIG String_Offset Offset(String str, Game_State* game_state)
 {
     String_Offset offset = {};
+    offset.length = str.length;
+
+    char* base = game_state->executable_base_address;
+    bool static_storage = str.ptr >= base && str.ptr + str.length < base + game_state->executable_size;
+    offset.storage = Storage(static_storage);
 
     // CONSIDER: Instead of searching the bucketed array for a match, it might sence to use hash table.
     // but the table is only for "registeration", so this is not code that runs often.
@@ -465,55 +491,67 @@ SIG String_Offset Offset(String str, Game_State* game_state)
     // - Otherwise, push the string data into the permanent storage and,
     // add a field in the string_table that describes the lenght and location of the new string.
 
-
-    if(str.ptr && str.length)
+    switch(offset.storage)
     {
-        String_Table_Root* string_table_root = &game_state->string_table;
-        String_Table* table = (String_Table*)Pull_From_Storage_Offset(string_table_root->table_offset, game_state);
-        u64 count = string_table_root->count;
-        
-        while(table)
+        case Storage::dynamic:
         {
-            for(u64 i = 0; i < count; ++i)
+            if(str.ptr && str.length)
             {
-                String_Wrapper* strw = table->entries + i;
-                Assert(strw->offset && strw->length);
-                String cmp = Unwrap_String(strw, game_state);
-
-                if(Match_Case_Sensitive(str, cmp))
+                String_Table_Root* string_table_root = &game_state->string_table;
+                String_Table* table = (String_Table*)Pull_From_Storage_Offset(string_table_root->table_offset, game_state);
+                u64 count = string_table_root->count;
+                
+                while(table)
                 {
-                    offset.v = Storage_Offset(strw, game_state);
-                    goto EXIT;
+                    for(u64 i = 0; i < count; ++i)
+                    {
+                        String_Wrapper* strw = table->entries + i;
+                        Assert(strw->offset && strw->length);
+                        String cmp = Unwrap_String(strw, game_state);
+
+                        if(Match_Case_Sensitive(str, cmp))
+                        {
+                            offset.v = Storage_Offset(strw, game_state);
+                            goto EXIT;
+                        }
+                    }
+
+                    count = Array_Length(table->entries);
+                    table = (String_Table*)Pull_From_Storage_Offset(table->next_offset, game_state);
                 }
+
+                // No match was found if *HERE* is reached.
+                if(string_table_root->count == Array_Length(table->entries))
+                {
+                    String_Table* node = Push_Struct(&game_state->permanent_storage, String_Table);
+                    node->next_offset = string_table_root->table_offset;
+                    string_table_root->table_offset = Storage_Offset(node, game_state);
+                    string_table_root->count = 0;
+                }
+                
+                char* data = (char*)Push(&game_state->permanent_storage, str.length + 1);
+                Mem_Copy(data, str.ptr, str.length);
+
+                table = (String_Table*)Pull_From_Storage_Offset(string_table_root->table_offset, game_state);
+                String_Wrapper* strw = table->entries + string_table_root->count;
+                string_table_root->count += 1;
+
+                strw->length = str.length;
+                strw->offset = Storage_Offset(data, game_state);
+
+                offset.v = Storage_Offset(strw, game_state);
+
+                EXIT:;
             }
 
-            count = Array_Length(table->entries);
-            table = (String_Table*)Pull_From_Storage_Offset(table->next_offset, game_state);
-        }
+        }break;
 
-        // No match was found if *HERE* is reached.
-        if(string_table_root->count == Array_Length(table->entries))
+        case Storage::_static:
         {
-            String_Table* node = Push_Struct(&game_state->permanent_storage, String_Table);
-            node->next_offset = string_table_root->table_offset;
-            string_table_root->table_offset = Storage_Offset(node, game_state);
-            string_table_root->count = 0;
-        }
-        
-        char* data = (char*)Push(&game_state->permanent_storage, str.length + 1);
-        Mem_Copy(data, str.ptr, str.length);
-
-        table = (String_Table*)Pull_From_Storage_Offset(string_table_root->table_offset, game_state);
-        String_Wrapper* strw = table->entries + string_table_root->count;
-        string_table_root->count += 1;
-
-        strw->length = str.length;
-        strw->offset = Storage_Offset(data, game_state);
-
-        offset.v = Storage_Offset(strw, game_state);
-
-        EXIT:;
+            offset.v = str.ptr - base;
+        }break;
     }
+    
 
     return offset;
 }
@@ -524,8 +562,21 @@ SIG String Get_String(String_Offset offset, Game_State* game_state)
     String str = {};
     if(offset.v)
     {
-        String_Wrapper* strw = (String_Wrapper*)Pull_From_Storage_Offset(offset.v, game_state);
-        str = Unwrap_String(strw, game_state);
+        switch(offset.storage)
+        {
+            case Storage::dynamic:
+            {
+                String_Wrapper* strw = (String_Wrapper*)Pull_From_Storage_Offset(offset.v, game_state);
+                str = Unwrap_String(strw, game_state);
+            }break;
+
+            case Storage::_static:
+            {
+                str.ptr = game_state->executable_base_address + offset.v;
+                str.length = offset.length;
+                str.length &= ~(u64(255) << 56); // NOTE: Storage is in the last byte of the offset lenght, so just nuking that.
+            }break;
+        }
     }
 
     return str;
@@ -1103,11 +1154,12 @@ SIG void Print_Attack_Record(Attack_Record* ar, Game_State* game_state)
         static void Print_Hit_Determination_Rolls(Attack_Record* ar, Game_State* game_state)
         {
             Wait(0.8, game_state);
-            Print("\nTo hit: [crit dice]: %d (fumble: <= %d | crit: >= %d)  ", ar->crit_dice_result, ar->crit_ranges.failure, ar->crit_ranges.success);
+            Print("\nTo hit: [crit dice]: %d (fumble: <= %d | crit: >= %d)", ar->crit_dice_result, ar->crit_ranges.failure, ar->crit_ranges.success);
             if(!ar->is_critical_success && !ar->is_critical_failure)
             {
+                Print(", ");
                 Print_Roll_Result(ar->accuracy_roll);
-                Print(", VS ");
+                Print(" VS ");
                 Print_Roll_Result(ar->dodge_roll);
             }
         }
@@ -2220,8 +2272,25 @@ SIG s16 Level(Entity* entity)
 
 SIG s32 Max_Health(Entity* entity, Game_State* game_state)
 {
-    s32 result = Get_Stat_Value(entity, Stats::vitality, game_state) * 5;
+    s32 x;
+    s32 vit = Get_Stat_Value(entity, Stats::vitality, game_state);
+    s32 result = 0;
     
+    x = Min(vit, 5);
+    result += 5 * x;
+    vit -= x;
+    
+    x = Min(vit, 3);
+    result += 3 * x;
+    vit -= x;
+
+    x = Min(vit, 2);
+    result += 2 * x;
+    vit -= x;
+
+    result += vit;
+
+
     if(entity->flags & EFlags::godmode)
     {
         result = 100000;
@@ -3450,29 +3519,28 @@ SIG void Inventory(Entity* actor, Game_State* game_state)
         
         bool unique = true;
         bool is_equipped = Is_Equipped(actor, entity, game_state);
-        if(!is_equipped)
+        
+
+        String entity_name = Get_String(entity->name_offset, game_state);
+        for(u64 i = 0; i < display_item_count; ++i)
         {
-            String entity_name = Get_String(entity->name_offset, game_state);
-            for(u64 i = 0; i < display_item_count; ++i)
+            Inventory_Display_Item* idi = display_items + i;
+            
+            if(!is_equipped && !idi->equipped && Is_The_Same(entity, idi->entity, game_state))
             {
-                Inventory_Display_Item* idi = display_items + i;
-                
-                if(!idi->equipped && Is_The_Same(entity, idi->entity, game_state))
+                unique = false;
+                idi->count += 1;
+                highest_idi_count = Max(highest_idi_count, idi->count);
+                break;
+            }
+            
+            String idi_name = Get_String(idi->entity->name_offset, game_state);
+            if(Match_Case_Sensitive(entity_name, idi_name))
+            {
+                dublicate_names_count += 1;
+                if(!first_dublicate_name_hit)
                 {
-                    unique = false;
-                    idi->count += 1;
-                    highest_idi_count = Max(highest_idi_count, idi->count);
-                    break;
-                }
-                
-                String idi_name = Get_String(idi->entity->name_offset, game_state);
-                if(Match_Case_Sensitive(entity_name, idi_name))
-                {
-                    dublicate_names_count += 1;
-                    if(!first_dublicate_name_hit)
-                    {
-                        first_dublicate_name_hit = idi->entity;
-                    }
+                    first_dublicate_name_hit = idi->entity;
                 }
             }
         }
@@ -3492,8 +3560,8 @@ SIG void Inventory(Entity* actor, Game_State* game_state)
             display_item_count += 1;
             entity->refnum = display_item_count;
 
-            String entity_name = Name_Without_Color(entity, game_state);
-            longest_item_name_length = Max(longest_item_name_length, entity_name.length);
+            String name = Name_Without_Color(entity, game_state);
+            longest_item_name_length = Max(longest_item_name_length, name.length);
             heaviest_weight = Max(heaviest_weight, entity->weight);
             *Push_Struct(&game_state->scratch_buffer, Inventory_Display_Item) = {entity, 1, is_equipped};
         }
@@ -3646,7 +3714,21 @@ SIG bool Equip(Entity* actor, Entity* target, Game_State* game_state, Verbose::T
 
     if(item_was_equiped)
     {
-        if(!Is_Equipped(actor, target, game_state))
+        bool under_the_influence_of_target_item_effect = false;
+
+        {
+            Effects_Iterator iter = Make_Iterator(&actor->active_effects, game_state);
+            while(Effect_Instance* instance = Next(&iter))
+            {
+                if(instance->effect_offset.v == target->on_equip_effect_offset.v)
+                {
+                    under_the_influence_of_target_item_effect = true;
+                    break;
+                }
+            }
+        }
+
+        if(!Is_Equipped(actor, target, game_state) && !under_the_influence_of_target_item_effect)
         {
             Arena* scratch_buffer = &game_state->scratch_buffer;
             
@@ -4028,6 +4110,20 @@ SIG void Remove_Random_Effect(Entity* entity, String source_name, Game_State* ga
 
 SIG Damage_Modifiers_Result Damage_Modifier_From_Effects(Entity* attacker, Attack_Record* ar, Game_State* game_state)
 {
+    struct local
+    {
+        static bool Has_Damage_Modifier(Effect* effect)
+        {
+            bool result = 
+            effect->damage_die.count || 
+            effect->raw_damage_modifier || 
+            effect->pierce ||
+            (effect->flags & Effect_Flags::has_damage_multiplier);
+
+            return result;
+        }
+    };
+
     s32 total_pierce = 0;
     s32 total_mod = 0;
     f32 total_mult = 1;
@@ -4042,7 +4138,7 @@ SIG Damage_Modifiers_Result Damage_Modifier_From_Effects(Entity* attacker, Attac
         Effects_Iterator iter = Make_Iterator(&attacker->active_effects, game_state);
         while(Effect* effect = Next_Effect(&iter))
         {
-            if(effect->damage_die.count || effect->raw_damage_modifier || (effect->flags & Effect_Flags::has_damage_multiplier))
+            if(local::Has_Damage_Modifier(effect))
             {
                 effect_count_with_damage_modifiers += 1;
             }
@@ -4083,7 +4179,7 @@ SIG Damage_Modifiers_Result Damage_Modifier_From_Effects(Entity* attacker, Attac
     while(Effect_Instance* instance = Next(&iter))
     {
         Effect* effect = Pointer(instance->effect_offset, game_state);
-        if(effect->damage_die.count || effect->raw_damage_modifier || (effect->flags & Effect_Flags::has_damage_multiplier))
+        if(local::Has_Damage_Modifier(effect))
         {
             Damage_Modifier mod = {};
             mod.source = instance;
@@ -4890,6 +4986,8 @@ SIG bool Is_Compliant(Loot_Table_Entry entry, Pick_From_Table_Rules rules)
     bool matches_weight = Compare(entry.weight, rules.weight_comparison, rules.target_weight_A, rules.target_weight_B);
 
     bool matches_equipment_filters = true;
+
+    bool does_not_collider_with_excluded_slots = !(entry.required_slots & rules.excluded_slots);
     if(rules.equipment_slot_filter_count)
     {
         matches_equipment_filters = false;
@@ -4905,7 +5003,8 @@ SIG bool Is_Compliant(Loot_Table_Entry entry, Pick_From_Table_Rules rules)
         }
     }
 
-    bool result = matches_rarity && matches_weight && matches_equipment_filters;
+
+    bool result = matches_rarity && matches_weight && matches_equipment_filters && does_not_collider_with_excluded_slots;
     return result;
 }
 
@@ -5676,6 +5775,76 @@ SIG void Create_Player_Charater(Game_State* game_state)
         #if ENTRANCE
         game_state->room_generation_override_fn_offset = Offset(Generate_Entrance_Room, game_state);
         #endif
+
+        #if CUSTOM_START
+        {
+            Level_Segments level_1 = Caves(game_state);
+
+            switch(_global_custom_start)
+            {
+                case Custom_Start::level_1_zone_1:
+                {
+                    // Just the normal game start.
+                }break;
+                case Custom_Start::level_1_zone_2:
+                {
+                    s32 distance_travelled = level_1.segments[0].size;
+                    game_state->distance_travelled = distance_travelled;
+
+                    Equip(player, Create_Gambeson(player, game_state), game_state);
+                    Equip(player, Create_Padded_Pants(player, game_state), game_state);
+                    Equip(player, Create_Travel_Boots(player, game_state), game_state);
+                    Equip(player, Create_Ring_Of_Protection(player, game_state), game_state);
+                    Equip(player, Create_Ring_Of_Precision(player, game_state), game_state);
+                    Equip(player, Create_Skull_Cap(player, game_state), game_state);
+                    Equip(player, Create_Leather_Gloves(player, game_state), game_state);
+
+                    Drop_Command(player, STR("arming cap"), game_state);
+                    Drop_Command(player, STR("leather cuirass"), game_state);
+                    Drop_Command(player, STR("bomb"), game_state);
+                    Drop_Command(player, STR("healing potion"), game_state);
+                    Drop_Command(player, STR("Steak & mashed potatoes"), game_state);
+
+                    player->exp = Exp_To_Level_Up(Level(player) + 1);
+                    Ding(player, game_state);
+                    Full_Heal(player, game_state);
+
+                }break;
+                case Custom_Start::level_1_zone_3:
+                {
+
+                }break;
+
+
+                case Custom_Start::level_2_zone_1:
+                {
+
+                }break;
+                case Custom_Start::level_2_zone_2:
+                {
+
+                }break;
+                case Custom_Start::level_2_zone_3:
+                {
+
+                }break;
+
+
+                case Custom_Start::level_3_zone_1:
+                {
+
+                }break;
+                case Custom_Start::level_3_zone_2:
+                {
+
+                }break;
+                case Custom_Start::level_3_zone_3:
+                {
+
+                }break;
+            }
+        }
+        #endif
     }
 }
 
@@ -6009,7 +6178,7 @@ SIG bool Play_Game(Game_State* game_state)
     Reset_Game_State(game_state);
 
     Print("New game of DUNGEON HD!");
-    Create_Player_Charater(game_state);        
+    Create_Player_Charater(game_state);
 
     while(game_state->running)
     {
@@ -6509,9 +6678,13 @@ SIG CMD_Result::T Drop_Command(Entity* actor, String args, Game_State* game_stat
         
         if(Entity* room = Pointer(actor->residence, game_state))
         {
+            Print("\n%s dropped.", target_name.ptr);
             Deep_Insert(target, room, game_state);
         }
-        Print("\n%s dropped.", target_name.ptr);
+        else
+        {
+            Delete_Entity(target, game_state);
+        }
     }
     else
     {

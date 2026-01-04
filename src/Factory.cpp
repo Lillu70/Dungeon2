@@ -85,6 +85,8 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     LOOP(3) Create_Bread(entity, game_state);
     Create_Steak_And_Smashed_Potatoes(entity, game_state);
 
+    LOOP(2) Create_Ring_Of_Protection(entity, game_state);
+
     // Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
     
     return entity;
@@ -162,40 +164,148 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     
     {
         s16* stats = entity->_stats;
-        stats[Stats::vitality]  = 5;
-        stats[Stats::might]     = 5;
-        stats[Stats::dodge]     = 5;
-        stats[Stats::accuracy]  = 5;
+        stats[Stats::vitality]  = 7;
+        stats[Stats::might]     = 7;
+        stats[Stats::dodge]     = 7;
+        stats[Stats::accuracy]  = 7;
         stats[Stats::speed]     = 10;
         stats[Stats::arcane]    = 5;
         stats[Stats::immunity]  = 5;
-        stats[Stats::armor]     = 1;
+        stats[Stats::armor]     = 10;
     }
 
     Finalize_Entity(entity, room, game_state);
     
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
-    
-    if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
     {
-        Entity* weapon = weapon_gen_fn(entity, game_state);
-        Equip(entity, weapon, game_state);
-
-        bool is_1h_weapon = weapon->required_equipment_slots == Equipment_Slots::flag[Equipment_Slots::primary_hand];
-        u32 roll = Roll(5, game_state);
-
-        if(is_1h_weapon && roll >= 3)
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
+        
+        if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
         {
-            u32 offhand_slot = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
-            rules.Slot_Filters(&offhand_slot, 1);
+            Entity* weapon = weapon_gen_fn(entity, game_state);
+            Equip(entity, weapon, game_state);
 
-            if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules.Finish(), game_state))
+            bool is_1h_weapon = weapon->required_equipment_slots == Equipment_Slots::flag[Equipment_Slots::primary_hand];
+            u32 roll = Roll(5, game_state);
+
+            if(is_1h_weapon && roll >= 3)
             {
-                Entity* offhand = offhand_gen_fn(entity, game_state);
-                Equip(entity, offhand, game_state);
+                u32 offhand_slot = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+                rules.Slot_Filters(&offhand_slot, 1);
+
+                if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules.Finish(), game_state))
+                {
+                    Entity* offhand = offhand_gen_fn(entity, game_state);
+                    Equip(entity, offhand, game_state);
+                }
             }
         }
     }
+
+    {
+        Pick_From_Table_Rules rules = Rules_Builder()
+        .Excluded_Slots(Equipment_Slots::flag[Equipment_Slots::secondary_hand])
+        .Rarity(Comparison::maximum, Rarity::magical)
+        .Finish();
+        
+        u64 count = Per_Count_Rolled_Square_Weighted_Random(5, game_state);
+        for(u64 i = 0; i < count; ++i)
+        {
+            if(GENERATE_ENTITY_FN* armor_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules, game_state))
+            {
+                Entity* armor = armor_gen_fn(entity, game_state);
+                Equip(entity, armor, game_state);
+
+                rules.excluded_slots |= armor->required_equipment_slots;
+            }
+        }
+    }
+
+    Generate_From_Loot_Table
+    (
+        entity, 
+        Basic_Merged_Loot_Table(game_state), 
+        Per_Count_Rolled_Random(3, 6, game_state), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        game_state
+    );
+
+    return entity;
+}
+
+
+SIG Entity* Create_Assasin_Bandit(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Bandit"), game_state);
+    entity->description_offset = Offset(STR("A cave dwelling bandit, he looks to be up to no good."), game_state);
+    
+    entity->flags = EFlags::actor | EFlags::aggressive | EFlags::can_be_stolen_from;
+    entity->faction = Faction::bandit;
+    entity->weight = 100;
+    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 6;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 8;
+        stats[Stats::accuracy]  = 7;
+        stats[Stats::speed]     = 13;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 10;
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    Loot_Table_Entry weapons[] =
+    {
+        {Create_Assassins_Claws},
+        {Create_Cestus},
+        {Create_Dagger},
+        {Create_Poison_Dagger},
+        {Create_Straightsword},
+        {Create_Short_Spear},
+        {Create_Whip},
+    };
+
+    Loot_Table weapons_table = {weapons, Array_Length(weapons)};
+    Fill_Loot_Table_Changes_And_Item_Rarity(&weapons_table, game_state);
+
+    if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(weapons_table, {}, game_state))
+    {
+        Entity* weapon = weapon_gen_fn(entity, game_state);
+        Equip(entity, weapon, game_state);
+    }
+
+    Pick_From_Table_Rules rules = Rules_Builder()
+    .Excluded_Slots(Equipment_Slots::flag[Equipment_Slots::secondary_hand])
+    .Weight(Comparison::maximum, 5)
+    .Rarity(Comparison::maximum, Rarity::magical)
+    .Finish();
+    
+    u64 count = Per_Count_Rolled_Random(5, 7, game_state);
+    for(u64 i = 0; i < count; ++i)
+    {
+        if(GENERATE_ENTITY_FN* armor_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules, game_state))
+        {
+            Entity* armor = armor_gen_fn(entity, game_state);
+            Equip(entity, armor, game_state);
+
+            rules.excluded_slots |= armor->required_equipment_slots;
+        }
+    }
+
+    #if 0
+    Generate_From_Loot_Table
+    (
+        entity, 
+        Basic_Merged_Loot_Table(game_state), 
+        Per_Count_Rolled_Random(3, 6, game_state), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        game_state
+    );
+    #endif
 
     return entity;
 }

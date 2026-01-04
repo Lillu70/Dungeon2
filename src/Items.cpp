@@ -154,6 +154,8 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Crusaders_Breastplate},
         {Create_Knights_Breastplate},
         {Create_Gloves_Of_Careful_Attacking},
+        {Create_Bucket, 10},
+        {Create_Sack, 10},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -1703,6 +1705,7 @@ SIG Entity* Create_Ring_Of_Penetration(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
+        effect.name_offset = Offset(STR("Penetration"), game_state);
         effect.pierce = 2;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2065,9 +2068,10 @@ SIG Entity* Create_Plate_Gloves(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::armor] = + 3;
-        effect.stat_modifiers[Stats::speed] = - 1;
-        effect.critical_failure_range       = + 1;
+        effect.stat_modifiers[Stats::armor]     = + 3;
+        effect.stat_modifiers[Stats::speed]     = - 1;
+        effect.stat_modifiers[Stats::arcane]    = - 1;
+        effect.critical_failure_range           = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2515,6 +2519,60 @@ SIG Entity* Create_Arming_Cap(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Bucket(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Bucket"), game_state);
+    entity->description_offset = Offset(STR("A wooden bucket. Commonly used for carrying water. You could use it as an improviced helmet, but it's kinda hard to see from underneath it."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 2;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 3;
+        effect.stat_modifiers[Stats::accuracy]  = - 7;
+        effect.critical_failure_range           = + 5;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Sack(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Sack"), game_state);
+    entity->description_offset = Offset(STR("You could hide from the reality of your sitution by putting your head in it."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 2;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::immunity]  = + 10;
+        effect.stat_modifiers[Stats::accuracy]  = - 5;
+        effect.critical_failure_range           = + 5;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     

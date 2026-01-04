@@ -107,16 +107,24 @@ struct Entity_Node_Offset
 enum class Storage : u8
 {
     dynamic,
-    static,
+    _static,
 };
 
 
 struct String_Offset
 {
     u64 v; // Used as an offset to a String_Wrapper.
-    u64 length;
-    Storage storage;
+    union
+    {
+        u64 length;
+        struct
+        {
+            char padding[7];
+            Storage storage;
+        };
+    };
 };
+static_assert(sizeof(String_Offset) == 16);
 
 
 struct String_Wrapper
@@ -909,6 +917,7 @@ struct Pick_From_Table_Rules
     Rarity::T target_rarity_B;
     u32* equipment_slot_filters;
     u64 equipment_slot_filter_count;
+    u64 excluded_slots;
     Comparison weight_comparison;
     s16 target_weight_A;
     s16 target_weight_B;
@@ -940,6 +949,13 @@ struct Rules_Builder
 
         return *this;
     }
+
+    Rules_Builder Excluded_Slots(u64 mask)
+    {
+        rules.excluded_slots = mask;
+        return *this;
+    }
+
 
     Rules_Builder Weight(Comparison comp, s16 A, s16 B = s32(0))
     {
