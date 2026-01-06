@@ -499,6 +499,7 @@ enum class Faction : u8
     ants,
     undead,
     mimic,
+    goblin,
 
     general_hostility,
     COUNT
@@ -844,6 +845,7 @@ struct Game_State
     u32 level;
     s32 distance_travelled;
 
+    u64 visible_initiative_count;
     u64 initiative_count;
     u64 active_initiative_index;
     Entity_Root_Node initiative_order;

@@ -193,6 +193,7 @@ SIG Loot_Table Basic_Weapons_Loot_Table(Game_State* game_state)
         {Create_Battle_Axe},
         {Create_Great_Axe},
         {Create_Rapier},
+        {Create_Club},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -313,7 +314,7 @@ SIG Entity* Create_Long_Spear(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.pierce                       = + 14;
+        effect.pierce                       = + 9;
         effect.stat_modifiers[Stats::might] = + 5;
         effect.stat_modifiers[Stats::speed] = + 6;
         effect.critical_success_range       = + 4;
@@ -410,7 +411,7 @@ SIG Entity* Create_Assassins_Claws(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};        
-        effect.stat_modifiers[Stats::might] = + 1;
+        effect.stat_modifiers[Stats::might] = + 3;
         effect.stat_modifiers[Stats::dodge] = + 3;
         effect.stat_modifiers[Stats::speed] = + 2;
         effect.critical_success_range       = + 7;
@@ -475,6 +476,7 @@ SIG Entity* Create_Ram_Shield(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::might] = + 5;
         effect.stat_modifiers[Stats::armor] = + 3;
         effect.stat_modifiers[Stats::speed] = - 1;
+        Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -732,7 +734,7 @@ SIG Entity* Create_War_Pick(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.pierce                        = + 6;
-        effect.stat_modifiers[Stats::might]  = + 4;
+        effect.stat_modifiers[Stats::might]  = + 5;
         Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -799,6 +801,33 @@ SIG Entity* Create_Whip(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Club(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Club"), game_state);
+    entity->description_offset = Offset(STR("A wooden stick used for bashing."), game_state);
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
+    
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::might] = + 4;
+        Add_Dice(&effect, 1, 2);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Mace(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -850,7 +879,7 @@ SIG Entity* Create_Rapier(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::speed]    = + 1;
         effect.critical_success_range          = + 6;
         effect.critical_failure_range          = + 2;
-        Add_Dice(&effect, 1, 6);
+        Add_Dice(&effect, 2, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -909,7 +938,7 @@ SIG Entity* Create_Morning_Star(Entity* room, Game_State* game_state)
         effect.pierce                       = + 3;
         effect.stat_modifiers[Stats::might] = + 9;
         effect.stat_modifiers[Stats::speed] = - 2;
-        Add_Dice(&effect, 1, 2);
+        Add_Dice(&effect, 1, 5);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -2169,7 +2198,7 @@ SIG Entity* Create_Barn_Door_Shield(Entity* room, Game_State* game_state)
     entity->flags = EFlags::equippable | EFlags::item;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
-    entity->weight = 20;
+    entity->weight = 14;
     entity->_stats[Stats::vitality] = 80;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -2197,15 +2226,15 @@ SIG Entity* Create_Tower_Shield(Entity* room, Game_State* game_state)
     entity->rarity = Rarity::rare;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
-    entity->weight = 30;
+    entity->weight = 15;
     entity->_stats[Stats::vitality] = 100;
     
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::armor] = + 10;
-        effect.stat_modifiers[Stats::dodge] = - 10;
+        effect.stat_modifiers[Stats::armor] = + 7;
+        effect.stat_modifiers[Stats::dodge] = - 8;
         effect.stat_modifiers[Stats::speed] = - 10;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -3529,6 +3558,7 @@ SIG Entity* Create_Restoration_Potion(Entity* container, Game_State* game_state)
                 if(!Retrive_Effect(key, &instance.effect_offset, game_state))
                 {
                     Effect effect = {};
+                    effect.name_offset = Offset(STR("Restoration"), game_state);
                     effect.type = Effect_Type::magic;
                     effect.on_turn_start_fn_offset = Offset(local::On_Turn_Start, game_state);
                     instance.effect_offset = Insert_Effect(effect, key, game_state);
@@ -3547,7 +3577,7 @@ SIG Entity* Create_Restoration_Potion(Entity* container, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Restoration Potion"), game_state);
-    entity->description_offset = Offset(STR("Feels warm when drinking."), game_state);
+    entity->description_offset = Offset(STR("Gives a warm feeling at the back of the throat."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
     entity->rarity = Rarity::common;
 

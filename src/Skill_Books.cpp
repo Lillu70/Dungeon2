@@ -33,7 +33,7 @@ SIG Entity* Manual_Of_Reckless_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of reckless attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -71,7 +71,7 @@ SIG Entity* Manual_Of_Careful_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of careful attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -109,7 +109,7 @@ SIG Entity* Manual_Of_Weakspot_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of weakspot attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -147,7 +147,7 @@ SIG Entity* Manual_Of_Allin_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of allin attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -185,7 +185,7 @@ SIG Entity* Manual_Of_Disarming_Attack(Entity* container, Game_State* game_state
     entity->name_offset = Offset(STR("Manual of disarming attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -223,7 +223,7 @@ SIG Entity* Manual_Of_Guarding_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of guarding attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -261,7 +261,7 @@ SIG Entity* Manual_Of_Evasive_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of evasive attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -299,7 +299,7 @@ SIG Entity* Manual_Of_Vampiric_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of vampiric attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -337,7 +337,7 @@ SIG Entity* Manual_Of_Blessed_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of blessed attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -375,7 +375,7 @@ SIG Entity* Manual_Of_Berserking_Attack(Entity* container, Game_State* game_stat
     entity->name_offset = Offset(STR("Manual of berserking attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -413,7 +413,7 @@ SIG Entity* Manual_Of_Execute_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of execute attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -451,7 +451,7 @@ SIG Entity* Manual_Of_Redirect_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of redirect attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -489,7 +489,7 @@ SIG Entity* Manual_Of_Change_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of change attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -527,7 +527,7 @@ SIG Entity* Manual_Of_Cleansing_Attack(Entity* container, Game_State* game_state
     entity->name_offset = Offset(STR("Manual of cleansing attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -565,7 +565,7 @@ SIG Entity* Manual_Of_Thieving_Attack(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Manual of thieving attack"), game_state);
     entity->description_offset = Offset(STR("A skill book."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::magical;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);

@@ -151,10 +151,12 @@ SIG void Strength_Of_Earth_Small_On_Turn_Start(Effect_Instance* instance, Entity
 
         if(health <= trigger_health)
         {
-            Print("%s crumbles into 2 smaller golems", Name(target, game_state).ptr);
+            Print("%s crumbles into 2 smaller golems.", Name(target, game_state).ptr);
             target->_health = 0;
             Entity* room = Pointer(target->residence, game_state);
             LOOP(2) Create_Small_Earth_Golem(room, game_state);
+
+            Wait(1, game_state);
         }
     }
     else
@@ -179,6 +181,8 @@ SIG void Strength_Of_Earth_Tiny_On_Turn_Start(Effect_Instance* instance, Entity*
             target->_health = 0;
             Entity* room = Pointer(target->residence, game_state);
             LOOP(2) Create_Tiny_Earth_Golem(room, game_state);
+            
+            Wait(1, game_state);
         }
     }
     else
@@ -202,6 +206,8 @@ SIG void Dissapate_After_Two_On_Turn_Start(Effect_Instance* instance, Entity* ta
             Print("%s dissipates.", Name(target, game_state).ptr);
             target->_health = 0;
             target->flags = EFlags::hidden;
+
+            Wait(1, game_state);
         }
     }
     else
@@ -281,6 +287,18 @@ SIG Effect_Offset Get_Enraged_Effect_Offset(Game_State* game_state)
     }
 
     return result;
+}
+
+
+SIG Effect_Instance Get_Enraged(Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::round;
+    instance.duration = 1;
+    instance.effect_offset = Get_Enraged_Effect_Offset(game_state);
+
+    return instance;
 }
 
 
@@ -1276,7 +1294,7 @@ SIG Effect_Instance Blessed_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("on hit gives temporary health equal to %.2f%% of maximum health, but on a miss take damage equal to twice that.", local::Health_Ratio() * 100.f);
+        Print("on attack gives temporary health equal to %.2f%% of maximum health, but if the attack misses, take damage equal to twice that.", local::Health_Ratio() * 100.f);
     }
     
     return instance;

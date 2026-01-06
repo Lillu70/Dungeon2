@@ -47,6 +47,9 @@ enum class Custom_Start
     level_3_zone_2,
     level_3_zone_3,
 };
+
+#define CUSTOM_START_MANUAL_LEVEL_UP 0
+
 #if CUSTOM_START
 constexpr Custom_Start _global_custom_start = Custom_Start::level_1_zone_2;
 #endif
@@ -178,9 +181,9 @@ SIG void Push_Message(String message, Game_State* game_state)
 }
 
 
-SIG void Wait(f64 seconds, Game_State* game_state)
+SIG void Wait(f64 seconds, Game_State* game_state, Forced::T forced DEF(Forced::T(0)))
 {
-    if(game_state->enable_dramatic_pausing)
+    if((game_state->enable_dramatic_pausing || forced) && seconds > 0)
     {
         OS_Sleep(seconds);
     }
@@ -2215,7 +2218,7 @@ SIG void Ding(Entity* actor, Game_State* game_state)
 SIG s32 Exp_To_Level_Up(s32 _lvl)
 {
     f32 lvl = f32(_lvl);
-    s32 result = s32( -5.f + Round((1.f + Square(lvl))) * 5.f);
+    s32 result = s32((Square(lvl) + lvl * 3) * 5.f);
     return result;
 }
 
@@ -2842,7 +2845,7 @@ SIG u64 Count_Effect_Instances(Effects_Root* root, Effect_Instance cmp, Game_Sta
 }
 
 
-SIG void Delete_Effect_Slot(Effects_Root* root, Effects_Node* node, u64 *idx, u64* count, Game_State* game_state)
+SIG void Delete_Effect_Slot(Entity* actor, Effects_Root* root, Effects_Node* node, u64 *idx, u64* count, Game_State* game_state)
 {
     Effects_Node* head = Pointer(root->head_offset, game_state);
 
@@ -2879,6 +2882,8 @@ SIG void Delete_Effect_Slot(Effects_Root* root, Effects_Node* node, u64 *idx, u6
             *root = {};
         }
     }
+
+    actor->_health = Min(actor->_health, Max_Health(actor, game_state));
 }
 
 
@@ -3028,12 +3033,13 @@ SIG Apply_Effect_Result Apply_Effect(Entity* target, Effect_Instance instance, G
 
                 s32 post_max_health = Max_Health(target, game_state);
 
+                #if 0
                 s32 diff = post_max_health - pre_max_health;
                 if(diff > 0)
                 {
                     target->_health += diff;
                 }
-
+                #endif
                 target->_health = Min(target->_health, post_max_health);
             }
         }
@@ -3063,7 +3069,7 @@ SIG void Remove_Effects_From_Source(Entity* actor, Entity* source, Game_State* g
             
             if(Pointer(instance->source, game_state) == source)
             {
-                Delete_Effect_Slot(root, node, &idx, &count, game_state);
+                Delete_Effect_Slot(actor, root, node, &idx, &count, game_state);
             }
         }
 
@@ -3094,7 +3100,7 @@ SIG u64 Remove_Effects_Of_Type(Entity* actor, Effect_Type::T type_to_remove, Gam
                 {
                     Print("\n%s removed.", Effect_Name(instance, game_state).ptr);
                 }
-                Delete_Effect_Slot(root, node, &idx, &count, game_state);
+                Delete_Effect_Slot(actor, root, node, &idx, &count, game_state);
                 removed_effect_count += 1;
             }
         }
@@ -4001,6 +4007,11 @@ SIG bool Glance(Entity* actor, Game_State* game_state, Report_Turn_Taken_Status:
         {
             wait_time = Max(0.05f, wait_time - entity_total_count * 0.05f);
         }
+        
+        if(game_state->visible_initiative_count == 1)
+        {
+            wait_time = 0;
+        }
 
         Entity_Iterator iter = Make_Iterator(actor_residence, game_state);
         while(Entity* entity = Next_Entity(&iter))
@@ -4098,7 +4109,7 @@ SIG void Remove_Random_Effect(Entity* entity, String source_name, Game_State* ga
                     Push_Message(message, game_state);
                     
                     iter.idx -= 1;
-                    Delete_Effect_Slot(&entity->active_effects, iter.current_node, &iter.idx, 0, game_state);
+                    Delete_Effect_Slot(entity, &entity->active_effects, iter.current_node, &iter.idx, 0, game_state);
                     break;
                 }
                 count += 1;
@@ -4812,7 +4823,7 @@ SIG void Take_Action(Entity* actor, Game_State* game_state)
             }
             else
             {
-                Print("\n\n%s is stunned (%d) and loses its turn!", actor_name.ptr, actor->stunned);
+                Print("\n\n%s is stunned (%d) and loses its turn! ", actor_name.ptr, actor->stunned);
             }         
         }
 
@@ -5512,7 +5523,7 @@ SIG void Tick_Down_Effect_Durations(Entity* actor, Duration_Type type, Game_Stat
                             Push_Message(STR("Unknown effect expires."), game_state);
                         }
 
-                        Delete_Effect_Slot(root, node, &idx, &count, game_state);
+                        Delete_Effect_Slot(actor, root, node, &idx, &count, game_state);
                     }
                 }
                 else
@@ -5806,7 +5817,21 @@ SIG void Create_Player_Charater(Game_State* game_state)
                     Drop_Command(player, STR("Steak & mashed potatoes"), game_state);
 
                     player->exp = Exp_To_Level_Up(Level(player) + 1);
-                    Ding(player, game_state);
+                    
+                    #if CUSTOM_START_MANUAL_LEVEL_UP
+                    {
+                        Ding(player, game_state);
+                    }
+                    #else
+                    {
+                        player->_lvl += 2;
+                        player->_stats[Stats::vitality] += 3;
+                        player->_stats[Stats::might]    += 3;
+                        player->_stats[Stats::dodge]    += 2;
+                        player->_stats[Stats::accuracy] += 2;
+                    }
+                    #endif
+                    
                     Full_Heal(player, game_state);
 
                 }break;
@@ -6011,7 +6036,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
             Release_Entity_Node(&game_state->initiative_order, game_state);
         }
         
-        u64 visible_initiative_count = 0;
+        game_state->visible_initiative_count = 0;
         Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
         Entity_Offset* offsets_base = (Entity_Offset*)Push(&game_state->scratch_buffer, 0);
         
@@ -6036,7 +6061,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
                     {
                         longest_entity_name_lenght = Max(longest_entity_name_lenght, Name_Without_Color(entity, game_state).length);
                         longest_digit_count = Max(longest_digit_count, Digits(entity->initiative.value.total_result));
-                        visible_initiative_count += 1;
+                        game_state->visible_initiative_count += 1;
                     }
 
                     Insert(entity, &game_state->initiative_order, game_state);
@@ -6055,7 +6080,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
         {
             Sort_Iniative_Order(offsets_base, game_state);
 
-            if(visible_initiative_count > 1)
+            if(game_state->visible_initiative_count > 1)
             {
                 Print("\n\nBegin of a new round! Press [Enter] to roll initiative: ");
                 Get_User_Input(game_state);
@@ -6070,7 +6095,7 @@ SIG void Prepare_Game_Round(Game_State* game_state)
 
                     if(init->visible)
                     {
-                        f32 wait_time = Max(0.05f, 0.8f - visible_initiative_count * 0.05f);
+                        f32 wait_time = Max(0.05f, 0.8f - game_state->visible_initiative_count * 0.05f);
                         Wait(wait_time, game_state);
 
                         s32 npadding = s32(longest_entity_name_lenght + 1);
@@ -6679,6 +6704,7 @@ SIG CMD_Result::T Drop_Command(Entity* actor, String args, Game_State* game_stat
         if(Entity* room = Pointer(actor->residence, game_state))
         {
             Print("\n%s dropped.", target_name.ptr);
+            target->flags |= EFlags::visible;
             Deep_Insert(target, room, game_state);
         }
         else
