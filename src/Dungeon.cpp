@@ -6,9 +6,6 @@
 // ===================================
 
 
-// TODO: Static string storage.
-// TODO: Something like a #table for the dynamic strings.
-
 // TODO: Pierce and armor effects in the default deal damage print out.
 // TODO: Duration type part of the effect instead of The instance???
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
@@ -21,6 +18,7 @@
 
 // TODO: Implement More attack modifiers
 // TODO: Make help command describe common effects.
+// TODO: Improve the static string storage.. or rather the dynamic string storage. The offset already contains the lenght so it need not be stored seperatly.
 
 
 #define DEVMODE      1
@@ -30,7 +28,7 @@
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
 #define QUICKSTART   1
-#define CUSTOM_START 0
+#define CUSTOM_START 1
 
 
 enum class Custom_Start
@@ -717,6 +715,92 @@ SIG Entity* Find_Entity_By_Name_Or_Reference_Number(Entity* actor, Entity* space
         else
         {
             target = Find_Entity_By_Name(actor, space, name_or_reference_number, game_state, verbose);
+        }
+    }
+    
+    return target;
+}
+
+
+SIG Entity* Find_Entity_By_Name_Or_Reference_Number2(Entity* actor, Entity* space, String* in_out_args, Game_State* game_state, Verbose::T verbose)
+{
+    String args = *in_out_args;
+
+    args = Skip_Zeroes(args);
+
+    Entity* target = 0;
+
+    if(space && args.length)
+    {
+        if(Is_Integer(First(args)))
+        {
+            // Look for numbers.. determine number segment length.
+            
+            u64 length = args.length;
+            for(u64 i = 1; i < args.length; ++i)
+            {
+                if(!Is_Integer(args.ptr[i]))
+                {
+                    length = i;
+                    break;
+                }
+            }
+
+            String number_segment = {args.ptr, length};
+
+            u64 refnum = To_U64(number_segment);
+            if(refnum)
+            {
+                Entity_Iterator iter = Make_Iterator(space, game_state);
+                while(Entity* entity = Next_Entity(&iter))
+                {
+                    if(entity->refnum == refnum)
+                    {
+                        target = entity;
+                        *in_out_args = Forward(args, number_segment);
+                        break;
+                    }
+                }
+            }
+
+            if(!target && verbose)
+            {
+                Print("\nThe reference number (%llu) used as an argument did not match any entity.", refnum);
+            }
+        }
+        else
+        {
+            Arena_Snapshot snapshot = Snapshot(&game_state->messages_buffer);
+            Entity_Iterator iter = Make_Iterator(space, game_state);
+            while(Entity* entity = Next_Entity(&iter))
+            {
+                if(entity != actor && (Is_Visible(entity, actor, game_state)))
+                {
+                    String entity_name = Name_Without_Color(entity, game_state);
+                    if(Match_Beginning_Case_Insensitive(args, entity_name))
+                    {
+                        target = entity;
+                        *in_out_args = Forward(args, entity_name);
+                        break;
+                    }
+
+
+                    String entity_true_name = Get_String(entity->name_offset, game_state);
+                    if(Match_Beginning_Case_Insensitive(args, entity_true_name))
+                    {
+                        target = entity;
+                        *in_out_args = Forward(args, entity_true_name);
+                        break;
+                    }
+                }
+            }
+
+            Restore(&game_state->messages_buffer, snapshot);
+            
+            if(!target && verbose)
+            {
+                Print("\nThe target name (%s) used as an argument did not match any entity.", args.ptr);
+            }
         }
     }
     
@@ -2238,7 +2322,7 @@ SIG s16 Calculate_Level(Entity* entity)
         total_stats += Max(0, s32(entity->_stats[i]));
     }
 
-    total_stats += (Max(s16(1), entity->_stats[Stats::armor]) - 1);
+    total_stats += Round_To_S32(f32(Max(s16(1), entity->_stats[Stats::armor]) - 1) * 0.5f);
 
     s16 lvl = 1 + Max(s16(0), s16(Round_To_S32(total_stats / f32(Stats::points_per_lvl))));
     return lvl;
@@ -3467,10 +3551,27 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
     
     if(result)
     {
-        if(interactable->uses_count)
+        bool use = true;
+
+        if(use && (item->flags & EFlags::equippable) && !Is_Equipped(actor, item, game_state))
+        {
+            use = false;
+            String item_name = Name(item, game_state);
+            Print("\n%s is not equipped, so it can't be used.", item_name.ptr);
+        }
+        
+        if(use && !interactable->uses_count)
+        {
+            use = false;
+            String item_name = Name(item, game_state);
+            Print("\n%s is empty, so it can't be used anymore...", item_name.ptr);
+        }
+
+
+        if(use)
         {
             Flush_Messages(game_state);
-            Pointer(interactable->on_use_fn_offset, game_state)/*It does call it ->*/(item, actor, game_state);
+            Pointer(interactable->on_use_fn_offset, game_state)/* It does call it -> */(item, actor, game_state);
             Print_Messages(game_state);
 
             if(interactable->uses_count != UNLIMITED_USES)
@@ -3488,11 +3589,6 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
                     }
                 }
             }
-        }
-        else
-        {
-            String item_name = Name(item, game_state);
-            Print("\n%s is empty, so it can't be used anymore...", item_name.ptr);
         }
     }
 
@@ -6725,15 +6821,28 @@ SIG CMD_Result::T Use_Command(Entity* actor, String args, Game_State* game_state
 {
     CMD_Result::T result = CMD_Result::success;
 
-    Entity* target = Find_Entity_By_Name_Or_Reference_Number(actor, actor, args, game_state);
-    
-    if(target)
+    String in_out_args = args;
+    Entity* item = Find_Entity_By_Name_Or_Reference_Number2(actor, actor, &in_out_args, game_state, Verbose::yes);
+    if(item)
     {
-        String target_name = Name(target, game_state);
-        Print("\nYou attempt to use %s.", target_name.ptr);
-        if(!Use(actor, target, game_state, Verbose::yes))
+        in_out_args = Skip_Whitespace(in_out_args);
+        Entity* target = actor;
+        if(in_out_args.length)
         {
-            Print("\nAttempt failed.");
+            target = Find_Entity_By_Name_Or_Reference_Number(actor, Pointer(actor->residence, game_state), in_out_args, game_state, Verbose::yes);
+        }
+
+        if(target) // NOTE: Have to check for the target as the target args may have nuked the pointer!
+        {
+            Print("\nYou attempt to use %s on %s", Name(item, game_state).ptr, Name(target, game_state).ptr);
+            if(!Use(target, item, game_state, Verbose::yes))
+            {
+                Print("\nAttempt failed.");
+            }    
+        }
+        else
+        {
+            result = CMD_Result::invalid_args;
         }
     }
     else

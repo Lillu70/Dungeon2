@@ -47,7 +47,7 @@ char* code =
 "    entity->name_offset = Offset(STR(\"Manual of %s attack\"), game_state);\n"
 "    entity->description_offset = Offset(STR(\"A skill book.\"), game_state);\n"
 "    entity->flags = EFlags::interactable | EFlags::item;\n"
-"    entity->rarity = Rarity::rare;\n"
+"    entity->rarity = Rarity::magical;\n"
 "\n"
 "    entity->weight = 1;\n"
 "    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);\n"

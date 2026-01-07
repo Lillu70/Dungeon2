@@ -8,13 +8,8 @@
 
 // Nyxm ring idea: Ring of Unstable Combustion
 // H.M. : What's not to love, I either live to explode another day or i can explode twice.
-// Deals damage to everything in the room 6 charges, roll a 1d(chareges) == 1 Damage is also applied to you.
-// Damage: 15 + [arcane]
-// Rarity: epic
-
-// Ring of False Hope
-// 1 charges, resurect at 1d(HP) health.
-// What's the worst thing that can happen? I die twice?!
+// Deals damage to everything in the room 6 charges, roll a 1d(charges) == 1 Damage is also applied to you.
+// Damage: 10 + [arcane]
 // Rarity: epic
 
 
@@ -62,6 +57,7 @@ SIG Loot_Table Basic_Consumables_Loot_Table(Game_State* game_state)
         {Create_Speed_Elixir},
         {Create_Immunity_Elixir},
         {Create_Arcane_Elixir},
+        {Create_Acid_Flask},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -94,6 +90,7 @@ SIG Loot_Table Basic_Trinkets_Loot_Table(Game_State* game_state)
         {Create_Demon_Brand},
         {Create_Ring_Of_Bloodshield},
         {Create_Ring_Of_Clumsy_Regeneration},
+        {Create_Ring_Of_False_Hope},
 
         // Should capes be here?
         {Create_Cape_Of_Dashing},
@@ -116,11 +113,13 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
     local_storage Loot_Table_Entry entries[] =
     {
         {Create_Wooden_Shield},
+        {Create_Wicker_Shield},
+        {Create_Hide_Shield},
         {Create_Buckler},
         {Create_Kite_Shield},
         {Create_Shearing_Light},
-        {Create_Barn_Door_Shield},
-        {Create_Tower_Shield},
+        {Create_Barn_Door_Shield, 70},
+        {Create_Tower_Shield, 50},
         {Create_Leather_Cuirass},
         {Create_Gambeson},
         {Create_Breastplate},
@@ -132,7 +131,7 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Leather_Tights},
         {Create_Padded_Pants},
         {Create_Warrior_Kilt},
-        {Create_Barbarian_Loingcloth},
+        {Create_Barbarian_Loincloth},
         {Create_Travel_Boots},
         {Create_Sabatons},
         {Create_Gladiator_Sandals},
@@ -1856,6 +1855,8 @@ SIG Entity* Create_Ring_Of_Rebirth(Entity* room, Game_State* game_state)
                 Entity* ring = Pointer(instance->source, game_state);
                 if(ring && ring->interactable.uses_count && ddr->is_killing_blow)
                 {
+                    ddr->is_killing_blow = false;
+                    
                     Full_Heal(defender, game_state);
                     String defender_name = Name(defender, game_state);
                     ring->interactable.uses_count -= 1;
@@ -1889,6 +1890,66 @@ SIG Entity* Create_Ring_Of_Rebirth(Entity* room, Game_State* game_state)
     entity->weight                  = 1;
     entity->_stats[Stats::vitality] = 10;
     entity->_stats[Stats::armor]    = 100;
+    entity->interactable.uses_count = 1;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.on_damage_taken_fn_offset = Offset(local::Rebirth, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Ring_Of_False_Hope(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void Rebirth(Effect_Instance* instance, Entity_Offset attacker_offset, Entity* defender, Deal_Damage_Result* ddr, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Entity* ring = Pointer(instance->source, game_state);
+                if(ring && ring->interactable.uses_count && ddr->is_killing_blow)
+                {
+                    ddr->is_killing_blow = false;
+                    
+                    defender->_health = 1;
+
+                    String defender_name = Name(defender, game_state);
+                    ring->interactable.uses_count -= 1;
+
+                    String description = STR("Devoid of magic.");
+                    ring->description_offset = Offset(description, game_state);
+
+                    char* format_string = "Ring of False Hope brings %s back to life consuming it self in the process. What was on the other side the curtain?";
+                    String message = Format_Message(game_state, format_string, defender_name.ptr);
+
+                    Push_Message(message, game_state);
+                }
+            }
+            else
+            {
+                Print("If the wearer dies, energy from the ring is transfared into the wearer consuming the ring and brining the wearer back to life, but with only 1 health.");
+            }
+        }
+    };
+
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Ring of False Hope"), game_state);
+    entity->description_offset = Offset(STR("What's the worst thing that can happen? I die twice?!"), game_state);
+    entity->rarity = Rarity::epic;
+
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
+   
+    entity->weight = 1;
     entity->interactable.uses_count = 1;
 
     Effect_Hash_Key key = EFFECT_KEY;
@@ -2114,12 +2175,12 @@ SIG Entity* Create_Wooden_Shield(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Wooden Shield"), game_state);
-    entity->description_offset = Offset(STR("A Shield made out of wooden planks. It does not seem very effective."), game_state);
+    entity->description_offset = Offset(STR("A Shield made out of wooden planks. Common and therefore cheap protection."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
-    entity->weight = 7;
+    entity->weight = 5;
     entity->_stats[Stats::vitality] = 10;
     
     Effect_Hash_Key key = EFFECT_KEY;
@@ -2136,6 +2197,59 @@ SIG Entity* Create_Wooden_Shield(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Wicker_Shield(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Wicker Shield"), game_state);
+    entity->description_offset = Offset(STR("It does not seem very effective."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Hide_Shield(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Hide Shield"), game_state);
+    entity->description_offset = Offset(STR("Tanned hide streched over a wooden frame to create a relatively effective shield."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+    entity->weight = 7;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+        effect.stat_modifiers[Stats::speed] = - 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Buckler(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -2143,7 +2257,7 @@ SIG Entity* Create_Buckler(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Buckler"), game_state);
     entity->description_offset = Offset(STR("A small round metal shield used for deflecting attacks."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::common;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
     entity->weight = 3;
@@ -2153,7 +2267,7 @@ SIG Entity* Create_Buckler(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::dodge] = + 3;
+        effect.stat_modifiers[Stats::dodge] = + 2;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2773,7 +2887,7 @@ SIG Entity* Create_Warrior_Kilt(Entity* room, Game_State* game_state)
 }
 
 
-SIG Entity* Create_Barbarian_Loingcloth(Entity* room, Game_State* game_state)
+SIG Entity* Create_Barbarian_Loincloth(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
@@ -3514,6 +3628,60 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
     entity->rarity = Rarity::rare;
 
     entity->weight = 1;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Acid_Flask(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            f32 armor_reduction = 0.5f;
+            Dice duration_dice = {2, 4};
+            if(item)
+            {
+                String effect_name = STR("Melt armor");
+
+                s16 potency = (s16)Round_To_S32(Get_Stat_Value(user, Stats::armor, game_state) * 0.5f);
+                
+                Effect* effect = Request_Effect(game_state);
+                effect->name_offset = Offset(effect_name, game_state);
+                effect->type = Effect_Type::magic;
+                effect->stat_modifiers[Stats::armor] = -potency;
+
+                Effect_Instance instance = {};
+                instance.effect_offset = Offset(effect, game_state);
+                instance.source = Offset(item, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                String message = String_Builder(&game_state->scratch_buffer).Next(effect_name).Next(STR(" potency is: ")).Next(potency).Finish();
+                Push_Message(message, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Reduces the targets armor by %.2f%% for %dd%d rounds.", armor_reduction * 100, duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Acid Flask"), game_state);
+    entity->description_offset = Offset(STR("Flask of bubbling accid, only the Alchemists of the Eridth school have to know how to make these."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 2;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
     entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
     entity->interactable.uses_count = 1;

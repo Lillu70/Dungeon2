@@ -85,6 +85,8 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     LOOP(3) Create_Bread(entity, game_state);
     Create_Steak_And_Smashed_Potatoes(entity, game_state);
 
+    Equip(entity, Create_Ring_Of_False_Hope(entity, game_state), game_state);
+
     // Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
     
     return entity;
@@ -162,18 +164,64 @@ SIG Entity* Create_Goblin(Entity* room, Game_State* game_state)
     
     {
         s16* stats = entity->_stats;
-        stats[Stats::vitality]  = 6;
-        stats[Stats::might]     = 8;
-        stats[Stats::dodge]     = 8;
+        stats[Stats::vitality]  = 5;
+        stats[Stats::might]     = 7;
+        stats[Stats::dodge]     = 6;
         stats[Stats::accuracy]  = 6;
-        stats[Stats::speed]     = 10;
+        stats[Stats::speed]     = 14;
         stats[Stats::arcane]    = 1;
         stats[Stats::immunity]  = 16;
-        stats[Stats::armor]     = 8;
+        stats[Stats::armor]     = 7;
     }
 
     Finalize_Entity(entity, room, game_state);
     
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        struct local
+        {
+            static void On_Damage_Taken(Effect_Instance* instance, Entity_Offset attaker_offset, Entity* defender, Deal_Damage_Result* ddr, Game_State* game_state)
+            {
+                if(instance)
+                {
+                    Effect* effect = Request_Effect(game_state);
+                    effect->stat_modifiers[Stats::dodge] = Level(defender);
+                    effect->name_offset = Offset(STR("Evasive"), game_state);
+
+                    Effect_Instance evasive = {};
+                    evasive.duration = 1;
+                    evasive.effect_offset = Offset(effect, game_state);
+                    evasive.source = instance->source;
+
+                    Apply_Effect_Result apply = Apply_Effect(defender, evasive, game_state);
+                    Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, evasive, apply, game_state);
+                }
+                else
+                {
+                    Print("resives the evasive buff, giving dodge equal to user level.");
+                }
+            }
+        };
+
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Scurry"), game_state);
+        effect.on_damage_taken_fn_offset = Offset(local::On_Damage_Taken, game_state);
+        effect.type = Effect_Type::physical;
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
     {
         Rules_Builder rules = Rules_Builder().Rarity(Comparison::equal, Rarity::common);
         
@@ -217,7 +265,7 @@ SIG Entity* Create_Orc(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
     
     entity->name_offset = Offset(STR("Orc"), game_state);
-    entity->description_offset = Offset(STR("Humanoid creature of pure evil."), game_state);
+    entity->description_offset = Offset(STR("Humanoid creature of pure evil. Rumors say they are bread somewhere deep underground."), game_state);
     
     entity->flags = EFlags::actor | EFlags::aggressive | EFlags::can_be_stolen_from;
     entity->faction = Faction::goblin;
@@ -237,39 +285,12 @@ SIG Entity* Create_Orc(Entity* room, Game_State* game_state)
 
     Finalize_Entity(entity, room, game_state);
     
-    {
-        Rules_Builder rules = Rules_Builder().Rarity(Comparison::equal, Rarity::rare);
-        
-        if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
-        {
-            Entity* weapon = weapon_gen_fn(entity, game_state);
-            Equip(entity, weapon, game_state);
-
-            bool is_1h_weapon = weapon->required_equipment_slots == Equipment_Slots::flag[Equipment_Slots::primary_hand];
-            u32 roll = Roll(5, game_state);
-
-            if(is_1h_weapon && roll >= 3)
-            {
-                u32 offhand_slot = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
-                rules.Slot_Filters(&offhand_slot, 1);
-
-                if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules.Finish(), game_state))
-                {
-                    Entity* offhand = offhand_gen_fn(entity, game_state);
-                    Equip(entity, offhand, game_state);
-                }
-            }
-        }
-    }
-
-
     Effect_Instance effect_instance = 
     {
         UNLIMITED_DURATION, 
         {}, 
         Offset(entity, game_state)
     };
-
 
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
@@ -297,15 +318,39 @@ SIG Entity* Create_Orc(Entity* room, Game_State* game_state)
 
         Effect effect = {};
         effect.name_offset = Offset(STR("Wrath"), game_state);
-        effect.critical_failure_range = + 1;
         effect.on_damage_taken_fn_offset = Offset(local::On_Damage_Taken, game_state);
-        Add_Dice(&effect, 1, 5);
+        effect.type = Effect_Type::physical;
         effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
 
 
     Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
     Assert(apply == Apply_Effect_Result::success);
+
+    {
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::equal, Rarity::rare);
+        
+        if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
+        {
+            Entity* weapon = weapon_gen_fn(entity, game_state);
+            Equip(entity, weapon, game_state);
+
+            bool is_1h_weapon = weapon->required_equipment_slots == Equipment_Slots::flag[Equipment_Slots::primary_hand];
+            u32 roll = Roll(5, game_state);
+
+            if(is_1h_weapon && roll >= 3)
+            {
+                u32 offhand_slot = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+                rules.Slot_Filters(&offhand_slot, 1);
+
+                if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules.Finish(), game_state))
+                {
+                    Entity* offhand = offhand_gen_fn(entity, game_state);
+                    Equip(entity, offhand, game_state);
+                }
+            }
+        }
+    }
 
     Generate_From_Loot_Table
     (
