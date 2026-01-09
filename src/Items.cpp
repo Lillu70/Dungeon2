@@ -99,6 +99,7 @@ SIG Loot_Table Basic_Trinkets_Loot_Table(Game_State* game_state)
         {Create_Arcane_Cape},
         {Create_Cape_Of_Spite},
         {Create_Healers_Cape},
+        {Create_Backpack}
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -155,6 +156,23 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Gloves_Of_Careful_Attacking},
         {Create_Bucket, 10},
         {Create_Sack, 10},
+        {Create_Hide_Helmet},
+        {Create_Wooden_Helmet},
+        {Create_Trueshot_Goggles},
+        {Create_Thiefs_Mask},
+        {Create_Barbarian_Head_Ornamet},
+        {Create_Nobles_Helm},
+        {Create_Alchemists_Cap},
+        {Create_Crown_Of_Thorns},
+        {Create_Hood_Of_The_Golden_Order},
+        {Create_Penmans_Visor},
+        {Create_Plaguedoctos_Visor},
+        {Create_Putrid_Flesh_Head_Mould},
+        {Create_Monks_Headband},
+        {Create_Damaged_Tiara_Of_Divine_Protection},
+        {Create_Horny_Headband},
+        {Create_Monocle_Of_Thunderstrike},
+        
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -280,11 +298,11 @@ SIG Entity* Create_Halberd(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.pierce                       = + 4;
+        effect.pierce                       = + 3;
         effect.stat_modifiers[Stats::might] = + 6;
-        effect.stat_modifiers[Stats::speed] = + 4;
-        effect.critical_failure_range       = + 2;
-        Add_Dice(&effect, 1, 16);
+        effect.stat_modifiers[Stats::speed] = + 6;
+        effect.critical_failure_range       = + 3;
+        Add_Dice(&effect, 1, 12);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -313,7 +331,7 @@ SIG Entity* Create_Long_Spear(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.pierce                       = + 9;
+        effect.pierce                       = + 6;
         effect.stat_modifiers[Stats::might] = + 5;
         effect.stat_modifiers[Stats::speed] = + 6;
         effect.critical_success_range       = + 4;
@@ -395,7 +413,7 @@ SIG Entity* Create_Assassins_Claws(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Assassins claws"), game_state);
     entity->description_offset = Offset(STR("Five long claws that attach to both hands."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     
@@ -414,7 +432,7 @@ SIG Entity* Create_Assassins_Claws(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::dodge] = + 3;
         effect.stat_modifiers[Stats::speed] = + 2;
         effect.critical_success_range       = + 7;
-        effect.pierce                       = + 7;
+        effect.pierce                       = + 4;
         Add_Dice(&effect, 1, 16);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -459,7 +477,7 @@ SIG Entity* Create_Ram_Shield(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Ram shield"), game_state);
     entity->description_offset = Offset(STR("A strange combination of a shield and a mace."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     
@@ -633,7 +651,7 @@ SIG Entity* Create_Great_Club(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]     = + 16;
+        effect.stat_modifiers[Stats::might]     = + 14;
         effect.stat_modifiers[Stats::speed]     = - 8;
         effect.stat_modifiers[Stats::accuracy]  = + 2;
         effect.critical_failure_range           = + 8;
@@ -720,7 +738,7 @@ SIG Entity* Create_War_Pick(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("War pick"), game_state);
     entity->description_offset = Offset(STR("Basically; a giant spike strapped on to the end of a stick. Effective against heavily armored targets."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
@@ -732,7 +750,7 @@ SIG Entity* Create_War_Pick(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.pierce                        = + 6;
+        effect.pierce                        = + 5;
         effect.stat_modifiers[Stats::might]  = + 5;
         Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -861,7 +879,7 @@ SIG Entity* Create_Rapier(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Rapier"), game_state);
     entity->description_offset = Offset(STR("A very thing blade. Only the tip is sharp."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
@@ -904,8 +922,8 @@ SIG Entity* Create_Short_Spear(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::speed] = + 5;
-        effect.stat_modifiers[Stats::might] = + 4;
+        effect.stat_modifiers[Stats::speed] = + 4;
+        effect.stat_modifiers[Stats::might] = + 3;
         effect.pierce                       = + 4;
         Add_Dice(&effect, 1, 6);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -922,7 +940,7 @@ SIG Entity* Create_Morning_Star(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Morning star"), game_state);
     entity->description_offset = Offset(STR("A heavy spiked ball attached to a shaft."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
@@ -934,7 +952,7 @@ SIG Entity* Create_Morning_Star(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.pierce                       = + 3;
+        effect.pierce                       = + 2;
         effect.stat_modifiers[Stats::might] = + 9;
         effect.stat_modifiers[Stats::speed] = - 2;
         Add_Dice(&effect, 1, 5);
@@ -1034,7 +1052,7 @@ SIG Entity* Create_Poison_Dagger(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Poison Dagger"), game_state);
     entity->description_offset = Offset(STR("A tiny blade, that isn't intended for dealing direct damage, but instead to apply a deadly poison."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::primary_hand];
@@ -1066,7 +1084,7 @@ SIG Entity* Create_Cape_Of_Immunity(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Cape of Immunity"), game_state);
     entity->description_offset = Offset(STR("Pray you have one when the plague hits."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::uncommon;
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
@@ -1092,7 +1110,7 @@ SIG Entity* Create_Healers_Cape(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Healers cape"), game_state);
     entity->description_offset = Offset(STR("Golden cape of the Lights Order."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::uncommon;
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
@@ -1118,7 +1136,7 @@ SIG Entity* Create_Arcane_Cape(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Arcane cape"), game_state);
     entity->description_offset = Offset(STR("Draws the user closer to the source it self."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::uncommon;
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
@@ -1170,7 +1188,7 @@ SIG Entity* Create_Plate_Codpiece(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Plate Codpiece"), game_state);
     entity->description_offset = Offset(STR("Steel covering for the valuables."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::belt];
@@ -1196,7 +1214,7 @@ SIG Entity* Create_Strong_Man_Belt(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Strong Man Belt"), game_state);
     entity->description_offset = Offset(STR("A tall belt that provied support when lifting things."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::belt];
@@ -1251,7 +1269,7 @@ SIG Entity* Create_Cape_Of_Spite(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Cape of Spite"), game_state);
     entity->description_offset = Offset(STR("Made of living metal. When its wearer is hurt, it forms into a spike and thrusts it self into the attacker."), game_state);
-    entity->rarity = Rarity::epic;
+    entity->rarity = Rarity::rare;
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
@@ -1277,7 +1295,7 @@ SIG Entity* Create_Cape_Of_Avoidance(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Cape of Avoidance"), game_state);
     entity->description_offset = Offset(STR("A fast flowing cape that blurs the edges of the wearer, making them hard to hit."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::uncommon;
     
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
@@ -1303,7 +1321,7 @@ SIG Entity* Create_Cape_Of_Dashing(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Cape of Dashing"), game_state);
     entity->description_offset = Offset(STR("A short blue triangular cape enchanted with speed enhancing magics."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
@@ -1329,7 +1347,7 @@ SIG Entity* Create_Backpack(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Backpack"), game_state);
     entity->description_offset = Offset(STR("A leather sack with straps to pull our hands through and throw it on your back."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::common;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::back];
@@ -1405,7 +1423,7 @@ SIG Entity* Create_Ring_Of_Bloodshield(Entity* room, Game_State* game_state)
     
     entity->name_offset = Offset(STR("Ring of Bloodshield"), game_state);
     entity->description_offset = Offset(STR("A favorite amongst the assassins, as it ensures a safe get a way."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -1433,7 +1451,10 @@ SIG Entity* Create_Ring_Of_Clumsy_Regeneration(Entity* room, Game_State* game_st
             s32 healing_amount = 1;
             if(instance)
             {
-                Heal(attacker, healing_amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+                if(Is_Living_Active_Enemy_Of(defender, attacker))
+                {
+                    Heal(attacker, healing_amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+                }
             }
             else
             {
@@ -1446,7 +1467,7 @@ SIG Entity* Create_Ring_Of_Clumsy_Regeneration(Entity* room, Game_State* game_st
     
     entity->name_offset = Offset(STR("Ring of Clumsy Regeneration"), game_state);
     entity->description_offset = Offset(STR("A legend tells of a boy who never hit his target, but somehow still survived all his battles."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -1521,7 +1542,7 @@ SIG Entity* Create_Cowards_Ring(Entity* room, Game_State* game_state)
     
     entity->name_offset = Offset(STR("Cowards Ring"), game_state);
     entity->description_offset = Offset(STR("Worn by a man who was too afraid to try anything."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -1547,7 +1568,7 @@ SIG Entity* Create_Demon_Brand(Entity* room, Game_State* game_state)
     
     entity->name_offset = Offset(STR("Demon Brand"), game_state);
     entity->description_offset = Offset(STR("A circle of fire."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -1774,7 +1795,7 @@ SIG Entity* Create_Huntsmans_Ring(Entity* room, Game_State* game_state)
     
     entity->name_offset = Offset(STR("Huntsmans Ring"), game_state);
     entity->description_offset = Offset(STR("Carved from antler bone."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -1799,7 +1820,7 @@ SIG Entity* Create_Ring_Of_The_Reliable_Worker(Entity* room, Game_State* game_st
     
     entity->name_offset = Offset(STR("Ring Of The Reliable Worker"), game_state);
     entity->description_offset = Offset(STR("Given to those, whose work is too important for anything to go wrong."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -1824,7 +1845,7 @@ SIG Entity* Create_Ring_Of_Strange_Fortunes(Entity* room, Game_State* game_state
    
     entity->name_offset = Offset(STR("Ring of Strange Fortunes"), game_state);
     entity->description_offset = Offset(STR("A ring that is both cursed and blessed. Who would create such a thing?"), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -1991,7 +2012,7 @@ SIG Entity* Create_Ring_Of_Regeneration(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Ring of Regeneration"), game_state);
     entity->description_offset = Offset(STR("Ring with a warm yellow glow. It has been blessed by a cleric giving it powers of healing."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->flags = EFlags::equippable | EFlags::item;
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::ring_1];
@@ -2094,7 +2115,7 @@ SIG Entity* Create_Field_Medics_Gloves(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Field Medics gloves"), game_state);
     entity->description_offset = Offset(STR("Being a Field Medic a dangerous role indeed, as the forces of evil hate seeing their hard work undone."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     
@@ -2121,7 +2142,7 @@ SIG Entity* Create_Chainmail_Gloves(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Chainmail gloves"), game_state);
     entity->description_offset = Offset(STR("Effective hand protection."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     
@@ -2147,7 +2168,7 @@ SIG Entity* Create_Plate_Gloves(Entity* room, Game_State* game_state)
 
     entity->name_offset = Offset(STR("Plate gloves"), game_state);
     entity->description_offset = Offset(STR("Heavy hand protection."), game_state);
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->flags = EFlags::equippable | EFlags::item;
     
@@ -2283,7 +2304,7 @@ SIG Entity* Create_Kite_Shield(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Kite shield"), game_state);
     entity->description_offset = Offset(STR("A metal shield with a crest depicting an upside down chalice."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
     entity->weight = 10;
@@ -2337,7 +2358,7 @@ SIG Entity* Create_Tower_Shield(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Tower Shield"), game_state);
     entity->description_offset = Offset(STR("A massive shield. It's as tall as man."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
     entity->weight = 15;
@@ -2445,7 +2466,7 @@ SIG Entity* Create_Huntsmans_Gambeson(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Huntsmans Gambeson"), game_state);
     entity->description_offset = Offset(STR("The armor has been through a lot."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;    
+    entity->rarity = Rarity::uncommon;    
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
     entity->weight = 6;
@@ -2474,7 +2495,7 @@ SIG Entity* Create_Warrior_Poncho(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Warrior Poncho"), game_state);
     entity->description_offset = Offset(STR("On the fabric there are depictions of many a battle."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;    
+    entity->rarity = Rarity::uncommon;    
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
     entity->weight = 2;
@@ -2502,7 +2523,7 @@ SIG Entity* Create_Assassins_Corset(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Assassins corset"), game_state);
     entity->description_offset = Offset(STR("Most famous of the guilds that offer assissinations is called the \"Last Chapter\"."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::magical;    
+    entity->rarity = Rarity::rare;    
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
     entity->weight = 3;
@@ -2531,7 +2552,7 @@ SIG Entity* Create_Breastplate(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Breastplate"), game_state);
     entity->description_offset = Offset(STR("Heavy, but incredibly effective armor made of steel."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
     entity->weight = 14;
@@ -2562,7 +2583,7 @@ SIG Entity* Create_Knights_Breastplate(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Knights Breastplate"), game_state);
     entity->description_offset = Offset(STR("Depicting a large silver flower on the chest."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
     entity->weight = 14;
@@ -2591,7 +2612,7 @@ SIG Entity* Create_Crusaders_Breastplate(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Crusaders Breastplate"), game_state);
-    entity->description_offset = Offset(STR("Knights trained and equipped to hunt down heretics."), game_state);
+    entity->description_offset = Offset(STR("Crusaders are knights trained and equipped to hunt down heretics."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     entity->rarity = Rarity::epic;
     
@@ -2610,6 +2631,7 @@ SIG Entity* Create_Crusaders_Breastplate(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::arcane]    = - 1;
         effect.stat_modifiers[Stats::speed]     = - 4;
         effect.critical_failure_range           = + 1;
+        effect.healing_power                    = + 2;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2645,12 +2667,503 @@ SIG Entity* Create_Skull_Cap(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Trueshot_Goggles(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("True-shot Goggles"), game_state);
+    entity->description_offset = Offset(STR("These goggles have an echantment that highlights vital organs."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 1;
+        effect.stat_modifiers[Stats::accuracy]  = + 1;
+        effect.critical_success_range           = + 2;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Thiefs_Mask(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Thief's mask"), game_state);
+    entity->description_offset = Offset(STR("Event the thieves guild employs devious clericks to empower their equipment with blessings."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::dodge] = + 1;
+        effect.stat_modifiers[Stats::speed] = + 1;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Barbarian_Head_Ornamet(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Barbarian head ornament"), game_state);
+    entity->description_offset = Offset(STR("Made branches and leather. Offets minimal protection, but boosts aggression."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.stat_modifiers[Stats::might] = + 3;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Nobles_Helm(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Noble's Helm"), game_state);
+    entity->description_offset = Offset(STR("The Kingdom of Vash is ruled by eight noble houses. The kingship is rotated between each house."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 3;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::dodge] = + 2;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Alchemists_Cap(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Alchemist's Cap"), game_state);
+    entity->description_offset = Offset(STR("There are countless schools of alchemy, most specialize in creating one concoction."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::arcane]    = + 3;
+        effect.stat_modifiers[Stats::immunity]  = + 1;
+        effect.stat_modifiers[Stats::dodge]     = + 1;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Crown_Of_Thorns(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Crown of Thorns"), game_state);
+    entity->description_offset = Offset(STR("A band of thorny vine."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.thorns_damage                = + 3;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Hood_Of_The_Golden_Order(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Hood of the Golden Order"), game_state);
+    entity->description_offset = Offset(STR("Though there are many religions, the Golden Order has the most followers."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.healing_power                = + 3;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Penmans_Visor(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Penman's visor"), game_state);
+    entity->description_offset = Offset(STR("Copying books is a job where precision of utmost importance. A mistake could cost hundreds of hours of work and waste expensive parchment."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 3;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::immunity]  = + 1;
+        effect.critical_failure_range           = - 3;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Plaguedoctos_Visor(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Plaguedoctor's visor"), game_state);
+    entity->description_offset = Offset(STR("Like clockwork a plague appears and kills of many.. many people. It always happens, but the deadliness varies."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 3;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::immunity] = + 5;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Putrid_Flesh_Head_Mould(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 damage = 1;
+            if(instance)
+            {
+                if(target->_health % 2)
+                {
+                    Deal_Damage(target, instance->source, Effect_Name(instance, game_state), damage, {}, Damage_Type::magical, game_state, Verbose::yes);
+                }
+            }
+            else
+            {
+                Print("if the users health is an odd number, deals %d damage to the user.", damage);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Putrid flesh head mould"), game_state);
+    entity->description_offset = Offset(STR("A pulsating lumb of flesh and organs formed into a shape of a helmet."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 5;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.max_health_modifier              = + 7;
+        effect.stat_modifiers[Stats::arcane]    = + 5;
+        effect.stat_modifiers[Stats::immunity]  = - 8;
+        effect.on_turn_start_fn_offset = Offset(local::On_Turn_Start, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Monks_Headband(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Monks headband"), game_state);
+    entity->description_offset = Offset(STR("a simple headband with an echantment."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 5;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::dodge] = + 1;
+        effect.stat_modifiers[Stats::speed] = + 5;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Damaged_Tiara_Of_Divine_Protection(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Damage_Taken(Effect_Instance* instance, Entity_Offset attacker_offset, Entity* defender, Deal_Damage_Result* ddr, Game_State* game_state)
+        {
+            s32 threshold = 1;
+            if(instance)
+            {
+                Entity* item = Pointer(instance->source, game_state);
+                if(ddr->damage_after_mitigation > threshold && item && item->interactable.uses_count)
+                {
+                    item->interactable.uses_count -= 1;
+                    Give_Temporary_Health(defender, Level(defender), Effect_Name(instance, game_state), Verbose::yes, game_state);
+                    if(item->interactable.uses_count == 0)
+                    {
+                        String message = Format_Message(game_state, "The gem on the %s shatters.. its enchantment is no longer effective.", Name(item, game_state).ptr);
+                        Push_Message(message, game_state);
+                    }
+                }
+            }
+            else
+            {
+                Print("if the damage taken exceed %d, resive temporary health equal to user level.", threshold);
+            }         
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Damaged Tiara of Divine Protection"), game_state);
+    entity->description_offset = Offset(STR("The gem on it is fractured. Everytime the user receives Godly intervesion the fracture deepens."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 5;
+    entity->interactable.uses_count = 25;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.on_damage_taken_fn_offset = Offset(local::On_Damage_Taken, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Horny_Headband(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Horny headband"), game_state);
+    entity->description_offset = Offset(STR("A horn of some creature attached to a headband"), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 5;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        Add_Dice(&effect, 1, 4);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Monocle_Of_Thunderstrike(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* target, Game_State* game_state)
+        {
+            s16 dice_count = 2;
+            s16 dice_faces = 6;
+            if(item)
+            {
+                Effect_Instance thunderstride = {};
+
+                Effect_Hash_Key key = EFFECT_KEY;
+                if(!Retrive_Effect(key, &thunderstride.effect_offset, game_state))
+                {
+                    Effect effect = {};
+                    effect.type = Effect_Type::magic;
+                    effect.name_offset = Offset(STR("Thunderstrike"), game_state);
+                    Add_Dice(&effect, dice_count, dice_faces);
+                    thunderstride.effect_offset = Insert_Effect(effect, key, game_state);
+                }
+
+                thunderstride.duration = 1;
+                thunderstride.duration_type = Duration_Type::attack;
+                thunderstride.source = Offset(item, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(target, thunderstride, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), target, thunderstride, apply, game_state);
+            }
+            else
+            {
+                Print("Next attack deals %dd%d extra damage.", dice_count, dice_faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Monocle of Thunderstrike"), game_state);
+    entity->description_offset = Offset(STR("Press the button on the side to active."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item | EFlags::interactable;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 5;
+
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.uses_count = UNLIMITED_USES;
+    entity->interactable.cd_type = Cooldown_Type::rooms;
+    entity->interactable.cd = 1;
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Arming_Cap(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Arming cap"), game_state);
     entity->description_offset = Offset(STR("A padded cloth hood."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 2;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Hide_Helmet(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Hide helmet"), game_state);
+    entity->description_offset = Offset(STR("Hardened tanned hide crafted into a helmet."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
@@ -2662,6 +3175,32 @@ SIG Entity* Create_Arming_Cap(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Wooden_Helmet(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Wooden Helmet"), game_state);
+    entity->description_offset = Offset(STR("A finely carved helmet. It has an opening for the eyes. This might be great helmet if the material was sturdier!"), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 2;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::speed] = - 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2731,7 +3270,7 @@ SIG Entity* Create_Chainmail_Hood(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Chainmail hood"), game_state);
     entity->description_offset = Offset(STR("Covers the head and neck, providing good protection considering how light it is."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
     entity->weight = 2;
@@ -2757,7 +3296,7 @@ SIG Entity* Create_Barbute(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Barbute"), game_state);
     entity->description_offset = Offset(STR("Thick steel helmet with the only opening a slim gap for the eyes."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
     entity->weight = 5;
@@ -2787,7 +3326,7 @@ SIG Entity* Create_Plate_Leggings(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Plate leggings"), game_state);
     entity->description_offset = Offset(STR("Leg armor made from interleaving steel plates."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
     entity->weight = 12;
@@ -2867,7 +3406,7 @@ SIG Entity* Create_Warrior_Kilt(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Warrior kilt"), game_state);
     entity->description_offset = Offset(STR("A red kilt that emanates furious energies."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
     entity->weight = 3;
@@ -2877,8 +3416,9 @@ SIG Entity* Create_Warrior_Kilt(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might] = + 3;
-        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::might]     = + 3;
+        effect.stat_modifiers[Stats::armor]     = + 2;
+        effect.stat_modifiers[Stats::vitality]  = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -2894,7 +3434,7 @@ SIG Entity* Create_Barbarian_Loincloth(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Barbarian loincloth"), game_state);
     entity->description_offset = Offset(STR("Crafted and enchated by a tribal shaman."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
     entity->weight = 3;
@@ -2922,7 +3462,7 @@ SIG Entity* Create_Travel_Boots(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Travel boots"), game_state);
     entity->description_offset = Offset(STR("Finely crafted and especially made for long distance walking."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
     entity->weight = 2;
@@ -2950,7 +3490,7 @@ SIG Entity* Create_Sabatons(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Sabatons"), game_state);
     entity->description_offset = Offset(STR("Heavy plate boots."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
     entity->weight = 5;
@@ -2980,7 +3520,7 @@ SIG Entity* Create_Knights_Plate_Boots(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Knights Plate Boots"), game_state);
     entity->description_offset = Offset(STR("On the steel there are outlines of flowers made of embedded silver."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
     entity->weight = 5;
@@ -3010,7 +3550,7 @@ SIG Entity* Create_Mountaineer_Boots(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Mountaineer Boots"), game_state);
     entity->description_offset = Offset(STR("The Mountainmen is a generic term for the barbarian tribes living on the Casper mountains. They often decent up the civilized lands to raid for coin and women."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
     entity->weight = 3;
@@ -3037,7 +3577,7 @@ SIG Entity* Create_Gladiator_Sandals(Entity* room, Game_State* game_state)
     entity->name_offset = Offset(STR("Gladiator sandals"), game_state);
     entity->description_offset = Offset(STR("Permanently stained with blood."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::boots];
     entity->weight = 2;
@@ -3048,6 +3588,8 @@ SIG Entity* Create_Gladiator_Sandals(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::might] = + 2;
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.stat_modifiers[Stats::dodge] = + 1;
         effect.stat_modifiers[Stats::speed] = + 3;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -3108,7 +3650,7 @@ SIG Entity* Create_Antidote(Entity* container, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Antidote"), game_state);
-    entity->description_offset = Offset(STR("An amber colored concuction that serves as a remedy to all things poison."), game_state);
+    entity->description_offset = Offset(STR("An amber colored concoction that serves as a remedy to all things poison."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
     entity->rarity = Rarity::common;
 
@@ -3260,6 +3802,7 @@ SIG Entity* Create_Speed_Elixir(Entity* container, Game_State* game_state)
                 instance.source = Offset(item, game_state);
                 instance.effect_offset = Offset(effect, game_state);
                 instance.duration = Roll(duration_dice, game_state);
+                instance.zero_ticked = true;
 
                 Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
                 Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
@@ -3306,6 +3849,7 @@ SIG Entity* Create_Might_Elixir(Entity* container, Game_State* game_state)
                 instance.source = Offset(item, game_state);
                 instance.effect_offset = Offset(effect, game_state);
                 instance.duration = Roll(duration_dice, game_state);
+                instance.zero_ticked = true;
 
                 Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
                 Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
@@ -3352,6 +3896,7 @@ SIG Entity* Create_Accuracy_Elixir(Entity* container, Game_State* game_state)
                 instance.source = Offset(item, game_state);
                 instance.effect_offset = Offset(effect, game_state);
                 instance.duration = Roll(duration_dice, game_state);
+                instance.zero_ticked = true;
 
                 Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
                 Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
@@ -3398,6 +3943,7 @@ SIG Entity* Create_Dodge_Elixir(Entity* container, Game_State* game_state)
                 instance.source = Offset(item, game_state);
                 instance.effect_offset = Offset(effect, game_state);
                 instance.duration = Roll(duration_dice, game_state);
+                instance.zero_ticked = true;
 
                 Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
                 Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
@@ -3444,6 +3990,7 @@ SIG Entity* Create_Vitality_Elixir(Entity* container, Game_State* game_state)
                 instance.source = Offset(item, game_state);
                 instance.effect_offset = Offset(effect, game_state);
                 instance.duration = Roll(duration_dice, game_state);
+                instance.zero_ticked = true;
 
                 Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
                 Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
@@ -3490,6 +4037,7 @@ SIG Entity* Create_Immunity_Elixir(Entity* container, Game_State* game_state)
                 instance.source = Offset(item, game_state);
                 instance.effect_offset = Offset(effect, game_state);
                 instance.duration = Roll(duration_dice, game_state);
+                instance.zero_ticked = true;
 
                 Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
                 Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
@@ -3536,6 +4084,7 @@ SIG Entity* Create_Arcane_Elixir(Entity* container, Game_State* game_state)
                 instance.source = Offset(item, game_state);
                 instance.effect_offset = Offset(effect, game_state);
                 instance.duration = Roll(duration_dice, game_state);
+                instance.zero_ticked = true;
 
                 Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
                 Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
@@ -3552,7 +4101,7 @@ SIG Entity* Create_Arcane_Elixir(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Arcane Elixir"), game_state);
     entity->description_offset = Offset(STR("The label says \"Always use before any other elixir. - Sold by Enchantux\"."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -3625,7 +4174,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Healing Potion"), game_state);
     entity->description_offset = Offset(STR("Produced in great numbers by the clergy, especially when preparing for war."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -3677,9 +4226,9 @@ SIG Entity* Create_Acid_Flask(Entity* container, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Acid Flask"), game_state);
-    entity->description_offset = Offset(STR("Flask of bubbling accid, only the Alchemists of the Eridth school have to know how to make these."), game_state);
+    entity->description_offset = Offset(STR("Flask of bubbling accid, only the Alchemists of the Eridth school have the know how to make these."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->weight = 2;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -3930,7 +4479,7 @@ SIG Entity* Create_Fragmentation_Bomb(Entity* container, Game_State* game_state)
     entity->name_offset = Offset(STR("Fragmentation Bomb"), game_state);
     entity->description_offset = Offset(STR("An explosive device packed inside a jar of nails. Created by a devious alchemist."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
-    entity->rarity = Rarity::rare;
+    entity->rarity = Rarity::uncommon;
 
     entity->weight = 4;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -3997,7 +4546,7 @@ SIG Entity* Create_BBQ_Wings(Entity* room, Game_State* game_state)
 SIG Entity* Create_Steak_And_Smashed_Potatoes(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
     entity->name_offset = Offset(STR("Steak & mashed potatoes"), game_state);
     entity->description_offset = Offset(STR("Medium rare."), game_state);
     entity->food_quality = Food_Quality::meal;

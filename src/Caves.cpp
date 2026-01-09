@@ -18,13 +18,13 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->description_offset = Offset(STR(room_description), game_state);
 
     #if DEVMODE
-    //Spawn_All_Items_In_Loot_Table(Basic_Consumables_Loot_Table(game_state), room, game_state);
-    //Spawn_All_Items_In_Loot_Table(Basic_Trinkets_Loot_Table(game_state), room, game_state);
-    //Spawn_All_Items_In_Loot_Table(Basic_Weapons_Loot_Table(game_state), room, game_state);
-    //Spawn_All_Items_In_Loot_Table(Basic_Armors_Loot_Table(game_state), room, game_state);
+    Spawn_All_Items_In_Loot_Table(Basic_Consumables_Loot_Table(game_state), room, game_state);
+    Spawn_All_Items_In_Loot_Table(Basic_Trinkets_Loot_Table(game_state), room, game_state);
+    Spawn_All_Items_In_Loot_Table(Basic_Weapons_Loot_Table(game_state), room, game_state);
+    Spawn_All_Items_In_Loot_Table(Basic_Armors_Loot_Table(game_state), room, game_state);
     #endif
 
-    Create_Goblin(room, game_state);
+    //Create_Goblin(room, game_state);
 }
 
 
@@ -55,7 +55,7 @@ Entity* Earthen_Hall(Entity* fill_room_if_greater_than_zero, Game_State* game_st
 Entity* Beast_Lair_Bear(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
 {
     Entity* room = Request_Entity(game_state);
-    room->rarity = Rarity::magical;
+    room->rarity = Rarity::rare;
     if(fill_room_if_greater_than_zero)
     {
         Set_Ambush_Change(1.f, game_state);
@@ -233,7 +233,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Swamp(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::magical;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 Ambush_Swamp(game_state, 0.2f);
@@ -285,7 +285,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Forest(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::uncommon;
             if(fill_room_if_greater_than_zero)
             {
                 Ambush_Wolf(game_state, 0.1f);
@@ -543,7 +543,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                     room, 
                     Basic_Weapons_Loot_Table(game_state), 
                     1 + Per_Count_Rolled_Square_Weighted_Random(3, game_state), 
-                    Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+                    Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
                     game_state
                 );
 
@@ -556,7 +556,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Graveyard(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::magical;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.5f);
@@ -585,7 +585,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                     room, 
                     table, 
                     Roll(3, game_state), 
-                    Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+                    Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
                     game_state
                 );
 
@@ -643,7 +643,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Carcase(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::uncommon;
             if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a dead-end"), game_state);
@@ -682,7 +682,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Empty_Cavern(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::magical;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a cavern"), game_state);
@@ -698,7 +698,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Chamber(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::uncommon;
             if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a chamber"), game_state);
@@ -782,7 +782,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Warzone(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::magical;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.7f);
@@ -897,7 +897,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
 
                 Create_Supply_Crate(room, game_state);
                 
-                if(Roll(3, game_state) == 1) Create_Bookshelf(room, game_state);
+                if(Roll(5, game_state) == 1) Create_Bookshelf(room, game_state);
                 
                 if(Roll(2, game_state) == 1)
                 {
@@ -1090,6 +1090,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
         static Entity* Orc_Home(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::legendary;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.05f);
@@ -1170,7 +1171,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
                 "You run into a roaming band of goblins!";
                 room->description_offset = Offset(STR(room_description), game_state);
 
-                u64 count = 2 + Per_Count_Rolled_Square_Weighted_Random(4, game_state);
+                u64 count = 1 + Per_Count_Rolled_Square_Weighted_Random(3, game_state);
                 LOOP(count) Create_Goblin(room, game_state);
 
                 Create_Orc(room, game_state);

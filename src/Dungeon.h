@@ -44,8 +44,8 @@ namespace Rarity
     enum T : u8
     {
         common = 0,
+        uncommon,
         rare,
-        magical,
         epic,
         legendary,
         COUNT
@@ -399,8 +399,8 @@ namespace Class
 };
 
 
-#define UNLIMITED_DURATION 0
 #define UNLIMITED_USES U32_MAX
+#define UNLIMITED_DURATION 0
 struct Effect_Instance
 {
     // CONSIDER: Make the numbers in here a smaller type. 
@@ -480,12 +480,24 @@ struct Initiative
 };
 
 
+enum class Cooldown_Type : u8
+{
+    rounds,
+    rooms,
+};
+
+
 struct Interactable
 {
     PROTOTYPE_ENT_ENT_GS_Offset on_use_fn_offset;
     PROTOTYPE_ENT_GS_Offset on_empty_fn_offset;
     
     s32 uses_count;
+    Cooldown_Type cd_type;
+    u64 cd;
+
+    u64 last_used_round;
+    u64 last_used_room;
 };
 
 

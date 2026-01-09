@@ -85,7 +85,7 @@ SIG Entity* Create_Class_Adventurer(Game_State* game_state)
     LOOP(3) Create_Bread(entity, game_state);
     Create_Steak_And_Smashed_Potatoes(entity, game_state);
 
-    Equip(entity, Create_Ring_Of_False_Hope(entity, game_state), game_state);
+    //Equip(entity, Create_Ring_Of_False_Hope(entity, game_state), game_state);
 
     // Create_Ring_Of_Just_Fucking_Crit(entity, game_state);
     
@@ -252,7 +252,7 @@ SIG Entity* Create_Goblin(Entity* room, Game_State* game_state)
         entity, 
         Basic_Merged_Loot_Table(game_state), 
         Per_Count_Rolled_Random(3, 6, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
 
@@ -273,14 +273,14 @@ SIG Entity* Create_Orc(Entity* room, Game_State* game_state)
     
     {
         s16* stats = entity->_stats;
-        stats[Stats::vitality]  = 8;
-        stats[Stats::might]     = 10;
+        stats[Stats::vitality]  = 7;
+        stats[Stats::might]     = 5;
         stats[Stats::dodge]     = 4;
         stats[Stats::accuracy]  = 6;
         stats[Stats::speed]     = 7;
         stats[Stats::arcane]    = 1;
         stats[Stats::immunity]  = 10;
-        stats[Stats::armor]     = 8;
+        stats[Stats::armor]     = 5;
     }
 
     Finalize_Entity(entity, room, game_state);
@@ -328,7 +328,7 @@ SIG Entity* Create_Orc(Entity* room, Game_State* game_state)
     Assert(apply == Apply_Effect_Result::success);
 
     {
-        Rules_Builder rules = Rules_Builder().Rarity(Comparison::equal, Rarity::rare);
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::uncommon);
         
         if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
         {
@@ -356,8 +356,8 @@ SIG Entity* Create_Orc(Entity* room, Game_State* game_state)
     (
         entity, 
         Basic_Merged_Loot_Table(game_state), 
-        Per_Count_Rolled_Random(3, 8, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        Per_Count_Rolled_Random(3, 4, game_state), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
 
@@ -391,7 +391,7 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     Finalize_Entity(entity, room, game_state);
     
     {
-        Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::uncommon);
         
         if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
         {
@@ -418,7 +418,7 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     {
         Pick_From_Table_Rules rules = Rules_Builder()
         .Excluded_Slots(Equipment_Slots::flag[Equipment_Slots::secondary_hand])
-        .Rarity(Comparison::maximum, Rarity::magical)
+        .Rarity(Comparison::maximum, Rarity::rare)
         .Finish();
         
         u64 count = Per_Count_Rolled_Square_Weighted_Random(5, game_state);
@@ -439,7 +439,7 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
         entity, 
         Basic_Merged_Loot_Table(game_state), 
         Per_Count_Rolled_Random(3, 8, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
 
@@ -473,7 +473,7 @@ SIG Entity* Create_Bandit_Leader(Entity* room, Game_State* game_state)
     Finalize_Entity(entity, room, game_state);
     
     {
-        Rules_Builder rules = Rules_Builder().Rarity(Comparison::between, Rarity::rare, Rarity::epic);
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::between, Rarity::uncommon, Rarity::epic);
         
         if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
         {
@@ -500,7 +500,7 @@ SIG Entity* Create_Bandit_Leader(Entity* room, Game_State* game_state)
     {
         Pick_From_Table_Rules rules = Rules_Builder()
         .Excluded_Slots(Equipment_Slots::flag[Equipment_Slots::secondary_hand])
-        .Rarity(Comparison::between, Rarity::rare, Rarity::epic)
+        .Rarity(Comparison::between, Rarity::uncommon, Rarity::epic)
         .Finish();
         
         u64 count = Per_Count_Rolled_Square_Weighted_Random(5, game_state);
@@ -521,7 +521,7 @@ SIG Entity* Create_Bandit_Leader(Entity* room, Game_State* game_state)
         entity, 
         Basic_Merged_Loot_Table(game_state), 
         Per_Count_Rolled_Random(3, 6, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
 
@@ -577,7 +577,7 @@ SIG Entity* Create_Assassin(Entity* room, Game_State* game_state)
     Pick_From_Table_Rules rules = Rules_Builder()
     .Excluded_Slots(Equipment_Slots::flag[Equipment_Slots::secondary_hand])
     .Weight(Comparison::maximum, 5)
-    .Rarity(Comparison::maximum, Rarity::magical)
+    .Rarity(Comparison::maximum, Rarity::rare)
     .Finish();
     
     u64 count = Per_Count_Rolled_Random(5, 7, game_state);
@@ -598,7 +598,7 @@ SIG Entity* Create_Assassin(Entity* room, Game_State* game_state)
         entity, 
         Basic_Merged_Loot_Table(game_state), 
         Per_Count_Rolled_Square_Weighted_Random(3, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
     #endif
@@ -629,34 +629,57 @@ SIG Entity* Create_Giant_Honey_Badger(Entity* room, Game_State* game_state)
         stats[Stats::immunity]  = 10;
         stats[Stats::armor]     = 0;
     }
-        
-    Effect_Instance effect_instance = 
+    
     {
-        UNLIMITED_DURATION, 
-        {}, 
-        Offset(entity, game_state)
-    };
+        Effect_Instance effect_instance = 
+        {
+            UNLIMITED_DURATION, 
+            {}, 
+            Offset(entity, game_state)
+        };
 
-    Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
-    {
-        Effect effect = {};
-        effect.name_offset = Offset(STR("Claws"), game_state);
-        effect.critical_failure_range = + 1;
-        effect.on_turn_start_fn_offset = Offset(Survival_Instinct_On_Turn_Start, game_state);
-        Add_Dice(&effect, 1, 5);
-        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+        {
+            Effect effect = {};
+            effect.name_offset = Offset(STR("Claws"), game_state);
+            effect.critical_failure_range = + 1;
+            effect.on_turn_start_fn_offset = Offset(Survival_Instinct_On_Turn_Start, game_state);
+            Add_Dice(&effect, 1, 5);
+            effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+        }
+
+        Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+        Assert(apply == Apply_Effect_Result::success);
     }
 
-    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
-    Assert(apply == Apply_Effect_Result::success);
+    {
+        Effect_Instance effect_instance = 
+        {
+            UNLIMITED_DURATION, 
+            {}, 
+            Offset(entity, game_state)
+        };
+
+        Effect_Hash_Key key = EFFECT_KEY;
+        if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+        {
+            Effect effect = {};
+            effect.name_offset = Offset(STR("Survivor"), game_state);
+            effect.on_turn_start_fn_offset = Offset(Survival_Instinct_On_Turn_Start, game_state);
+            effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+        }
+
+        Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+        Assert(apply == Apply_Effect_Result::success);
+    }
 
     Generate_From_Loot_Table
     (
         entity, 
         Basic_Merged_Loot_Table(game_state), 
         1 + Per_Count_Rolled_Random(2, 5, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
 
@@ -910,7 +933,7 @@ SIG Entity* Create_Giant_Toad(Entity* room, Game_State* game_state)
     Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
     Assert(apply == Apply_Effect_Result::success);
 
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical);
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
     Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), Per_Count_Rolled_Random(3, 5, game_state), rules.Finish(), game_state);
 
     Finalize_Entity(entity, room, game_state);
@@ -1036,7 +1059,7 @@ SIG Entity* Create_Wolf(Entity* room, Game_State* game_state)
         &game_state->scratch_buffer
     );
 
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical);
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
     Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(3, 6, game_state), rules.Finish(), game_state);
 
     Finalize_Entity(entity, room, game_state);
@@ -1099,7 +1122,7 @@ SIG Entity* Create_Hound(Entity* room, Game_State* game_state)
         &game_state->scratch_buffer
     );
 
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical);
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
     Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(2, 6, game_state), rules.Finish(), game_state);
 
     Finalize_Entity(entity, room, game_state);
@@ -1317,7 +1340,7 @@ SIG Entity* Create_Giant_Rat(Entity* room, Game_State* game_state)
         &game_state->scratch_buffer
     );
 
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::uncommon);
     Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(3, 9, game_state), rules.Finish(), game_state);
 
     return entity;
@@ -1439,7 +1462,7 @@ SIG Entity* Create_Blight_Rat(Entity* room, Game_State* game_state)
         &game_state->scratch_buffer
     );
 
-    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::magical);
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
     Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(3, 2, game_state), rules.Finish(), game_state);
 
     return entity;
@@ -1575,8 +1598,8 @@ SIG Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state)
         Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::equal, Rarity::epic).Finish(), game_state);
     }
 
-    Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::minimum, Rarity::magical).Finish(), game_state);
-    Generate_From_Loot_Table(entity, table, Roll(3, game_state) - 1, Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), game_state);
+    Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::minimum, Rarity::rare).Finish(), game_state);
+    Generate_From_Loot_Table(entity, table, Roll(3, game_state) - 1, Rules_Builder().Rarity(Comparison::maximum, Rarity::uncommon).Finish(), game_state);
 
     return entity;
 }
@@ -1638,7 +1661,7 @@ SIG Entity* Create_Bear_Cub(Entity* room, Game_State* game_state)
     );
 
     Pick_From_Table_Rules rules = Rules_Builder()
-    .Rarity(Comparison::maximum, Rarity::rare)
+    .Rarity(Comparison::maximum, Rarity::uncommon)
     .Finish();
     
     Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(5, 30, game_state), rules, game_state);
@@ -1792,7 +1815,7 @@ SIG Entity* Create_Mutant_Hedgehog(Entity* room, Game_State* game_state)
         entity, 
         Basic_Merged_Loot_Table(game_state), 
         1 + Per_Count_Rolled_Random(3, 5, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
 
@@ -1899,8 +1922,8 @@ SIG Entity* Create_Mimic(Entity* room, Game_State* game_state)
 
     Loot_Table table = Basic_Merged_Loot_Table(game_state);
     Generate_From_Loot_Table(entity, table, Roll(2, game_state), Rules_Builder().Rarity(Comparison::equal, Rarity::common).Finish(), game_state);
-    Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::minimum, Rarity::magical).Finish(), game_state);
-    Generate_From_Loot_Table(entity, table, Roll(4, game_state) - 1, Rules_Builder().Rarity(Comparison::maximum, Rarity::magical).Finish(), game_state);
+    Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::minimum, Rarity::rare).Finish(), game_state);
+    Generate_From_Loot_Table(entity, table, Roll(4, game_state) - 1, Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), game_state);
 
     Finalize_Entity(entity, room, game_state);
 
@@ -2093,7 +2116,7 @@ SIG Entity* Create_Supply_Crate(Entity* room, Game_State* game_state)
     (
         entity, 
         table,
-        Per_Count_Rolled_Random(7, 5, game_state), 
+        Per_Count_Rolled_Random(4, 2, game_state), 
         {}, 
         game_state
     );
@@ -2211,7 +2234,7 @@ SIG Entity* Create_Snake(Entity* room, Game_State* game_state)
     
     entity->name_offset = Offset(STR("Snake"), game_state);
     entity->description_offset = Offset(STR("A slithering venomous creature."), game_state);
-    entity->rarity = Rarity::magical;
+    entity->rarity = Rarity::rare;
 
     entity->flags = EFlags::actor | EFlags::aggressive;
     entity->faction = Faction::nature;
@@ -2396,7 +2419,7 @@ SIG Entity* Create_Boss_Spider(Entity* room, Game_State* game_state)
     );
     
     Generate_From_Loot_Table(entity, table, Roll(3, game_state), {Comparison::equal}, game_state);
-    Generate_From_Loot_Table(entity, table, Roll(2, game_state), {Comparison::between, Rarity::rare, Rarity::magical}, game_state);
+    Generate_From_Loot_Table(entity, table, Roll(2, game_state), {Comparison::between, Rarity::uncommon, Rarity::rare}, game_state);
     Generate_From_Loot_Table(entity, table, 1, {Comparison::minimum, Rarity::epic}, game_state);
 
     Restore(&game_state->scratch_buffer, snapshot);
@@ -2419,11 +2442,11 @@ SIG void Generate_Standard_Random_Loot(Entity* container, Game_State* game_state
 
     if(count)
     {
-        Rarity::T rarity = Rarity::rare;
+        Rarity::T rarity = Rarity::uncommon;
         u32 r = Roll(32, game_state);
         if(r < 4)
         {
-            rarity = Rarity::magical;
+            rarity = Rarity::rare;
         }
         else if(r < 1)
         {

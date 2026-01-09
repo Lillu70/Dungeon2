@@ -5,12 +5,11 @@
 // All rights reserved.
 // ===================================
 
-
+// TODO: Add extra "stats" into the stats menu like healing power and thorns.
 // TODO: Pierce and armor effects in the default deal damage print out.
 // TODO: Duration type part of the effect instead of The instance???
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
-// TODO: Level up / Rest mechanic.
 // TODO: Make Loot command usable on items in the inventory.
 // TODO: Consumable with a CD. Currenty acrhitecture does not support this. Large sacale effort?
 // TODO: Make effect iterators survive deletions... Effects_Root_Node* iteration ID. iterator ID also stored in the effect instance when iterated, skip effect if ID already same as iterator. 
@@ -28,7 +27,7 @@
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
 #define QUICKSTART   1
-#define CUSTOM_START 1
+#define CUSTOM_START 0
 
 
 enum class Custom_Start
@@ -2377,6 +2376,11 @@ SIG s32 Max_Health(Entity* entity, Game_State* game_state)
 
     result += vit;
 
+    Effects_Iterator iter = Make_Iterator(&entity->active_effects, game_state);
+    while(Effect* effect = Next_Effect(&iter))
+    {
+        result += effect->max_health_modifier;
+    }
 
     if(entity->flags & EFlags::godmode)
     {
@@ -2544,7 +2548,17 @@ SIG s32 Give_Temporary_Health(Entity* entity, s32 amount, String source_name, Ve
         if(verbose)
         {
             String entity_name = Name(entity, game_state);
-            String message = Format_Message(game_state, "%s resives %d points of temporary health from %s.", entity_name.ptr, shield_amount, source_name.ptr);
+            String message = Format_Message
+            (
+                game_state, 
+                "%s resives %s%d%s points of temporary health from %s.", 
+                entity_name.ptr, 
+                game_state->temp_health_color.data,
+                shield_amount,
+                game_state->default_color.data,
+                source_name.ptr
+            );
+            
             Push_Message(message, game_state);
         }
     }
@@ -3220,20 +3234,6 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
             local::Line(depth);
             Print("Type: [%s]", Effect_Type::names[effect->type].ptr);
         }
-
-        if(effect->critical_success_range)
-        {
-            char c = (effect->critical_success_range > 0)? '+' : '-';
-            local::Line(depth);
-            Print("Crtical range: %c %d", c, Abs(effect->critical_success_range));
-        }
-
-        if(effect->critical_failure_range)
-        {
-            char c = (effect->critical_failure_range > 0)? '+' : '-';
-            local::Line(depth);
-            Print("Fumple range: %c %d", c, Abs(effect->critical_failure_range));
-        }
         
         if(effect->flags & Effect_Flags::has_damage_multiplier)
         {
@@ -3245,6 +3245,12 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
         {
             local::Line(depth);
             Print("Raw damage modifier: %d", effect->raw_damage_modifier);
+        }
+
+        if(effect->max_health_modifier)
+        {
+            local::Line(depth);
+            Print("Raw max health modifier: %d", effect->max_health_modifier);
         }
 
         if(effect->thorns_damage)
@@ -3272,6 +3278,7 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
             Print("Carrying capacity modifier: %c %d", c, Abs(effect->carry_capacity_modifier));
         }
         
+
 
         switch(effect->damage_die.count)
         {
@@ -3305,11 +3312,34 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
         }
         
         {
-            bool first = true;
+            String crit_range_name = STR("crit range");
+            String fumple_range_name = STR("fumple range");
+
+            u64 offset = 0;
+
             for(u64 i = 0; i < Array_Length(effect->stat_modifiers); ++i)
             {
-                s16 mod = effect->stat_modifiers[i];
-                if(mod)
+                if(effect->stat_modifiers[i])
+                {
+                    offset = Max(offset, Stats::name[i].length);
+                }
+            }
+
+            if(effect->critical_success_range)
+            {
+                offset = Max(offset, crit_range_name.length);
+            }
+
+            if(effect->critical_failure_range)
+            {
+                offset = Max(offset, fumple_range_name.length);
+            }
+
+            struct Stat_Printer
+            {
+                bool first;
+                s32 offset;
+                void print(u64 depth, String name, s32 value)
                 {
                     if(first)
                     {
@@ -3317,11 +3347,31 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
                         Print("Stat Modifiers:");
                         first = false;
                     }
-                    
-                    char* sign = (mod > 0)? "+" : "-";
+
+                    char* sign = (value > 0)? "+" : "-";
                     local::Line(depth + 1);
-                    Print("%10s: %s %d", Stats::name[i].ptr, sign, Abs(mod));
+                    Print("%*s: %s %d", offset, name.ptr, sign, Abs(value));
                 }
+            };
+            Stat_Printer stat_printer = {true, s32(offset)};
+
+            for(u64 i = 0; i < Array_Length(effect->stat_modifiers); ++i)
+            {
+                s16 mod = effect->stat_modifiers[i];
+                if(mod)
+                {
+                    stat_printer.print(depth, Stats::name[i], mod);
+                }
+            }
+
+            if(effect->critical_success_range)
+            {
+                stat_printer.print(depth, crit_range_name, effect->critical_success_range);
+            }
+
+            if(effect->critical_failure_range)
+            {
+                stat_printer.print(depth, fumple_range_name, effect->critical_failure_range);
             }
         }
 
@@ -3466,17 +3516,40 @@ SIG void Inspect(Entity* target, Game_State* game_state)
         Describe_Effect(effect, 0, game_state);
     }
     
-    if(target->flags & EFlags::interactable && target->interactable.on_use_fn_offset.v)
+    
     {
-        Print("\n[On Consume]: ");
-        Pointer(target->interactable.on_use_fn_offset, game_state)(0, 0, 0);
+        Print("\n[On use]:\n");
+
+        if(target->interactable.on_use_fn_offset.v)
+        {
+            Print("| Effect: ");
+            Pointer(target->interactable.on_use_fn_offset, game_state)/*-> Call!*/(0, 0, 0);
+            if(target->interactable.cd)
+            {
+                char* t = 0;
+                switch(target->interactable.cd_type)
+                {
+                    case Cooldown_Type::rooms:
+                    {
+                        t = "rooms";
+                    }break;
+
+                    case Cooldown_Type::rounds:
+                    {
+                        t = "rounds";
+                    }break;
+                }
+
+                Print("\n| Cooldown: %llu(%s)", target->interactable.cd, t);
+            }
+            if(target->interactable.uses_count)
+            {
+                Print("\n| ");
+                Print_Uses(target);
+            }
+        }
     }
 
-    if(target->interactable.uses_count)
-    {
-        Print("\n");
-        Print_Uses(target);
-    }
 
     if(target->food_quality)
     {
@@ -3544,6 +3617,42 @@ SIG bool Unequip(Entity* item, Game_State* game_state)
 }
 
 
+SIG bool Is_On_CD(Interactable* inter, Game_State* game_state, u64* out_cd DEF(0))
+{
+    bool result = false;
+    u64 cd_remaining = 0;
+
+    if(inter->cd && inter->last_used_room && inter->last_used_round)
+    {
+        switch(inter->cd_type)
+        {
+            case Cooldown_Type::rooms:
+            {
+                u64 usable_in_room = inter->last_used_room + inter->cd;
+                result = usable_in_room > game_state->room_count;
+
+                cd_remaining = usable_in_room - game_state->room_count;
+            }break;
+
+            case Cooldown_Type::rounds:
+            {
+                u64 usable_on_round = inter->last_used_round + inter->cd;
+                result = usable_on_round > game_state->round && inter->last_used_room == game_state->room_count;
+
+                cd_remaining = usable_on_round - game_state->round;
+            }break;
+        }
+
+        if(out_cd)
+        {
+            *out_cd = cd_remaining;
+        }
+    }
+
+    return result;
+}
+
+
 SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T verbose)
 {
     Interactable* interactable = &item->interactable;
@@ -3567,12 +3676,21 @@ SIG bool Use(Entity* actor, Entity* item, Game_State* game_state, Verbose::T ver
             Print("\n%s is empty, so it can't be used anymore...", item_name.ptr);
         }
 
+        if(use && Is_On_CD(interactable, game_state))
+        {
+            use = false;
+            String item_name = Name(item, game_state);
+            Print("\n%s is on cooldown, and can't be used right now...", item_name.ptr);
+        }
 
         if(use)
         {
             Flush_Messages(game_state);
             Pointer(interactable->on_use_fn_offset, game_state)/* It does call it -> */(item, actor, game_state);
             Print_Messages(game_state);
+
+            interactable->last_used_round = game_state->round;
+            interactable->last_used_room = game_state->room_count;
 
             if(interactable->uses_count != UNLIMITED_USES)
             {
@@ -3732,6 +3850,26 @@ SIG void Inventory(Entity* actor, Game_State* game_state)
         {
             Print(" [");
             Print_Uses(idi->entity);
+
+            u64 cd;
+            if(Is_On_CD(&idi->entity->interactable, game_state, &cd))
+            {
+                char* t = 0;
+                switch(idi->entity->interactable.cd_type)
+                {
+                    case Cooldown_Type::rooms:
+                    {
+                        t = "rooms";
+                    }break;
+
+                    case Cooldown_Type::rounds:
+                    {
+                        t = "rounds";
+                    }break;
+                }
+                Print(", CD: %llu(%s)", cd, t);
+            }
+
             Print("]");
         }
 
@@ -4016,7 +4154,7 @@ SIG void Print_Uses(Entity* entity)
     {
         if(entity->interactable.uses_count == UNLIMITED_USES)
         {
-            Print("Uses: [UNLIMITED]");
+            Print("Uses: UNLIMITED");
         }
         else
         {
@@ -4459,7 +4597,7 @@ SIG void Apply_Or_Describe_Attak_Modifier(Entity** attacker_ptr, Entity** defend
             }
             else
             {
-                Print("\nRemoves a random effect from the attacker.");
+                Print("Removes a random effect from the attacker.");
             }
         }break;
 
@@ -4927,7 +5065,7 @@ SIG void Take_Action(Entity* actor, Game_State* game_state)
         {
             if(actor->_temp_health)
             {
-                Print("\n%d points of temporary health expire.", actor->_temp_health);
+                Print("\n%s%d%s points of temporary health expire.", game_state->temp_health_color.data, actor->_temp_health, game_state->default_color.data);
                 actor->_temp_health = 0;
             }
 
@@ -5246,11 +5384,11 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
         {
             using namespace Rarity;
 
-            constexpr f32 STANDARD_COMMON_DROP_CHANGE       = 100;
-            constexpr f32 STANDARD_RARE_DROP_CHANGE         = 70;
-            constexpr f32 STANDARD_MAGICAL_DROP_CHANGE      = 50;
-            constexpr f32 STANDARD_EPIC_DROP_CHANGE         = 20;
-            constexpr f32 STANDARD_LEGENDARY_DROP_CHANGE    = 1;
+            constexpr f32 STANDARD_COMMON_DROP_CHANGE       = 1000;
+            constexpr f32 STANDARD_RARE_DROP_CHANGE         = 600;
+            constexpr f32 STANDARD_MAGICAL_DROP_CHANGE      = 100;
+            constexpr f32 STANDARD_EPIC_DROP_CHANGE         = 50;
+            constexpr f32 STANDARD_LEGENDARY_DROP_CHANGE    = 5;
 
             switch(rarity)
             {
@@ -5259,12 +5397,12 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
                     return STANDARD_COMMON_DROP_CHANGE;
                 }break;
 
-                case rare:
+                case uncommon:
                 {
                     return STANDARD_RARE_DROP_CHANGE;
                 }break;
 
-                case magical:
+                case rare:
                 {
                     return STANDARD_MAGICAL_DROP_CHANGE;
                 }break;
@@ -5289,6 +5427,8 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
     {
         table->filled = true;
 
+        u64 counts[Rarity::COUNT] = {};
+
         Loot_Table_Entry* end = table->array + table->count;
         for(Loot_Table_Entry* entry = table->array; entry < end; ++entry)
         {
@@ -5303,6 +5443,8 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
                 Delete_Entity(entity, game_state);
 
                 Restore(&game_state->scratch_buffer, snapshot);
+
+                counts[entry->rarity] += 1;
             }
 
             // But the change can be pre filled in... for what ever the reason.
@@ -5310,6 +5452,12 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
             {
                 entry->change = local::Standard_Drop_Change_Based_On_Rarity(entry->rarity);
             }
+        }
+
+        // Normalize
+        for(Loot_Table_Entry* entry = table->array; entry < end; ++entry)
+        {
+            entry->change = entry->change / f32(counts[entry->rarity]);
         }
     }
 }
@@ -6341,8 +6489,8 @@ SIG void Reset_Game_State(Game_State* game_state)
     
     // CONSIDER: Hmmm... not sure about this.
     // Pointer to the game_state remains valid as it's always the first thing pushed on to the permanent storage.
-    Game_State* state = Push_Struct(&perm_snapshot, Game_State);
-    Assert(state == game_state);
+    Game_State* check_state = Push_Struct(&perm_snapshot, Game_State);
+    Assert(check_state == game_state);
     
     // --------
     game_state->permanent_storage = perm_snapshot;
@@ -6370,8 +6518,8 @@ SIG void Reset_Game_State(Game_State* game_state)
     Get_Output_Color_CSTR(&game_state->exp_color,        110, 110, 255);
 
     game_state->rarity_colors[Rarity::common] = game_state->default_color;
-    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::rare],          80, 190,  80);
-    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::magical],       30,  80, 210);
+    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::uncommon],      80, 190,  80);
+    Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::rare],          30,  80, 210);
     Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::epic],         163,  73, 164);
     Get_Output_Color_CSTR(&game_state->rarity_colors[Rarity::legendary],    240, 100,  20);
 
