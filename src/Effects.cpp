@@ -1305,44 +1305,44 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
 {
     struct local
     {
-        static void Berserking_Attack_On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        static f32 Dodge_Reduction()
         {
-            if(instance)
-            {
-                Deal_Damage
-                (
-                    attacker, 
-                    Offset(attacker, game_state), 
-                    Effect_Name(instance, game_state), 
-                    Round_To_S32(f32(ar->deal_damage_result.damage_after_mitigation) / 2.f),
-                    0,
-                    Damage_Type::magical, 
-                    game_state, 
-                    Verbose::yes
-                );
-            }
-            else
-            {
-                Print("take half of the attack damage also to your self.");
-            }
+            return 0.5f;
         }
 
         static void Berserking_Attack_On_Apply(Effect_Instance* instance, Entity* entity, Game_State* game_state)
         {
             if(instance)
             {
-                Effect_Instance enraged = {};
-                enraged.effect_offset = Get_Enraged_Effect_Offset(game_state);
-                enraged.source = instance->source;
-                enraged.zero_ticked = true;
-                enraged.duration = 1;
+                {
+                    Effect* effect = Request_Effect(game_state);
+                    effect->name_offset = Offset(STR("Single Minded"), game_state);
+                    effect->stat_modifiers[Stats::dodge] = (s16)Round_To_S32(Get_Stat_Value(entity, Stats::dodge, game_state) * Dodge_Reduction()) * -1;
 
-                Apply_Effect_Result apply = Apply_Effect(entity, enraged, game_state);
-                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), entity, enraged, apply, game_state);
+                    Effect_Instance dodge_reduction_instance = {};
+                    dodge_reduction_instance.effect_offset = Offset(effect, game_state);
+                    dodge_reduction_instance.source = instance->source;
+                    dodge_reduction_instance.duration = 1;
+                    dodge_reduction_instance.zero_ticked = true;
+
+                    Apply_Effect_Result apply = Apply_Effect(entity, dodge_reduction_instance, game_state);
+                    Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), entity, dodge_reduction_instance, apply, game_state);
+                }
+
+                {
+                    Effect_Instance enraged = {};
+                    enraged.effect_offset = Get_Enraged_Effect_Offset(game_state);
+                    enraged.source = instance->source;
+                    enraged.zero_ticked = true;
+                    enraged.duration = 1;
+
+                    Apply_Effect_Result apply = Apply_Effect(entity, enraged, game_state);
+                    Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), entity, enraged, apply, game_state);
+                }
             }
             else
             {
-                Print("applies the \"Enraged\" effect to your self.");
+                Print("applies \"Enraged\" and \"Single Minded\" effects to your self.");
             }
         }
     };
@@ -1357,7 +1357,6 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
             Effect effect = {};
             effect.name_offset = Offset(STR("Berserking attack"), game_state);
             effect.type = Effect_Type::physical;
-            effect.on_hit_fn_offset = Offset(local::Berserking_Attack_On_Hit, game_state);
             effect.on_apply_fn_offset = Offset(local::Berserking_Attack_On_Apply, game_state);
             instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
@@ -1368,7 +1367,7 @@ SIG Effect_Instance Berserking_Attack(Entity* attacker, Game_State* game_state)
     }
     else
     {
-        Print("apply the \"Enraged\" effect to your self, but deal half of this attacks damage also to your self.");
+        Print("apply the \"Enraged\" effect to your self, but reduces dodge by %2.f%%.", local::Dodge_Reduction() * 100.f);
     }
     
     return instance;
@@ -1438,7 +1437,7 @@ SIG Effect_Instance Change_Attack(Entity* attacker, Game_State* game_state)
 
         static u32 Burn_Duration()
         {
-            return 4;
+            return 2;
         }
 
         static void Change_Attack_Apply_Burn_On_Attack(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)

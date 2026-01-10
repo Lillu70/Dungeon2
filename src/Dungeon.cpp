@@ -11,7 +11,6 @@
 // TODO: Add a conformation on proceeding when under an effect with a rounds duration. I.E. Are you sure you wish to travel under the the effect of the "Poison"?
 // TODO: Confimation on drop if the item is equipped.
 // TODO: Make Loot command usable on items in the inventory.
-// TODO: Consumable with a CD. Currenty acrhitecture does not support this. Large sacale effort?
 // TODO: Make effect iterators survive deletions... Effects_Root_Node* iteration ID. iterator ID also stored in the effect instance when iterated, skip effect if ID already same as iterator. 
 // Nuke the ID when an effect is deleted. at least a good catch against tampering, but also start over the iteration skipping over the ones with last runs ID. Replace with this runs ID incase delete happens again.
 
@@ -23,7 +22,7 @@
 #define DEVMODE      1
 #define SEED         0
 #define RANDOM_SEED  1
-#define SAVE_ON_EXIT 0
+#define SAVE_ON_EXIT 1
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
 #define QUICKSTART   1
@@ -32,8 +31,8 @@
 
 enum class Custom_Start
 {
-    level_1_zone_1, // 90% -- playable
-    level_1_zone_2,
+    level_1_zone_1, //  90% -- playable
+    level_1_zone_2, // ~50% -- somewhat playable 
     level_1_zone_3,
 
     level_2_zone_1,
@@ -1583,6 +1582,88 @@ SIG void Print_Required_Equipment_Slots(Entity* item)
 }
 
 
+SIG s32 Potency(String name, s32 base, Game_State* game_state)
+{
+    Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
+    String message = String_Builder(&game_state->scratch_buffer).Next(name).Next(STR(" potency is: ")).Next(base).Finish();
+
+    Push_Message(message, game_state);
+
+    Restore(&game_state->scratch_buffer, snapshot);
+
+    return base;
+}
+
+
+SIG s32 Potency(String name, s32 base, Dice dice, Game_State* game_state)
+{
+    Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
+    
+    // Healing potion potency is: %d (%d + %dd%d = %d[3, 6 and 8])
+    s32* roll = Roll_With_Record(dice, game_state);
+    s32 result = base + *roll;
+    if(dice.count > 1)
+    {
+        String_Builder builder = String_Builder(&game_state->scratch_buffer)
+        .Next(name)
+        .Next(STR(" potency is: "))
+        .Next(result)
+        .Next(STR(" ("));
+
+        if(base)
+        {
+            builder = builder.Next(base).Next(STR(" + "));
+        }
+
+        builder = builder
+        .Next(dice.count)
+        .Next(STR("d"))
+        .Next(dice.faces)
+        .Next(STR(" = "))
+        .Next(*roll)
+        .Next(STR("["));
+
+        for(u64 i = 0; i < dice.count; ++i)
+        {
+            if(i == dice.count - 1)
+            {
+                builder = builder.Next(STR(" and "));
+            }
+            else if (i > 0)
+            {
+                builder = builder.Next(STR(", "));
+            }
+
+            builder = builder.Next(roll[1 + i]);
+        }
+
+        String message = builder
+        .Next(STR("])"))
+        .Finish();
+
+        Push_Message(message, game_state);
+    }
+    else
+    {
+        String message;
+        if(base)
+        {
+            message = Format_Message(game_state, "%s potency is: %d (%d + 1d%d = %d)", name.ptr, result, base, dice.faces, roll[1]);
+        }
+        else
+        {
+            message = Format_Message(game_state, "%s potency is: %d (1d%d = %d)", name.ptr, result, dice.faces, roll[1]);
+        }
+
+        Push_Message(message, game_state);
+    }
+
+    Restore(&game_state->scratch_buffer, snapshot);
+
+    return result;
+}
+
+
 SIG void Push_Generic_Apply_Effect_Message(String source_name, Entity* target, Effect_Instance new_effect, Apply_Effect_Result apply, Game_State* game_state)
 {
     if(apply != Apply_Effect_Result::failed)
@@ -1879,6 +1960,7 @@ SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_st
 {
     if(storage_entity)
     {
+        entity->_temp_health = 0;
         entity->_threat = 0;
         entity->refnum = 0;
         entity->dublicate_identifier = 0;
@@ -3403,6 +3485,13 @@ void Describe_Effect(Effect* effect, u64 depth, Game_State* game_state)
             on_attack_fn(0, 0, 0, 0, 0);
         }
         
+        if(PROTOTYPE_EFFINST_ENT_ENT_AR_GS* on_be_attacked_fn = Pointer(effect->on_be_attacked_fn_offset, game_state))
+        {
+            local::Line(depth);
+            Print("[On victim of attack]: ");
+            on_be_attacked_fn(0, 0, 0, 0, 0);
+        }
+
         if(PROTOTYPE_EFFINST_ENT_ENT_AR_GS* on_miss_fn = Pointer(effect->on_miss_fn_offset, game_state))
         {
             local::Line(depth);
@@ -3518,10 +3607,9 @@ SIG void Inspect(Entity* target, Game_State* game_state)
     
     
     {
-        Print("\n[On use]:\n");
-
         if(target->interactable.on_use_fn_offset.v)
         {
+            Print("\n[On use]:\n");
             Print("| Effect: ");
             Pointer(target->interactable.on_use_fn_offset, game_state)/*-> Call!*/(0, 0, 0);
             if(target->interactable.cd)
@@ -3538,6 +3626,11 @@ SIG void Inspect(Entity* target, Game_State* game_state)
                     {
                         t = "rounds";
                     }break;
+
+                    case Cooldown_Type::none:
+                    {
+                        Terminate("Invalid code path!");
+                    }break;
                 }
 
                 Print("\n| Cooldown: %llu(%s)", target->interactable.cd, t);
@@ -3547,6 +3640,11 @@ SIG void Inspect(Entity* target, Game_State* game_state)
                 Print("\n| ");
                 Print_Uses(target);
             }
+        }
+        else if(target->interactable.uses_count)
+        {
+            Print("\n");
+            Print_Uses(target);
         }
     }
 
@@ -3640,6 +3738,11 @@ SIG bool Is_On_CD(Interactable* inter, Game_State* game_state, u64* out_cd DEF(0
                 result = usable_on_round > game_state->round && inter->last_used_room == game_state->room_count;
 
                 cd_remaining = usable_on_round - game_state->round;
+            }break;
+
+            case Cooldown_Type::none:
+            {
+                Terminate("Invalid code path!");
             }break;
         }
 
@@ -3865,6 +3968,11 @@ SIG void Inventory(Entity* actor, Game_State* game_state)
                     case Cooldown_Type::rounds:
                     {
                         t = "rounds";
+                    }break;
+
+                    case Cooldown_Type::none:
+                    {
+                        Terminate("Invalid code path!");
                     }break;
                 }
                 Print(", CD: %llu(%s)", cd, t);
@@ -4725,6 +4833,7 @@ SIG void Attack(Entity* attacker, Entity* defender, Game_State* game_state, Atta
             }
 
             Proc_Effects(Offset_Of(Effect, on_attack_fn_offset), attacker, defender, &ar, game_state);
+            Proc_Effects(Offset_Of(Effect, on_be_attacked_fn_offset), defender, attacker, &ar, game_state);
         }
         
         Print_Attack_Record(&ar, game_state);
@@ -5330,49 +5439,77 @@ SIG Loot_Table Merge_Loot_Tables(Loot_Table* tables, u64 count, Arena* arena)
     for(u64 i = 1; i < count; ++i)
     {
         Loot_Table B = tables[i];
-        A = Merge_Loot_Tables(A, B, arena);
+        A = Merge_Loot_Tables_Internal(A, B, arena);
     }
-
+    Normalize_Loot_Table_Changes(&A);
     return A;
 }
 
 
-SIG Loot_Table Merge_Loot_Tables(Loot_Table A, Loot_Table B, Arena* arena)
+SIG _inline Loot_Table Merge_Loot_Tables_Internal(Loot_Table A, Loot_Table B, Arena* arena)
 {
     Loot_Table table = {};
     table.count = A.count + B.count;
     table.array = Push_Array(arena, Loot_Table_Entry, table.count);
     Mem_Copy(table.array, A.array, sizeof(*A.array) * A.count);
     Mem_Copy(table.array + A.count, B.array, sizeof(*B.array) * B.count);
+
+    for(u64 i = 0; i < Rarity::COUNT; ++i)
+    {
+        table.counts[i] = A.counts[i] + B.counts[i];
+    }
+
+    return table;
+}
+
+
+SIG Loot_Table Merge_Loot_Tables(Loot_Table A, Loot_Table B, Arena* arena)
+{
+    Loot_Table table = Merge_Loot_Tables_Internal(A, B, arena);
+    Normalize_Loot_Table_Changes(&table);
     return table;
 }
 
 
 SIG Loot_Table Merge_Loot_Tables(Loot_Table A, Loot_Table B, Loot_Table C, Arena* arena)
 {
-    Loot_Table result = Merge_Loot_Tables(C, Merge_Loot_Tables(A, B, arena), arena);
+    Loot_Table result = Merge_Loot_Tables_Internal(C, Merge_Loot_Tables_Internal(A, B, arena), arena);
+    Normalize_Loot_Table_Changes(&result);
     return result;
 }
 
 
 SIG Loot_Table Merge_Loot_Tables(Loot_Table A, Loot_Table B, Loot_Table C, Loot_Table D, Arena* arena)
 {
-    Loot_Table result = Merge_Loot_Tables(D, Merge_Loot_Tables(C, Merge_Loot_Tables(A, B, arena), arena), arena);
+    Loot_Table result = Merge_Loot_Tables_Internal(D, Merge_Loot_Tables_Internal(C, Merge_Loot_Tables_Internal(A, B, arena), arena), arena);
+    Normalize_Loot_Table_Changes(&result);
     return result;
 }
 
 
 SIG Loot_Table Merge_Loot_Tables(Loot_Table A, Loot_Table B, Loot_Table C, Loot_Table D, Loot_Table E, Arena* arena)
 {
-    Loot_Table result = Merge_Loot_Tables(E, Merge_Loot_Tables(D, Merge_Loot_Tables(C, Merge_Loot_Tables(A, B, arena), arena), arena), arena);
+    Loot_Table result = Merge_Loot_Tables_Internal(E, Merge_Loot_Tables_Internal(D, Merge_Loot_Tables_Internal(C, Merge_Loot_Tables_Internal(A, B, arena), arena), arena), arena);
+    Normalize_Loot_Table_Changes(&result);
     return result;
 }
 
 
 SIG Loot_Table Merge_Loot_Tables(Loot_Table A, Loot_Table B, Loot_Table C, Loot_Table D, Loot_Table E, Loot_Table F, Arena* arena)
 {
-    Loot_Table result = Merge_Loot_Tables(F, Merge_Loot_Tables(E, Merge_Loot_Tables(D, Merge_Loot_Tables(C, Merge_Loot_Tables(A, B, arena), arena), arena), arena), arena);
+    Loot_Table result = Merge_Loot_Tables_Internal(F, Merge_Loot_Tables_Internal(E, Merge_Loot_Tables_Internal(D, Merge_Loot_Tables_Internal(C, Merge_Loot_Tables_Internal(A, B, arena), arena), arena), arena), arena);
+    Normalize_Loot_Table_Changes(&result);
     return result;
+}
+
+
+SIG void Normalize_Loot_Table_Changes(Loot_Table* table)
+{
+    Loot_Table_Entry* end = table->array + table->count;
+    for(Loot_Table_Entry* entry = table->array; entry < end; ++entry)
+    {
+        entry->change = entry->_og_change / f32(table->counts[entry->rarity]);
+    }
 }
 
 
@@ -5384,8 +5521,8 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
         {
             using namespace Rarity;
 
-            constexpr f32 STANDARD_COMMON_DROP_CHANGE       = 1000;
-            constexpr f32 STANDARD_RARE_DROP_CHANGE         = 600;
+            constexpr f32 STANDARD_COMMON_DROP_CHANGE       = 3000;
+            constexpr f32 STANDARD_RARE_DROP_CHANGE         = 500;
             constexpr f32 STANDARD_MAGICAL_DROP_CHANGE      = 100;
             constexpr f32 STANDARD_EPIC_DROP_CHANGE         = 50;
             constexpr f32 STANDARD_LEGENDARY_DROP_CHANGE    = 5;
@@ -5427,8 +5564,6 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
     {
         table->filled = true;
 
-        u64 counts[Rarity::COUNT] = {};
-
         Loot_Table_Entry* end = table->array + table->count;
         for(Loot_Table_Entry* entry = table->array; entry < end; ++entry)
         {
@@ -5444,7 +5579,7 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
 
                 Restore(&game_state->scratch_buffer, snapshot);
 
-                counts[entry->rarity] += 1;
+                table->counts[entry->rarity] += 1;
             }
 
             // But the change can be pre filled in... for what ever the reason.
@@ -5452,13 +5587,10 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
             {
                 entry->change = local::Standard_Drop_Change_Based_On_Rarity(entry->rarity);
             }
+            entry->_og_change = entry->change;
         }
-
-        // Normalize
-        for(Loot_Table_Entry* entry = table->array; entry < end; ++entry)
-        {
-            entry->change = entry->change / f32(counts[entry->rarity]);
-        }
+        
+        Normalize_Loot_Table_Changes(table);
     }
 }
 

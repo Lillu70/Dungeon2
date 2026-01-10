@@ -45,9 +45,9 @@ SIG Loot_Table Basic_Consumables_Loot_Table(Game_State* game_state)
         {Create_Cure},
         {Create_Bandage},
         {Create_Dispeller},
-        {Create_Herbal_Remedy, 250},
+        {Create_Herbal_Remedy},
         {Create_Healing_Potion},
-        {Create_Restoration_Potion, 150},
+        {Create_Restoration_Potion},
         {Create_Bomb},
         {Create_Fragmentation_Bomb},
         {Create_Dodge_Elixir},
@@ -119,8 +119,8 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Buckler},
         {Create_Kite_Shield},
         {Create_Shearing_Light},
-        {Create_Barn_Door_Shield, 70},
-        {Create_Tower_Shield, 50},
+        {Create_Barn_Door_Shield},
+        {Create_Tower_Shield},
         {Create_Leather_Cuirass},
         {Create_Gambeson},
         {Create_Breastplate},
@@ -141,10 +141,11 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Leather_Gloves},
         {Create_Chainmail_Gloves},
         {Create_Plate_Gloves},
-        {Create_Belt, 300},
+        {Create_Belt},
         {Create_Strong_Man_Belt},
         {Create_Belt_Of_Atlas},
         {Create_Plate_Codpiece},
+        {Create_Chastity_Belt},
         {Create_Field_Medics_Gloves},
         {Create_Mountaineer_Boots},
         {Create_Knights_Plate_Boots},
@@ -154,8 +155,8 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Crusaders_Breastplate},
         {Create_Knights_Breastplate},
         {Create_Gloves_Of_Careful_Attacking},
-        {Create_Bucket, 10},
-        {Create_Sack, 10},
+        {Create_Bucket},
+        {Create_Sack},
         {Create_Hide_Helmet},
         {Create_Wooden_Helmet},
         {Create_Trueshot_Goggles},
@@ -172,6 +173,22 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Damaged_Tiara_Of_Divine_Protection},
         {Create_Horny_Headband},
         {Create_Monocle_Of_Thunderstrike},
+        {Create_Nobles_Armored_Garb},
+        {Create_Vest_Of_Evasion},
+        {Create_Hedgehog_Skin_Vest},
+        {Create_Precise_Jerkin},
+        {Create_Strong_Jerkin},
+        {Create_Hauberk},
+        {Create_Chestguard_Of_The_Silver_Blossoms_Scout},
+        {Create_Treebark_Jacket},
+        {Create_Robes_Of_The_Magi},
+        {Create_Kamikaze_Shirt},
+        {Create_Harness_Of_Enslavement},
+        {Create_Myconian_Chestcover},
+        {Create_Lightforged_Iron_Chestguard},
+        {Create_Emergency_Vest},
+        {Create_Field_Medics_Jerkin},
+        {Create_Restorers_Battle_Armor},
         
     };
 
@@ -231,6 +248,10 @@ SIG void Spawn_All_Items_In_Loot_Table(Loot_Table table, Entity* room, Game_Stat
 
 SIG Loot_Table Basic_Merged_Loot_Table(Game_State* game_state)
 {
+    // CONSIDER: It seems like there is serious need for caching, but it's not clear how to do that; Without storing pointers in permanent storage.
+    // Another arena? ..just for this ? 
+    // Static storage with a game_id  ?
+
     Loot_Table result = Merge_Loot_Tables
     (
         Basic_Weapons_Loot_Table(game_state),
@@ -1199,6 +1220,32 @@ SIG Entity* Create_Plate_Codpiece(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Chastity_Belt(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Chastity Belt"), game_state);
+    entity->description_offset = Offset(STR("It's a thing.. prevents the other thing."), game_state);
+    entity->rarity = Rarity::rare;
+    
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::belt];
+    entity->weight = 1;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::arcane] = + 2;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -2459,6 +2506,574 @@ SIG Entity* Create_Gambeson(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Hauberk(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Hauberk"), game_state);
+    entity->description_offset = Offset(STR("Tunic of chain mail that covers the torso."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 5;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 6;
+        effect.stat_modifiers[Stats::speed] = - 1;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Nobles_Armored_Garb(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Noble's armored garb"), game_state);
+    entity->description_offset = Offset(STR("On a rare occasion, a prince of a noble family decents down into the Dungeon to prove their worth."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::accuracy]  = + 1;
+        effect.stat_modifiers[Stats::vitality]  = + 2;
+        effect.stat_modifiers[Stats::armor]     = + 2;
+        effect.stat_modifiers[Stats::dodge]     = + 2;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Vest_Of_Evasion(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Vest of Evasion"), game_state);
+    entity->description_offset = Offset(STR("A blue leather vest, strange thing thing to look at. Perhaps that is why it's harder hit someone wearing it?"), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 3;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.stat_modifiers[Stats::dodge] = + 5;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Hedgehog_Skin_Vest(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Hedgehog skin vest"), game_state);
+    entity->description_offset = Offset(STR("A very spikey vest."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.thorns_damage = 4;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Precise_Jerkin(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Precise Jerkin"), game_state);
+    entity->description_offset = Offset(STR("Medium light armor with an accuracy enchantment."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 3;
+        effect.stat_modifiers[Stats::accuracy]  = + 4;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Strong_Jerkin(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Strong Jerkin"), game_state);
+    entity->description_offset = Offset(STR("Medium light armor with a strength enchantment."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+        effect.stat_modifiers[Stats::might] = + 4;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Chestguard_Of_The_Silver_Blossoms_Scout(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Chestguard of the Silver Blossoms scout"), game_state);
+    entity->description_offset = Offset(STR("Order of the Silver Blossom is the militant arm of the church of Golden Order."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 4;
+        effect.stat_modifiers[Stats::speed] = + 4;
+        effect.stat_modifiers[Stats::dodge] = + 1;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Treebark_Jacket(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Tree-bark Jacket"), game_state);
+    entity->description_offset = Offset(STR("Made from Oak bark. The tree dwelling people of Zondal wear these as camouflage."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 1;
+        effect.stat_modifiers[Stats::speed]     = + 1;
+        effect.stat_modifiers[Stats::dodge]     = + 2;
+        effect.stat_modifiers[Stats::immunity]  = + 7;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Robes_Of_The_Magi(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Robes of The Magi"), game_state);
+    entity->description_offset = Offset(STR("Robes enchanted with magic enhancing magical enchantments."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]  = + 1;
+        effect.stat_modifiers[Stats::arcane] = + 6;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Kamikaze_Shirt(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Kamikaze shirt"), game_state);
+    entity->description_offset = Offset(STR("A tornup shirt worn by Tom the villager. He went insane and started cutting down his own townsflok."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = - 5;
+        effect.stat_modifiers[Stats::might] = + 8;
+        effect.stat_modifiers[Stats::speed] = + 3;
+        Add_Dice(&effect, 1, 6);
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Harness_Of_Enslavement(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Harness of Enslavement"), game_state);
+    entity->description_offset = Offset(STR("A cruel device intended to be forced upon slaves. Makes them hardier, but more sensitive to pain."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 1;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = - 2;
+        effect.stat_modifiers[Stats::vitality]  = + 3;
+        effect.stat_modifiers[Stats::immunity]  = + 11;
+        effect.carry_capacity_modifier          = + 50;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Myconian_Chestcover(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Miss(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                if(ar->is_critical_failure)
+                {
+                    Entity* space = Pointer(attacker->residence, game_state);
+                    Entity* mushroom = Create_Mushroom(space, game_state);
+                    mushroom->flags |= EFlags::visible;
+
+                    String shrooms_name = Name(mushroom, game_state);
+                    String effect_name = Effect_Name(instance, game_state);
+
+                    String message = Format_Message(game_state, "%s sprouts a %s.", effect_name.ptr, shrooms_name.ptr);
+                    Push_Message(message, game_state);
+                }
+            }
+            else
+            {
+                Print("On a fumple sprouts a mushroom.");
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Myconian Chestcover"), game_state);
+    entity->description_offset = Offset(STR("A chest armor made from living soil. It's coverd in mushrooms, undergorowth and worms."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 7;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+        effect.on_miss_fn_offset = Offset(local::On_Miss, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Lightforged_Iron_Chestguard(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 temp_health_amount = 1;
+            if(instance)
+            {
+                if(game_state->visible_initiative_count > 1)
+                {
+                    String effect_name = Effect_Name(instance, game_state);
+
+                    s32 roll = Roll(2, game_state);
+                    u64 trigger = 2;
+                    bool result = roll == trigger;
+                    String message = Format_Message
+                    (
+                        game_state, 
+                        "%s attempts to shield %s [%s]: 1d%d = %d (Success: = %llu)",
+                        effect_name.ptr,
+                        Name(target, game_state).ptr,
+                        (result)? "success" : "failure",
+                        2,
+                        roll,
+                        trigger
+                    );
+                    Push_Message(message, game_state);
+                    
+                    if(result)
+                    {
+                        Give_Temporary_Health(target, temp_health_amount, effect_name, Verbose::yes, game_state);
+                    }
+                }
+            }
+            else
+            {
+                Print("Rolls a 1d2, if the result is 2 the user resives %d temporary health.", temp_health_amount);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Lightforged Iron Chestguard"), game_state);
+    entity->description_offset = Offset(STR("Lightforging is a special crafting technique only known to the Order of the Bright Forge. It is where they get their name."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 7;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 5;
+        effect.stat_modifiers[Stats::dodge] = - 1;
+        effect.stat_modifiers[Stats::speed] = - 3;
+        effect.critical_failure_range = + 1;
+
+        effect.on_turn_start_fn_offset = Offset(local::On_Turn_Start, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Emergency_Vest(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Be_Attacked(Effect_Instance* instance, Entity* defender, Entity* attacker, Attack_Record* ar, Game_State* game_state)
+        {
+            s32 healing_amount = 10;
+            if(instance)
+            {
+                if(ar->is_critical_success)
+                {
+                    Entity_Iterator iter = Make_Iterator(Pointer(defender->residence, game_state), game_state);
+                    while(Entity* entity = Next_Entity(&iter))
+                    {
+                        Heal(entity, healing_amount, Effect_Name(instance, game_state), Verbose::yes, game_state);
+                    }
+                }
+            }
+            else
+            {
+                Print("If the attack is a critical hit. Heals all the entities in the room by %d.", healing_amount);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Emergency Vest"), game_state);
+    entity->description_offset = Offset(STR("Triggers at the time of need, but at such moment there is no time for discrimination."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+
+        effect.on_be_attacked_fn_offset = Offset(local::On_Be_Attacked, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Field_Medics_Jerkin(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Field Medics Jerkin"), game_state);
+    entity->description_offset = Offset(STR("Stained with blood of the wounded."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 8;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+        effect.healing_power                = + 5;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Restorers_Battle_Armor(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* target, Game_State* game_state)
+        {
+            Dice dice = {1, 8};
+            if(item)
+            {
+                String source_name = Name(item, game_state);
+                s32 potency = Potency(source_name, 0, dice, game_state);
+                Heal(target, potency, source_name, Verbose::yes, game_state);
+            }
+            else
+            {
+                Print("Heals the wearer for %dd%d points of health", dice.count, dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Restorers Battle Armor"), game_state);
+    entity->description_offset = Offset(STR("Bright green veins run through the surface. It's made of some very light metal."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item | EFlags::interactable;
+    entity->rarity = Rarity::uncommon;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 5;
+
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.uses_count = UNLIMITED_USES;
+    entity->interactable.cd_type = Cooldown_Type::rooms;
+    entity->interactable.cd = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Huntsmans_Gambeson(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -2504,7 +3119,7 @@ SIG Entity* Create_Warrior_Poncho(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might] = + 5;
+        effect.stat_modifiers[Stats::might] = + 4;
         effect.stat_modifiers[Stats::dodge] = + 2;
         effect.critical_success_range       = + 1;
         
@@ -2899,7 +3514,7 @@ SIG Entity* Create_Plaguedoctos_Visor(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Plaguedoctor's visor"), game_state);
-    entity->description_offset = Offset(STR("Like clockwork a plague appears and kills of many.. many people. It always happens, but the deadliness varies."), game_state);
+    entity->description_offset = Offset(STR("Like clockwork, every hundread years a plague appears and kills of many.. many people. It always happens, but the deadliness varies."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     entity->rarity = Rarity::uncommon;    
     
@@ -3080,6 +3695,21 @@ SIG Entity* Create_Monocle_Of_Thunderstrike(Entity* room, Game_State* game_state
 {
     struct local
     {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            Dice dice = {2, 6};
+            if(instance)
+            {
+                String source_name = Effect_Name(instance, game_state);
+                s32 dmg = Potency(source_name, 0, dice, game_state);
+                Deal_Damage(defender, attacker, source_name, dmg, {}, Damage_Type::magical, game_state, Verbose::yes);
+            }
+            else
+            {
+                Print("Deals %dd%d extra magical damage.", dice.count, dice.faces);
+            }
+        }
+
         static void on_use_fn(Entity* item, Entity* target, Game_State* game_state)
         {
             s16 dice_count = 2;
@@ -3094,7 +3724,7 @@ SIG Entity* Create_Monocle_Of_Thunderstrike(Entity* room, Game_State* game_state
                     Effect effect = {};
                     effect.type = Effect_Type::magic;
                     effect.name_offset = Offset(STR("Thunderstrike"), game_state);
-                    Add_Dice(&effect, dice_count, dice_faces);
+                    effect.on_hit_fn_offset = Offset(On_Hit, game_state);
                     thunderstride.effect_offset = Insert_Effect(effect, key, game_state);
                 }
 
@@ -3128,6 +3758,15 @@ SIG Entity* Create_Monocle_Of_Thunderstrike(Entity* room, Game_State* game_state
     entity->interactable.cd_type = Cooldown_Type::rooms;
     entity->interactable.cd = 1;
     
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.stat_modifiers[Stats::might] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
     Finalize_Entity(entity, room, game_state);
     return entity;
 }
@@ -4125,41 +4764,8 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
             {
                 s16 level = Level(user);
                 Dice dice = {1, level};
-                Arena_Snapshot snapshot = Snapshot(&game_state->scratch_buffer);
-
-                s32* dice_results = Roll_With_Record(dice, game_state);
-
-                s32 potency = level + *dice_results;
-
-                // Healing potion potency is: %d (%d + 1d%d = %d[%d, %d])
-                Arena* arena = &game_state->messages_buffer;
-
-                // NOTE: String construction in this language is rough... Would have been a bit easier in Python for instance.
-                // Though I think the conditional in there would mean that you'd still need a loop. But you could just apped the string together.
-                // This though is fast! No memory allocations really happening here.
-
-                u64 length = 0;
-                char* message_base = Push_String(arena, Name(item, game_state), &length);
-                
-                U64_To_String_Memory m;
-                Push_String(arena, STR(" potency is: "), &length);
-                Push_String(arena, To_String(u64(potency), &m), &length);
-                Push_String(arena, STR(" ("), &length);
-                Push_String(arena, To_String(u64(level), &m), &length);
-                Push_String(arena, STR(" + 1d"), &length);
-                Push_String(arena, To_String(u64(dice.faces), &m), &length);
-                Push_String(arena, STR(" = "), &length);
-                Push_String(arena, To_String(u64(*dice_results), &m), &length);
-                Push_String(arena, STR(")"), &length);
-
-                Push(arena, 1); // null terminator!
-                String message = {message_base, length};
-                
-                Assert(Null_Terminated_Length(message_base) == length + 1);
-                Restore(&game_state->scratch_buffer, snapshot);
-                
-                Push_Message(message, game_state);
                 String source_name = Name(item, game_state);
+                s32 potency = Potency(source_name, level, dice, game_state);
                 Heal(user, potency, source_name, Verbose::yes, game_state);
             }
             else
@@ -4316,18 +4922,8 @@ SIG Entity* Create_Herbal_Remedy(Entity* container, Game_State* game_state)
         {
             if(item)
             {
-                s16 level = Level(user);
-                s32 potency = level;
-
-                String message = 
-                String_Builder(&game_state->scratch_buffer)
-                .Next(Name(item, game_state))
-                .Next(STR(" potency is: "))
-                .Next(potency)
-                .Finish();
-                
-                Push_Message(message, game_state);
                 String source_name = Name(item, game_state);
+                s32 potency = Potency(source_name, Level(user), game_state);
                 Heal(user, potency, source_name, Verbose::yes, game_state);
             }
             else
@@ -4364,30 +4960,8 @@ SIG Entity* Create_Bomb(Entity* container, Game_State* game_state)
             if(item)
             {
                 s32 base = Get_Stat_Value(user, Stats::arcane, game_state);
-
-                s32 dice_result = (s32)Roll(dice, game_state);
-                s32 damage = base + dice_result;
-                u64 length = 0;
-                
-                // Bomb potency is: %d ([acrane]:%d + %dd%d = %d)
                 String source_name = Name(item, game_state);
-                String message = String_Builder(&game_state->messages_buffer, source_name)
-                .Next(STR(" potency is: "))
-                .Next(damage)
-                .Next(STR(" (["))
-                .Next(Stats::name[Stats::arcane])
-                .Next(STR("]:"))
-                .Next(base)
-                .Next(STR(" + "))
-                .Next(dice.count)
-                .Next(STR("d"))
-                .Next(dice.faces)
-                .Next(STR(" = "))
-                .Next(dice_result)
-                .Next(STR(")"))
-                .Finish();
-                
-                Push_Message(message, game_state);
+                s32 damage = Potency(source_name, base, dice, game_state);
 
                 Entity_Iterator iter = Make_Iterator(Pointer(user->residence, game_state), game_state);
                 while(Entity* entity = Next_Entity(&iter))

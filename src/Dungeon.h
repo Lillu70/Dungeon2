@@ -272,6 +272,7 @@ struct Effect
     PROTOTYPE_EFFINST_ENT_GS_Offset /*-------------------*/ on_turn_start_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_GS_Offset /*---------------*/ on_loot_attempt_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_attack_fn_offset;
+    PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_be_attacked_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_miss_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_hit_fn_offset;
     PROTOTYPE_EFFINST_ENT_ENT_AR_GS_Offset /*------------*/ on_dodge_fn_offset;
@@ -482,6 +483,7 @@ struct Initiative
 
 enum class Cooldown_Type : u8
 {
+    none,
     rounds,
     rooms,
 };
@@ -903,6 +905,7 @@ struct Loot_Table_Entry
 {
     GENERATE_ENTITY_FN* fn;
     f32 change;
+    f32 _og_change;
     Rarity::T rarity;
     u32 required_slots;
     s16 weight;
@@ -921,6 +924,7 @@ struct Loot_Table
     Loot_Table_Entry* array;
     u64 count;
     bool filled;
+    u64 counts[Rarity::COUNT] = {};
 };
 
 
