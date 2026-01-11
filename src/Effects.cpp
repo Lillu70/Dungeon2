@@ -761,7 +761,7 @@ SIG Effect_Offset Get_Seed_Effect_Offset(Game_State* game_state)
     {
         Effect effect = {};
         effect.name_offset = Offset(STR("Seed"), game_state);
-        effect.type = Effect_Type::physical;
+        effect.type = Effect_Type::magic;
         effect.stat_modifiers[Stats::arcane] = + 3;
 
         effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);

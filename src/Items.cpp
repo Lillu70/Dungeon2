@@ -58,6 +58,7 @@ SIG Loot_Table Basic_Consumables_Loot_Table(Game_State* game_state)
         {Create_Immunity_Elixir},
         {Create_Arcane_Elixir},
         {Create_Acid_Flask},
+        {Create_Sticky_Goo},
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -91,6 +92,8 @@ SIG Loot_Table Basic_Trinkets_Loot_Table(Game_State* game_state)
         {Create_Ring_Of_Bloodshield},
         {Create_Ring_Of_Clumsy_Regeneration},
         {Create_Ring_Of_False_Hope},
+        {Create_Bauble_Of_Bomb_Craft},
+        {Create_Bauble_Of_Potion_Craft},
 
         // Should capes be here?
         {Create_Cape_Of_Dashing},
@@ -189,6 +192,19 @@ SIG Loot_Table Basic_Armors_Loot_Table(Game_State* game_state)
         {Create_Emergency_Vest},
         {Create_Field_Medics_Jerkin},
         {Create_Restorers_Battle_Armor},
+        {Create_Workers_Trousers},
+        {Create_Junk_Metal_Leg_Guards},
+        {Create_Burglars_Leggings},
+        {Create_Historians_Skirt},
+        {Create_Berserkers_Leggings},
+        {Create_Pants_Of_The_Jack},
+        {Create_Trousers_Of_The_Doomwalker},
+        {Create_Feralhearth_Pants},
+        {Create_Pants_Of_Holy_Avoidance},
+        {Create_Battle_Medics_Trousers},
+        {Create_Legguards_Of_Magical_Grounding},
+        {Create_Bulwark_Legplates},
+        {Create_Leggings_Of_Furious_Recovery},
         
     };
 
@@ -3066,6 +3082,7 @@ SIG Entity* Create_Restorers_Battle_Armor(Entity* room, Game_State* game_state)
     {
         Effect effect = {};
         effect.stat_modifiers[Stats::armor] = + 4;
+        effect.stat_modifiers[Stats::might] = + 1;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 
@@ -3119,38 +3136,9 @@ SIG Entity* Create_Warrior_Poncho(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might] = + 4;
+        effect.stat_modifiers[Stats::might] = + 5;
         effect.stat_modifiers[Stats::dodge] = + 2;
-        effect.critical_success_range       = + 1;
-        
-        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
-    }
-    
-    Finalize_Entity(entity, room, game_state);
-    return entity;
-}
-
-
-SIG Entity* Create_Assassins_Corset(Entity* room, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-
-    entity->name_offset = Offset(STR("Assassins corset"), game_state);
-    entity->description_offset = Offset(STR("Most famous of the guilds that offer assissinations is called the \"Last Chapter\"."), game_state);
-    entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::rare;    
-    
-    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
-    entity->weight = 3;
-    
-    Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
-    {
-        Effect effect = {};
-        effect.critical_success_range           = + 2;
-        effect.stat_modifiers[Stats::arcane]    = + 3;
-        effect.stat_modifiers[Stats::armor]     = + 3;
-        effect.stat_modifiers[Stats::dodge]     = + 3;
+        effect.critical_success_range       = + 2;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -3182,6 +3170,35 @@ SIG Entity* Create_Breastplate(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::dodge]     = - 2;
         effect.stat_modifiers[Stats::arcane]    = - 2;
         effect.critical_failure_range           = + 2;
+        
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Assassins_Corset(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Assassins corset"), game_state);
+    entity->description_offset = Offset(STR("Most famous of the guilds that offer assissinations is called the \"Last Chapter\"."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::rare;    
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::chest];
+    entity->weight = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.critical_success_range           = + 2;
+        effect.stat_modifiers[Stats::arcane]    = + 3;
+        effect.stat_modifiers[Stats::armor]     = + 3;
+        effect.stat_modifiers[Stats::dodge]     = + 3;
         
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -3670,7 +3687,7 @@ SIG Entity* Create_Horny_Headband(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Horny headband"), game_state);
-    entity->description_offset = Offset(STR("A horn of some creature attached to a headband"), game_state);
+    entity->description_offset = Offset(STR("A horn of some creature is attached to a headband"), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     entity->rarity = Rarity::uncommon;    
     
@@ -3958,36 +3975,6 @@ SIG Entity* Create_Barbute(Entity* room, Game_State* game_state)
 }
 
 
-SIG Entity* Create_Plate_Leggings(Entity* room, Game_State* game_state)
-{
-    Entity* entity = Request_Entity(game_state);
-
-    entity->name_offset = Offset(STR("Plate leggings"), game_state);
-    entity->description_offset = Offset(STR("Leg armor made from interleaving steel plates."), game_state);
-    entity->flags = EFlags::equippable | EFlags::item;
-    entity->rarity = Rarity::uncommon;
-    
-    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
-    entity->weight = 12;
-    entity->_stats[Stats::vitality] = 10;
-    
-    Effect_Hash_Key key = EFFECT_KEY;
-    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
-    {
-        Effect effect = {};
-        effect.stat_modifiers[Stats::armor]     = + 5;
-        effect.stat_modifiers[Stats::speed]     = - 3;
-        effect.stat_modifiers[Stats::arcane]    = - 2;
-        effect.stat_modifiers[Stats::dodge]     = - 2;
-        effect.critical_failure_range           = + 1;
-        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
-    }
-    
-    Finalize_Entity(entity, room, game_state);
-    return entity;
-}
-
-
 SIG Entity* Create_Leather_Tights(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -4038,6 +4025,90 @@ SIG Entity* Create_Padded_Pants(Entity* room, Game_State* game_state)
 }
 
 
+SIG Entity* Create_Workers_Trousers(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Workers Trousers"), game_state);
+    entity->description_offset = Offset(STR("Durable, but certainly not intended for battle."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 10;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Junk_Metal_Leg_Guards(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Junk metal legguards"), game_state);
+    entity->description_offset = Offset(STR("Used pots, pans, spades and other metal instruments knotted onto a set of pants. Perhaps to play or pretend to be a knight?"), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 17;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 4;
+        effect.stat_modifiers[Stats::speed]     = - 5;
+        effect.stat_modifiers[Stats::dodge]     = - 3;
+        effect.stat_modifiers[Stats::arcane]    = - 1;
+        effect.critical_failure_range           = + 3;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Plate_Leggings(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Plate leggings"), game_state);
+    entity->description_offset = Offset(STR("Leg armor made from interleaving steel plates."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+    
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 12;
+    entity->_stats[Stats::vitality] = 10;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 5;
+        effect.stat_modifiers[Stats::speed]     = - 3;
+        effect.stat_modifiers[Stats::arcane]    = - 2;
+        effect.stat_modifiers[Stats::dodge]     = - 2;
+        effect.critical_failure_range           = + 1;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
 SIG Entity* Create_Warrior_Kilt(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -4055,9 +4126,425 @@ SIG Entity* Create_Warrior_Kilt(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might]     = + 3;
+        effect.stat_modifiers[Stats::might]     = + 4;
         effect.stat_modifiers[Stats::armor]     = + 2;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Burglars_Leggings(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Burglars leggings"), game_state);
+    entity->description_offset = Offset(STR("The punishment for theft in the Kingdom of Vash is a month in the \"pit\". No food or water is given. The perpetrator might survive if it rains enough."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::speed] = + 7;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Historians_Skirt(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Historian's skirt"), game_state);
+    entity->description_offset = Offset(STR("Colorful imagery depicting past events runs along the cloth, the timeline is chronological but it then smoothly wraps around. Pehaps there is deep meaning in this."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 1;
+        effect.stat_modifiers[Stats::arcane] = + 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Berserkers_Leggings(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Berserker's leggings"), game_state);
+    entity->description_offset = Offset(STR("Pants torn to shreads, there is almost nothing left, but still.. there is are faint traices of magics within."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 2;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = - 1;
+        effect.critical_success_range = 4;
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Pants_Of_The_Jack(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Pants of The Jack"), game_state);
+    entity->description_offset = Offset(STR("Legend tells of The Middling Jack, he was good at everything, but didn't like to chalenge him self, and so he never because great at anything. Let this be a warning to you!"), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
         effect.stat_modifiers[Stats::vitality]  = + 1;
+        effect.stat_modifiers[Stats::might]     = + 1;
+        effect.stat_modifiers[Stats::dodge]     = + 1;
+        effect.stat_modifiers[Stats::accuracy]  = + 1;
+        
+        effect.stat_modifiers[Stats::arcane]    = + 1;
+        effect.stat_modifiers[Stats::immunity]  = + 1;
+        effect.stat_modifiers[Stats::speed]     = + 1;
+        effect.stat_modifiers[Stats::armor]     = + 1;
+        effect.critical_success_range           = + 1;
+        effect.critical_failure_range           = + 1;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Trousers_Of_The_Doomwalker(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s8 fumple_boost = 5;
+            if(instance)
+            {
+                Effect_Instance aura_of_depression = {};
+                aura_of_depression.source = instance->source;
+                aura_of_depression.duration = 1;
+
+                Effect_Hash_Key key = EFFECT_KEY;
+                if(!Retrive_Effect(key, &aura_of_depression.effect_offset, game_state))
+                {
+                    Effect effect = {};
+                    effect.name_offset = Offset(STR("Aura of Depression"), game_state);
+                    effect.type = Effect_Type::magic;
+                    effect.critical_failure_range = + 5;
+                    aura_of_depression.effect_offset = Insert_Effect(effect, key, game_state);
+                }
+
+                Entity_Iterator iter = Make_Iterator(Pointer(target->residence, game_state), game_state);
+                while(Entity* entity = Next_Entity(&iter))
+                {
+                    if(Is_Living_Active_Enemy_Of(entity, target))
+                    {
+                        Apply_Effect_Result apply = Apply_Effect(entity, aura_of_depression, game_state);
+                        Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), entity, aura_of_depression, apply, game_state);
+                    }
+                }
+            }
+            else
+            {
+                Print("Sends out a wave of depressing energies that increases the fumple change of all active hostiles by %d points.", fumple_boost);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Trousers of The Doomwalker"), game_state);
+    entity->description_offset = Offset(STR("The Doomwalkers are a hated cult, that worships Borgoth; the God of Incompetance and Failure."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 8;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+        effect.critical_failure_range       = + 7;
+
+        effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Feralhearth_Pants(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Feralhearth pants"), game_state);
+    entity->description_offset = Offset(STR("Leather pants, but woven into them are pulsating bloodveins."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 1;
+        effect.stat_modifiers[Stats::might]     = + 2;
+        effect.max_health_modifier              = + 5;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Pants_Of_Holy_Avoidance(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Dodge(Effect_Instance* instance, Entity* defender, Entity* attacker, Attack_Record* ar, Game_State* game_state)
+        {
+            s16 healing_power = 5;
+            u64 duration = 1;
+            if(instance)
+            {
+                Effect_Instance mending = {};
+                mending.source = instance->source;
+                mending.duration = duration;
+
+                Effect_Hash_Key key = EFFECT_KEY;
+                if(!Retrive_Effect(key, &mending.effect_offset, game_state))
+                {
+                    Effect effect = {};
+                    effect.name_offset = Offset(STR("Battle Mending"), game_state);
+                    effect.type = Effect_Type::magic;
+                    effect.healing_power  = + healing_power;
+
+                    mending.effect_offset = Insert_Effect(effect, key, game_state);
+                }
+
+                Apply_Effect_Result apply = Apply_Effect(defender, mending, game_state);
+                Push_Generic_Apply_Effect_Message(Effect_Name(instance, game_state), defender, mending, apply, game_state);
+            }
+            else
+            {
+                Print("Increases the users healing power by %d point%s for %llu round%s.", healing_power, (healing_power > 1)? "s" : "", duration, (duration > 1)? "s" : "");
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Pants of Holy Avoidance"), game_state);
+    entity->description_offset = Offset(STR("These are common on monks."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::dodge] = + 2;
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.on_dodge_fn_offset = Offset(local::On_Dodge, game_state);
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Battle_Medics_Trousers(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Battle medics trousers"), game_state);
+    entity->description_offset = Offset(STR("Even the barbaric mountainmen train field medics, but they call them selfs battle medics."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 4;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 2;
+        effect.stat_modifiers[Stats::might] = + 2;
+        effect.healing_power                = + 3;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Legguards_Of_Magical_Grounding(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Legguards of magical grounding"), game_state);
+    entity->description_offset = Offset(STR("Crafted by a wizard who was afraid of magic."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 3;
+        effect.stat_modifiers[Stats::immunity]  = + 7;
+        effect.stat_modifiers[Stats::arcane]    = - 7;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Bulwark_Legplates(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Bulwark Legplates"), game_state);
+    entity->description_offset = Offset(STR("Extremely heavy armor."), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 16;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor]     = + 6;
+        effect.stat_modifiers[Stats::immunity]  = + 4;
+        
+        effect.stat_modifiers[Stats::arcane]    = - 3;
+        effect.stat_modifiers[Stats::might]     = - 2;
+        effect.stat_modifiers[Stats::speed]     = - 5;
+        effect.critical_failure_range           = - 2;
+
+        entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Leggings_Of_Furious_Recovery(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            s32 threshold = 15;
+            if(instance)
+            {
+                s32 d = ar->deal_damage_result.damage_after_mitigation;
+                if(d > threshold)
+                {
+                    d -= threshold;
+                    Heal(attacker, d, Effect_Name(instance, game_state), Verbose::yes, game_state);
+                }
+            }
+            else
+            {
+                Print("If damage after mitigation exceeds %d then heals the user by the amount of damage over the threshold.", threshold);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Leggings of Furious Recovery"), game_state);
+    entity->description_offset = Offset(STR(""), game_state);
+    entity->flags = EFlags::equippable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::legs];
+    entity->weight = 6;
+    entity->_stats[Stats::vitality] = 3;
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.stat_modifiers[Stats::armor] = + 3;
+        effect.stat_modifiers[Stats::might] = + 1;
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -4083,9 +4570,10 @@ SIG Entity* Create_Barbarian_Loincloth(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::might] = + 4;
-        effect.critical_success_range       = + 3;
+        effect.stat_modifiers[Stats::might] = + 5;
+        effect.stat_modifiers[Stats::armor] = + 2;
         effect.stat_modifiers[Stats::speed] = + 2;
+        effect.critical_success_range       = + 3;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
     
@@ -4804,7 +5292,7 @@ SIG Entity* Create_Acid_Flask(Entity* container, Game_State* game_state)
             {
                 String effect_name = STR("Melt armor");
 
-                s16 potency = (s16)Round_To_S32(Get_Stat_Value(user, Stats::armor, game_state) * 0.5f);
+                s16 potency = (s16)Round_To_S32(Get_Stat_Value(user, Stats::armor, game_state) * armor_reduction);
                 
                 Effect* effect = Request_Effect(game_state);
                 effect->name_offset = Offset(effect_name, game_state);
@@ -4840,6 +5328,168 @@ SIG Entity* Create_Acid_Flask(Entity* container, Game_State* game_state)
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
     entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
     entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Sticky_Goo(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            f32 dodge_reduction = 0.5f;
+            Dice duration_dice = {2, 4};
+            if(item)
+            {
+                String effect_name = STR("Stuck");
+
+                s16 potency = (s16)Round_To_S32(Get_Stat_Value(user, Stats::dodge, game_state) * dodge_reduction);
+                
+                Effect* effect = Request_Effect(game_state);
+                effect->name_offset = Offset(effect_name, game_state);
+                effect->type = Effect_Type::magic;
+                effect->stat_modifiers[Stats::dodge] = -potency;
+
+                Effect_Instance instance = {};
+                instance.effect_offset = Offset(effect, game_state);
+                instance.source = Offset(item, game_state);
+                instance.duration = Roll(duration_dice, game_state);
+
+                String message = String_Builder(&game_state->scratch_buffer).Next(effect_name).Next(STR(" potency is: ")).Next(potency).Finish();
+                Push_Message(message, game_state);
+
+                Apply_Effect_Result apply = Apply_Effect(user, instance, game_state);
+                Push_Generic_Apply_Effect_Message(Name(item, game_state), user, instance, apply, game_state);
+            }
+            else
+            {
+                Print("Reduces the targets dodge by %.2f%% for %dd%d rounds.", dodge_reduction * 100, duration_dice.count, duration_dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Sticky Goo"), game_state);
+    entity->description_offset = Offset(STR("Bundle of really sticky goo, it grows on trees in some tropical land."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::uncommon;
+
+    entity->weight = 2;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.on_empty_fn_offset = Offset(Delete_Entity, game_state);
+    entity->interactable.uses_count = 1;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Bauble_Of_Bomb_Craft(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            if(item)
+            {
+                Entity* creation = Create_Bomb(0, game_state);
+                creation->flags |= EFlags::visible;
+                s32 cap = Carry_Capacity(user, game_state);
+                s32 cur = Carrying_Amount(user, game_state);
+                
+                bool can_carry;
+                if(cap - cur >= creation->weight)
+                {
+                    can_carry = true;
+                    Deep_Insert(creation, user, game_state);
+                }
+                else
+                {
+                    can_carry = false;
+                    Deep_Insert(creation, Pointer(user->residence, game_state), game_state);
+                }
+
+                String carry_state = can_carry? STR(".") : STR(", but it was too heavy and had to be dropped on the ground.");
+                String message = Format_Message(game_state, "%s creates a %s%s", Name(item, game_state).ptr, Name(creation, game_state).ptr, carry_state.ptr);
+                Push_Message(message, game_state);
+            }
+            else
+            {
+                Print("Creates a Bomb.");
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Bauble of bomb craft"), game_state);
+    entity->description_offset = Offset(STR("Strange and intricate device, that produced explosives."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 10;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.uses_count = UNLIMITED_USES;
+    entity->interactable.cd_type = Cooldown_Type::rooms;
+    entity->interactable.cd = 4;
+
+    Finalize_Entity(entity, container, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Bauble_Of_Potion_Craft(Entity* container, Game_State* game_state)
+{
+    struct local
+    {
+        static void on_use_fn(Entity* item, Entity* user, Game_State* game_state)
+        {
+            if(item)
+            {
+                Entity* creation = Create_Healing_Potion(0, game_state);
+                creation->flags |= EFlags::visible;
+                s32 cap = Carry_Capacity(user, game_state);
+                s32 cur = Carrying_Amount(user, game_state);
+                
+                bool can_carry;
+                if(cap - cur >= creation->weight)
+                {
+                    can_carry = true;
+                    Deep_Insert(creation, user, game_state);
+                }
+                else
+                {
+                    can_carry = false;
+                    Deep_Insert(creation, Pointer(user->residence, game_state), game_state);
+                }
+
+                String carry_state = can_carry? STR(".") : STR(", but it was too heavy and had to be dropped on the ground.");
+                String message = Format_Message(game_state, "%s creates a %s%s", Name(item, game_state).ptr, Name(creation, game_state).ptr, carry_state.ptr);
+                Push_Message(message, game_state);
+            }
+            else
+            {
+                Print("Creates a Healing Potion.");
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Bauble of potion craft"), game_state);
+    entity->description_offset = Offset(STR("Strange and intricate device, that produced healing potions."), game_state);
+    entity->flags = EFlags::interactable | EFlags::item;
+    entity->rarity = Rarity::rare;
+
+    entity->weight = 12;
+    entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
+    entity->interactable.uses_count = UNLIMITED_USES;
+    entity->interactable.cd_type = Cooldown_Type::rooms;
+    entity->interactable.cd = 5;
 
     Finalize_Entity(entity, container, game_state);
     return entity;
