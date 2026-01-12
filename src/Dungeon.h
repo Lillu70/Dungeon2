@@ -514,6 +514,7 @@ enum class Faction : u8
     undead,
     mimic,
     goblin,
+    fae,
 
     general_hostility,
     COUNT
@@ -551,6 +552,7 @@ struct Entity
             s32 _health;
             s32 exp;
             f32 _threat;
+            f32 drop_change_override;
 
             f32 burst_change;
             u32 required_equipment_slots;

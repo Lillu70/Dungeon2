@@ -18,13 +18,10 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->description_offset = Offset(STR(room_description), game_state);
 
     #if DEVMODE
-    Spawn_All_Items_In_Loot_Table(Basic_Consumables_Loot_Table(game_state), room, game_state);
-    Spawn_All_Items_In_Loot_Table(Basic_Trinkets_Loot_Table(game_state), room, game_state);
-    Spawn_All_Items_In_Loot_Table(Basic_Weapons_Loot_Table(game_state), room, game_state);
-    Spawn_All_Items_In_Loot_Table(Basic_Armors_Loot_Table(game_state), room, game_state);
+    //Spawn_All_Items_In_Loot_Table(Basic_Merged_Loot_Table(game_state), room, game_state);
     #endif
 
-    //Create_Goblin(room, game_state);
+    Create_Salamander(room, game_state);
 }
 
 
@@ -194,7 +191,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Supply_Room(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::legendary;
+            room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a supply room"), game_state);
@@ -233,7 +230,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Swamp(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::uncommon;
             if(fill_room_if_greater_than_zero)
             {
                 Ambush_Swamp(game_state, 0.2f);
@@ -391,6 +388,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Mound(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::uncommon;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.5f);
@@ -505,7 +503,14 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 "A dark and tight space. There is very little room to manuver.\n";
                 room->description_offset = Offset(STR(room_description), game_state);
                 
-                Create_Giant_Honey_Badger(room, game_state);
+                if(Roll(4, game_state) > 1)
+                {
+                    Create_Giant_Honey_Badger(room, game_state);
+                }
+                else
+                {
+                    Create_Mutant_Hedgehog(room, game_state);
+                }
                 
                 Generate_Standard_Random_Loot(room, game_state);
             }
@@ -682,7 +687,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Empty_Cavern(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::rare;
+            room->rarity = Rarity::uncommon;
             if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a cavern"), game_state);
@@ -754,7 +759,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 "A wet muddy pit.";
                 room->description_offset = Offset(STR(room_description), game_state);
 
-                switch(Roll(3, game_state))
+                switch(Roll(4, game_state))
                 {
                     case 1:
                     {
@@ -769,6 +774,11 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                     case 3:
                     {
                         Create_Living_Vine(room, game_state);
+                    }break;
+
+                    case 4:
+                    {
+                        Create_Giant_Toad(room, game_state);
                     }break;
                 }
 
@@ -937,7 +947,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         {local::Stream},            // 15
         {local::Chamber},           // 16
         {local::Burrow},            // 17
-        {Earthen_Hall},             // 18
+        {Earthen_Hall,},            // 18
         {local::Mudpit},            // 19
         {local::Wounded_Bear},      // 20
         {local::Swamp},             // 21
@@ -1004,12 +1014,22 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
                 Add_Ambush_Creature_Spawner(option, {Offset(Create_Giant_Rat, game_state), 2, 3}, game_state);
                 Add_Ambush_Creature_Spawner(option, {Offset(Create_Blight_Rat, game_state), 1}, game_state);
             }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(80, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Fae_Flayer, game_state), 1}, game_state);
+            }
+
+            {
+                Ambush_Option* option = Create_Ambush_Option(80, game_state);
+                Add_Ambush_Creature_Spawner(option, {Offset(Create_Salamander, game_state), 1}, game_state);
+            }
         }   
 
         static Entity* Small_Camp(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::epic;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.3f);
@@ -1058,6 +1078,79 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
         }
 
 
+        static Entity* Kennel(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                Generic_Ambush(game_state, 0.1f);
+
+                room->name_offset = Offset(STR("a kennel"), game_state);
+                char room_description[] = 
+                "Hounds are kept here. Thre are cages, but they are open.. and dogs are free.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                u64 count = 2 + Per_Count_Rolled_Random(2, 5, game_state);
+                LOOP(count) Create_Hound(room, game_state);
+
+                Create_Weapon_Rack(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Rift(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::rare;
+            if(fill_room_if_greater_than_zero)
+            {
+                Set_Ambush_Change(0.3f, game_state);
+                {
+                    Ambush_Option* option = Create_Ambush_Option(80, game_state);
+                    Add_Ambush_Creature_Spawner(option, {Offset(Create_Fae_Flayer, game_state), 1, 3}, game_state);
+                }
+
+                room->name_offset = Offset(STR("a rift"), game_state);
+                char room_description[] = 
+                "Here the physical world blends with the immaterium.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                LOOP(2) Create_Fae_Flayer(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Scene_Of_Murder(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::uncommon;
+            if(fill_room_if_greater_than_zero)
+            {
+                Generic_Ambush(game_state, 0.1f);
+
+                room->name_offset = Offset(STR("a small opening"), game_state);
+                char room_description[] = 
+                "Blood, guts and fleshbits cover the ground and the walls. Right in the middle of the room; something is hovering in the air.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                Create_Fae_Flayer(room, game_state);
+                if(Roll(5, game_state) == 1) Create_Chest(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
         static Entity* Corridor(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
@@ -1071,15 +1164,37 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
                 "The perfect place for an ambush.";
                 room->description_offset = Offset(STR(room_description), game_state);
 
-                if(Roll(3, game_state) > 1)
+                Loot_Table_Entry entries[] = 
                 {
-                    Create_Assassin(room, game_state);
-                }
-                else
-                {
-                    Create_Bandit(room, game_state);
-                }
+                    {Create_Assassin,   500},
+                    {Create_Bandit,     200},
+                    {Create_Fae_Flayer, 100},
+                };
+                
+                Loot_Table table = {entries, Array_Length(entries), true};
+                Generate_From_Loot_Table(room, table, 1, {}, game_state);
 
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Vulcanic_Cavity(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                Generic_Ambush(game_state, 0.05f);
+
+                room->name_offset = Offset(STR("a vulcanic cavity"), game_state);
+                char room_description[] = 
+                "Near boiling steam is comming from somewhere, it is very hot in here.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                Create_Salamander(room, game_state);
+                
                 Generate_Standard_Random_Loot(room, game_state);
             }
 
@@ -1103,6 +1218,8 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
                 LOOP(2) Create_Orc(room, game_state);
                 Create_Goblin(room, game_state);
 
+                Create_Chest(room, game_state);
+
                 Generate_Standard_Random_Loot(room, game_state);
             }
 
@@ -1115,6 +1232,8 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
+                Generic_Ambush(game_state, 0.1f);
+
                 room->name_offset = Offset(STR("a hovel"), game_state);
                 char room_description[] = 
                 "There is a small, poorly constructed wooden hovel blocking the path. You must go through.";
@@ -1143,7 +1262,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
-                Generic_Ambush(game_state, 0.2f);
+                Generic_Ambush(game_state, 0.1f);
 
                 room->name_offset = Offset(STR("a cellar"), game_state);
                 char room_description[] = 
@@ -1151,6 +1270,11 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
                 room->description_offset = Offset(STR(room_description), game_state);
 
                 LOOP(2) Create_Goblin(room, game_state);
+
+                if(Roll(10, game_state) == 1) Create_Supply_Crate(room, game_state);
+                if(Roll(10, game_state) == 1) Create_Weapon_Rack(room, game_state);
+                if(Roll(10, game_state) == 1) Create_Armor_Rack(room, game_state);
+                if(Roll(20, game_state) == 1) Create_Chest(room, game_state);
 
                 Generate_Standard_Random_Loot(room, game_state);
             }
@@ -1162,9 +1286,10 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
         static Entity* Warband(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::uncommon;
             if(fill_room_if_greater_than_zero)
             {
-                Generic_Ambush(game_state, 0.3f);
+                Generic_Ambush(game_state, 0.05f);
 
                 room->name_offset = Offset(STR("an encounter with a warband"), game_state);
                 char room_description[] = 
@@ -1186,6 +1311,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
         static Entity* Cavern(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.15f);
@@ -1239,16 +1365,19 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
 
     local_storage Loot_Table_Entry entries[] = 
     {
-        {local::Corridor},
-        {local::Library},
-        {local::Hovel},
-        {local::Small_Camp},
-        {local::Cavern},
-        {local::Cellar},
-        {local::Warband},
-        {local::Orc_Home},
-        {Earthen_Hall},
-        {Beast_Lair_Bear},
+        {local::Corridor},          // 1
+        {local::Library},           // 2
+        {local::Hovel},             // 3
+        {local::Rift},              // 4
+        {local::Small_Camp},        // 5
+        {local::Cavern},            // 6
+        {local::Cellar},            // 7
+        {local::Warband},           // 8
+        {local::Scene_Of_Murder},   // 9
+        {local::Orc_Home},          // 10    
+        {local::Kennel},            // 11
+        {Earthen_Hall},             // 12
+        {Beast_Lair_Bear},          // 13
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};

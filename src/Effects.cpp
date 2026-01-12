@@ -122,6 +122,7 @@ SIG void Survival_Instinct_On_Turn_Start(Effect_Instance* instance, Entity* targ
                 Effect effect = {};
                 effect.name_offset = Offset(STR("Survival Instinct"), game_state);
                 effect.stat_modifiers[Stats::armor] = armor_buff;
+                effect.type = Effect_Type::magic;
                 effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
             }
 
@@ -432,6 +433,17 @@ SIG Effect_Offset Get_Burning_Effect_Offset(Game_State* game_state)
     }
 
     return result;
+}
+
+
+SIG Effect_Instance Get_Burning(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.duration = duration;
+    instance.effect_offset = Get_Burning_Effect_Offset(game_state);
+    instance.source = Offset(source, game_state);
+
+    return instance;
 }
 
 

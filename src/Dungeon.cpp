@@ -5,6 +5,10 @@
 // All rights reserved.
 // ===================================
 
+
+// TODO: Add blight rat as on option for rat mounds!
+
+
 // TODO: Add extra "stats" into the stats menu like healing power and thorns.
 // TODO: Pierce and armor effects in the default deal damage print out.
 // TODO: Duration type part of the effect instead of The instance???
@@ -26,7 +30,7 @@
 #define ENABLE_WAIT  0
 #define ENTRANCE     1
 #define QUICKSTART   1
-#define CUSTOM_START 0
+#define CUSTOM_START 1
 
 
 enum class Custom_Start
@@ -5513,53 +5517,53 @@ SIG void Normalize_Loot_Table_Changes(Loot_Table* table)
 }
 
 
+SIG f32 Standard_Drop_Change_Based_On_Rarity(Rarity::T rarity)
+{
+    using namespace Rarity;
+
+    constexpr f32 STANDARD_COMMON_DROP_CHANGE       = 3000;
+    constexpr f32 STANDARD_RARE_DROP_CHANGE         = 500;
+    constexpr f32 STANDARD_MAGICAL_DROP_CHANGE      = 100;
+    constexpr f32 STANDARD_EPIC_DROP_CHANGE         = 50;
+    constexpr f32 STANDARD_LEGENDARY_DROP_CHANGE    = 5;
+
+    f32 result = 0;
+    switch(rarity)
+    {
+        case common:
+        {
+            result = STANDARD_COMMON_DROP_CHANGE;
+        }break;
+
+        case uncommon:
+        {
+            result = STANDARD_RARE_DROP_CHANGE;
+        }break;
+
+        case rare:
+        {
+            result = STANDARD_MAGICAL_DROP_CHANGE;
+        }break;
+
+        case epic:
+        {
+            result = STANDARD_EPIC_DROP_CHANGE;
+        }break;
+
+        case legendary:
+        {
+            result = STANDARD_LEGENDARY_DROP_CHANGE;
+        }break;
+
+        case COUNT: Terminate("Invalid code path!");
+    }
+
+    return result;
+}
+
+
 SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* game_state)
 {
-    struct local
-    {
-        static f32 Standard_Drop_Change_Based_On_Rarity(Rarity::T rarity)
-        {
-            using namespace Rarity;
-
-            constexpr f32 STANDARD_COMMON_DROP_CHANGE       = 3000;
-            constexpr f32 STANDARD_RARE_DROP_CHANGE         = 500;
-            constexpr f32 STANDARD_MAGICAL_DROP_CHANGE      = 100;
-            constexpr f32 STANDARD_EPIC_DROP_CHANGE         = 50;
-            constexpr f32 STANDARD_LEGENDARY_DROP_CHANGE    = 5;
-
-            switch(rarity)
-            {
-                case common:
-                {
-                    return STANDARD_COMMON_DROP_CHANGE;
-                }break;
-
-                case uncommon:
-                {
-                    return STANDARD_RARE_DROP_CHANGE;
-                }break;
-
-                case rare:
-                {
-                    return STANDARD_MAGICAL_DROP_CHANGE;
-                }break;
-
-                case epic:
-                {
-                    return STANDARD_EPIC_DROP_CHANGE;
-                }break;
-
-                case legendary:
-                {
-                    return STANDARD_LEGENDARY_DROP_CHANGE;
-                }break;
-
-                case COUNT: Terminate("Invalid code path!");
-            }
-            return 0;
-        }
-    };
-
     if(!table->filled)
     {
         table->filled = true;
@@ -5575,6 +5579,11 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
                 entry->rarity = entity->rarity;
                 entry->required_slots = entity->required_equipment_slots;
                 entry->weight = entity->weight;
+                if(entity->drop_change_override > 0 && entry->change <= 0)
+                {
+                    entry->change = entity->drop_change_override;
+                }
+
                 Delete_Entity(entity, game_state);
 
                 Restore(&game_state->scratch_buffer, snapshot);
@@ -5585,7 +5594,7 @@ SIG void Fill_Loot_Table_Changes_And_Item_Rarity(Loot_Table* table, Game_State* 
             // But the change can be pre filled in... for what ever the reason.
             if(entry->change <= 0)
             {
-                entry->change = local::Standard_Drop_Change_Based_On_Rarity(entry->rarity);
+                entry->change = Standard_Drop_Change_Based_On_Rarity(entry->rarity);
             }
             entry->_og_change = entry->change;
         }
@@ -6178,16 +6187,16 @@ SIG void Create_Player_Charater(Game_State* game_state)
                     s32 distance_travelled = level_1.segments[0].size;
                     game_state->distance_travelled = distance_travelled;
 
-                    Equip(player, Create_Gambeson(player, game_state), game_state);
+                    //Equip(player, Create_Gambeson(player, game_state), game_state);
                     Equip(player, Create_Padded_Pants(player, game_state), game_state);
                     Equip(player, Create_Travel_Boots(player, game_state), game_state);
-                    Equip(player, Create_Ring_Of_Protection(player, game_state), game_state);
+                    // Equip(player, Create_Ring_Of_Protection(player, game_state), game_state);
                     Equip(player, Create_Ring_Of_Precision(player, game_state), game_state);
                     Equip(player, Create_Skull_Cap(player, game_state), game_state);
-                    Equip(player, Create_Leather_Gloves(player, game_state), game_state);
+                    // Equip(player, Create_Leather_Gloves(player, game_state), game_state);
 
                     Drop_Command(player, STR("arming cap"), game_state);
-                    Drop_Command(player, STR("leather cuirass"), game_state);
+                    //Drop_Command(player, STR("leather cuirass"), game_state);
                     Drop_Command(player, STR("bomb"), game_state);
                     Drop_Command(player, STR("healing potion"), game_state);
                     Drop_Command(player, STR("Steak & mashed potatoes"), game_state);

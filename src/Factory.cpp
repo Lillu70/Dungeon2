@@ -223,7 +223,7 @@ SIG Entity* Create_Goblin(Entity* room, Game_State* game_state)
     Assert(apply == Apply_Effect_Result::success);
 
     {
-        Rules_Builder rules = Rules_Builder().Rarity(Comparison::equal, Rarity::common);
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::equal, Rarity::common).Weight(Comparison::maximum, 6);
         
         if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
         {
@@ -667,6 +667,7 @@ SIG Entity* Create_Giant_Honey_Badger(Entity* room, Game_State* game_state)
             Effect effect = {};
             effect.name_offset = Offset(STR("Survivor"), game_state);
             effect.on_turn_start_fn_offset = Offset(Survival_Instinct_On_Turn_Start, game_state);
+            effect.type = Effect_Type::physical;
             effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
         }
 
@@ -1105,7 +1106,6 @@ SIG Entity* Create_Hound(Entity* room, Game_State* game_state)
         effect.name_offset = Offset(STR("Jaws"), game_state);
         effect.critical_failure_range = + 1;
         effect.on_turn_start_fn_offset = Offset(Pack_Hunt_On_Turn_Start, game_state);
-        effect.pierce = 5;
         Add_Dice(&effect, 2, 6);
         effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -1124,6 +1124,136 @@ SIG Entity* Create_Hound(Entity* room, Game_State* game_state)
 
     Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
     Generate_From_Loot_Table(entity, table, Per_Count_Rolled_Random(2, 6, game_state), rules.Finish(), game_state);
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Fae_Flayer(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            Dice dice = {2, 4};
+            if(instance)
+            {
+                String source_name = Effect_Name(instance, game_state);
+                s32 potency = Potency(source_name, {}, dice, game_state);
+                Deal_Damage(defender, attacker, source_name, potency, {}, Damage_Type::magical, game_state, Verbose::yes);
+            }
+            else
+            {
+                Print("Deals %dd%d points of magic damage to the victim.", dice.count, dice.faces);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Fae Flayer"), game_state);
+    entity->description_offset = Offset(STR("About a meter tall, winged gray humanoid creature. It's eyes are black and it's fingers end in large immaterial claws."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::fae;
+    entity->weight = 10;
+
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 5;
+        stats[Stats::might]     = 1;
+        stats[Stats::dodge]     = 7;
+        stats[Stats::accuracy]  = 6;
+        stats[Stats::speed]     = 15;
+        stats[Stats::arcane]    = 8;
+        stats[Stats::immunity]  = 15;
+        stats[Stats::armor]     = 6;
+    }
+    
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Immaterial Claws"), game_state);
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
+    Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), Per_Count_Rolled_Random(3, 5, game_state), rules.Finish(), game_state);
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Salamander(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Burning(2, attacker, game_state), game_state);
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+
+    entity->name_offset = Offset(STR("Salamander"), game_state);
+    entity->description_offset = Offset(STR("A burning fire breathing lizard like creature."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::nature;
+    entity->weight = 50;
+
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 14;
+        stats[Stats::might]     = 6;
+        stats[Stats::dodge]     = 6;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 12;
+        stats[Stats::arcane]    = 6;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
+    
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+    
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Fire breath"), game_state);
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        Add_Dice(&effect, 1, 10);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
+    Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), Per_Count_Rolled_Random(3, 5, game_state), rules.Finish(), game_state);
 
     Finalize_Entity(entity, room, game_state);
     return entity;
@@ -1592,11 +1722,6 @@ SIG Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state)
     Assert(apply == Apply_Effect_Result::success);
 
     Loot_Table table = Basic_Merged_Loot_Table(game_state);
-
-    if(Roll(5, game_state) == 1)
-    {
-        Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::equal, Rarity::epic).Finish(), game_state);
-    }
 
     Generate_From_Loot_Table(entity, table, 1, Rules_Builder().Rarity(Comparison::minimum, Rarity::rare).Finish(), game_state);
     Generate_From_Loot_Table(entity, table, Roll(3, game_state) - 1, Rules_Builder().Rarity(Comparison::maximum, Rarity::uncommon).Finish(), game_state);
@@ -2149,7 +2274,7 @@ SIG Entity* Create_Alchemists_Pouch(Entity* room, Game_State* game_state)
     (
         entity, 
         Basic_Consumables_Loot_Table(game_state), 
-        Per_Count_Rolled_Random(7, 6, game_state), 
+        (Roll(3, game_state) > 1) + Per_Count_Rolled_Random(3, 4, game_state), 
         {}, 
         game_state
     );
@@ -2202,10 +2327,10 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
 
     Loot_Table_Entry rats[] =
     {
-        {Create_Giant_Rat, total_change * 0.5f},
+        {Create_Giant_Rat, total_change * 0.6f},
     };
 
-    table = Merge_Loot_Tables(table, {rats, Array_Length(rats), true}, &game_state->scratch_buffer);
+    table = Merge_Loot_Tables_Internal(table, {rats, Array_Length(rats), true}, &game_state->scratch_buffer);
 
     u64 count = Roll(2, game_state) + Per_Count_Rolled_Square_Weighted_Random(10, game_state) - 1;
     
@@ -2433,6 +2558,23 @@ SIG void Generate_Standard_Random_Loot(Entity* container, Game_State* game_state
     u64 count = 0;
 
     if(Roll(6, game_state) == 1) Create_Alchemists_Pouch(container, game_state);
+
+    if(Roll(10, game_state) == 1)
+    {
+        s32 v = Roll(10, game_state);
+        if(v < 4)
+        {
+            Create_Mushroom(container, game_state);
+        }
+        else if(v < 8)
+        {
+            Create_Herbal_Remedy(container, game_state);
+        }
+        else
+        {
+            Create_Healing_Potion(container, game_state);
+        }
+    }
 
     if(Roll(3, game_state) > 1)
     {

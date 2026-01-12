@@ -1615,7 +1615,9 @@ SIG Entity* Create_Cowards_Ring(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::armor] = + 5;
+        effect.stat_modifiers[Stats::armor] = + 4;
+        effect.stat_modifiers[Stats::might] = - 1;
+        effect.critical_success_range       = - 5;
         effect.critical_failure_range       = + 5;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
@@ -2784,7 +2786,7 @@ SIG Entity* Create_Kamikaze_Shirt(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Kamikaze shirt"), game_state);
-    entity->description_offset = Offset(STR("A tornup shirt worn by Tom the villager. He went insane and started cutting down his own townsflok."), game_state);
+    entity->description_offset = Offset(STR("A tornup shirt worn by Tom the villager. He went insane and started cutting down his own townsfolk."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     entity->rarity = Rarity::uncommon;
     
@@ -3876,6 +3878,7 @@ SIG Entity* Create_Bucket(Entity* room, Game_State* game_state)
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
     entity->weight = 2;
     entity->_stats[Stats::vitality] = 2;
+    entity->drop_change_override = Standard_Drop_Change_Based_On_Rarity(entity->rarity) * 0.1f;
     
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
@@ -3897,18 +3900,18 @@ SIG Entity* Create_Sack(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Sack"), game_state);
-    entity->description_offset = Offset(STR("You could hide from the reality of your sitution by putting your head in it."), game_state);
+    entity->description_offset = Offset(STR("You could hide from the reality of your sitution by putting your head in the sack."), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     
     entity->required_equipment_slots = Equipment_Slots::flag[Equipment_Slots::head];
     entity->weight = 1;
     entity->_stats[Stats::vitality] = 2;
+    entity->drop_change_override = Standard_Drop_Change_Based_On_Rarity(entity->rarity) * 0.1f;
     
     Effect_Hash_Key key = EFFECT_KEY;
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.stat_modifiers[Stats::immunity]  = + 10;
         effect.stat_modifiers[Stats::accuracy]  = - 5;
         effect.critical_failure_range           = + 5;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -4069,6 +4072,7 @@ SIG Entity* Create_Junk_Metal_Leg_Guards(Entity* room, Game_State* game_state)
         effect.stat_modifiers[Stats::armor]     = + 4;
         effect.stat_modifiers[Stats::speed]     = - 5;
         effect.stat_modifiers[Stats::dodge]     = - 3;
+        effect.stat_modifiers[Stats::might]     = - 1;
         effect.stat_modifiers[Stats::arcane]    = - 1;
         effect.critical_failure_range           = + 3;
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
@@ -4222,7 +4226,7 @@ SIG Entity* Create_Pants_Of_The_Jack(Entity* room, Game_State* game_state)
     Entity* entity = Request_Entity(game_state);
 
     entity->name_offset = Offset(STR("Pants of The Jack"), game_state);
-    entity->description_offset = Offset(STR("Legend tells of The Middling Jack, he was good at everything, but didn't like to chalenge him self, and so he never because great at anything. Let this be a warning to you!"), game_state);
+    entity->description_offset = Offset(STR("Legend tells of The Middling Jack, he was good at everything, but didn't like to challenge him self, and so he never because great at anything. Let this be a warning to you!"), game_state);
     entity->flags = EFlags::equippable | EFlags::item;
     entity->rarity = Rarity::uncommon;
 
@@ -5269,6 +5273,7 @@ SIG Entity* Create_Healing_Potion(Entity* container, Game_State* game_state)
     entity->description_offset = Offset(STR("Produced in great numbers by the clergy, especially when preparing for war."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
     entity->rarity = Rarity::uncommon;
+    entity->drop_change_override = Standard_Drop_Change_Based_On_Rarity(Rarity::common);
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -5553,6 +5558,7 @@ SIG Entity* Create_Restoration_Potion(Entity* container, Game_State* game_state)
     entity->description_offset = Offset(STR("Gives a warm feeling at the back of the throat."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
     entity->rarity = Rarity::common;
+    entity->drop_change_override = Standard_Drop_Change_Based_On_Rarity(entity->rarity) * 1.5f;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
@@ -5589,6 +5595,7 @@ SIG Entity* Create_Herbal_Remedy(Entity* container, Game_State* game_state)
     entity->description_offset = Offset(STR("Crafted from common herbs."), game_state);
     entity->flags = EFlags::interactable | EFlags::item;
     entity->rarity = Rarity::common;
+    entity->drop_change_override = Standard_Drop_Change_Based_On_Rarity(Rarity::common) * 2;
 
     entity->weight = 1;
     entity->interactable.on_use_fn_offset = Offset(local::on_use_fn, game_state);
