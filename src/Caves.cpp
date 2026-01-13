@@ -18,10 +18,8 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->description_offset = Offset(STR(room_description), game_state);
 
     #if DEVMODE
-    //Spawn_All_Items_In_Loot_Table(Basic_Merged_Loot_Table(game_state), room, game_state);
+    Spawn_All_Items_In_Loot_Table(Basic_Merged_Loot_Table(game_state), room, game_state);
     #endif
-
-    Create_Salamander(room, game_state);
 }
 
 
@@ -314,7 +312,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Wounded_Bear(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::legendary;
+            room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.07f);
@@ -364,7 +362,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
         static Entity* Den(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::epic;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 Ambush_Wolf(game_state, 0.9f);
@@ -397,7 +395,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 char room_description[] = 
                 "It looks (and smells) like, this is where the foul rats come to breed.";
                 room->description_offset = Offset(STR(room_description), game_state);
-
 
                 u64 mounds = 3 + Per_Count_Rolled_Square_Weighted_Random(3, game_state);
                 LOOP(mounds) Create_Rat_Mound(room, game_state);
@@ -503,7 +500,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 "A dark and tight space. There is very little room to manuver.\n";
                 room->description_offset = Offset(STR(room_description), game_state);
                 
-                if(Roll(4, game_state) > 1)
+                if(Roll(2, game_state) == 1)
                 {
                     Create_Giant_Honey_Badger(room, game_state);
                 }
@@ -663,8 +660,8 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 
                 Loot_Table_Entry entries[] = 
                 {
-                    {Create_Giant_Rat,          15},
-                    {Create_Mutant_Hedgehog,    3},
+                    {Create_Giant_Rat,          10},
+                    {Create_Mutant_Hedgehog,    5},
                     {Create_Giant_Honey_Badger, 3},
                     {Create_Blight_Rat,         6},
                     {Create_Wolf,               8},
@@ -672,7 +669,6 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 
                 Loot_Table table = {entries, Array_Length(entries), true};
                 Generate_From_Loot_Table(room, table, 1, {}, game_state);
-
 
                 Entity* bandit = Create_Bandit(room, game_state);
                 bandit->_health = 0;
@@ -714,30 +710,25 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 if(Roll(4, game_state) == 1) Create_Earth_Golem(room, game_state);
                 if(Roll(3, game_state) == 1) Create_Alchemists_Pouch(room, game_state);
 
-                u64 r = Roll(5, game_state);
+                u64 r = Roll(4, game_state);
                 switch(r)
                 {
                     case 1:
                     {
-                        Create_Supply_Crate(room, game_state);
+                        Create_Armor_Rack(room, game_state);
                     }break;
 
                     case 2:
                     {
-                        Create_Armor_Rack(room, game_state);
+                        Create_Weapon_Rack(room, game_state);
                     }break;
 
                     case 3:
                     {
-                        Create_Weapon_Rack(room, game_state);
-                    }break;
-
-                    case 4:
-                    {
                         Create_Bookshelf(room, game_state);
                     }break;
 
-                    case 5:
+                    case 4:
                     {
                         Create_Chest(room, game_state);
                     }break;
@@ -759,7 +750,7 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                 "A wet muddy pit.";
                 room->description_offset = Offset(STR(room_description), game_state);
 
-                switch(Roll(4, game_state))
+                switch(Roll(5, game_state))
                 {
                     case 1:
                     {
@@ -779,6 +770,11 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
                     case 4:
                     {
                         Create_Giant_Toad(room, game_state);
+                    }break;
+
+                    case 5:
+                    {
+                        LOOP(4) Create_Leech(room, game_state);
                     }break;
                 }
 
@@ -922,34 +918,33 @@ SIG Loot_Table Caves_Wildlife_Section(Game_State* game_state)
             }
 
             return room;
-        }
-
-
-        
+        }        
     };
 
     local_storage Loot_Table_Entry entries[] = 
     {
-        {local::Opening},           // 1
-        {local::Carcase},           // 2
-        {local::Abandoned_Camp},    // 3
-        {local::Ant_Nest},          // 4
-        {local::Warzone},           // 5
-        {local::Small_Rat_Nest},    // 6
-        {local::Empty_Cavern},      // 7
-        {Beast_Lair_Bear},          // 8
-        {local::Graveyard},         // 9
-        {local::Recent_Battlefield},// 10
-        {local::Hallway},           // 11
-        {local::Supply_Room},       // 12
-        {local::Den},               // 13
-        {local::Forest},            // 14
-        {local::Stream},            // 15
-        {local::Chamber},           // 16
-        {local::Burrow},            // 17
-        {Earthen_Hall,},            // 18
+        {Beast_Lair_Bear},          // 1
+        {Earthen_Hall,},            // 2
+        {local::Opening},           // 3
+        {local::Carcase},           // 4
+        {local::Abandoned_Camp},    // 5
+        {local::Ant_Nest},          // 6
+        {local::Warzone},           // 7
+        {local::Small_Rat_Nest},    // 8
+        {local::Empty_Cavern},      // 9
+        {local::Graveyard},         // 10
+
+        {local::Recent_Battlefield},// 11
+        {local::Hallway},           // 12
+        {local::Supply_Room},       // 13
+        {local::Den},               // 14
+        {local::Forest},            // 15
+        {local::Stream},            // 16
+        {local::Chamber},           // 17
+        {local::Burrow},            // 18
         {local::Mudpit},            // 19
         {local::Wounded_Bear},      // 20
+
         {local::Swamp},             // 21
         {local::Mound},             // 22
         {local::Cave},              // 23
@@ -1190,7 +1185,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
 
                 room->name_offset = Offset(STR("a vulcanic cavity"), game_state);
                 char room_description[] = 
-                "Near boiling steam is comming from somewhere, it is very hot in here.";
+                "Near boiling steam is comming from geothermal vents, it is very hot in here.";
                 room->description_offset = Offset(STR(room_description), game_state);
 
                 Create_Salamander(room, game_state);
@@ -1205,7 +1200,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
         static Entity* Orc_Home(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::legendary;
+            room->rarity = Rarity::epic;
             if(fill_room_if_greater_than_zero)
             {
                 Generic_Ambush(game_state, 0.05f);
@@ -1219,6 +1214,51 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
                 Create_Goblin(room, game_state);
 
                 Create_Chest(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Weapon_Room(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::uncommon;
+            if(fill_room_if_greater_than_zero)
+            {
+                Generic_Ambush(game_state, 0.3f);
+
+                room->name_offset = Offset(STR("an armory"), game_state);
+                char room_description[] = 
+                "Small old stone building. The entrance is guarded.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                LOOP(2) Create_Bandit(room, game_state);
+
+                u64 count = 2 + Per_Count_Rolled_Square_Weighted_Random(3, game_state);
+                LOOP(count) Create_Weapon_Rack(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Stairs(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::common;
+            if(fill_room_if_greater_than_zero)
+            {
+                Generic_Ambush(game_state, 0.2f);
+
+                room->name_offset = Offset(STR("a dark staircase"), game_state);
+                char room_description[] = 
+                "As you decent down the spiral stairs, suddenly a figure stands in front of you. Both of you seem surprised.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                Create_Bandit(room, game_state);
 
                 Generate_Standard_Random_Loot(room, game_state);
             }
@@ -1250,7 +1290,6 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
                 }
 
                 Generate_Standard_Random_Loot(room, game_state);
-                Generate_Standard_Random_Loot(room, game_state);
             }
 
             return room;
@@ -1271,7 +1310,8 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
 
                 LOOP(2) Create_Goblin(room, game_state);
 
-                if(Roll(10, game_state) == 1) Create_Supply_Crate(room, game_state);
+                if(Roll(3, game_state) == 1)  Create_Supply_Crate(room, game_state);
+                if(Roll(3, game_state) == 1)  Create_Supply_Crate(room, game_state);
                 if(Roll(10, game_state) == 1) Create_Weapon_Rack(room, game_state);
                 if(Roll(10, game_state) == 1) Create_Armor_Rack(room, game_state);
                 if(Roll(20, game_state) == 1) Create_Chest(room, game_state);
@@ -1293,13 +1333,20 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
 
                 room->name_offset = Offset(STR("an encounter with a warband"), game_state);
                 char room_description[] = 
-                "You run into a roaming band of goblins!";
+                "You run into a roaming band of killers!";
                 room->description_offset = Offset(STR(room_description), game_state);
 
                 u64 count = 1 + Per_Count_Rolled_Square_Weighted_Random(3, game_state);
-                LOOP(count) Create_Goblin(room, game_state);
-
-                Create_Orc(room, game_state);
+                if(Roll(3, game_state) > 1)
+                {
+                    LOOP(count) Create_Goblin(room, game_state);
+                    Create_Orc(room, game_state);
+                }
+                else
+                {
+                    LOOP(count) Create_Bandit(room, game_state);
+                    Create_Bandit_Leader(room, game_state);
+                }
 
                 Generate_Standard_Random_Loot(room, game_state);
             }
@@ -1343,7 +1390,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
         static Entity* Library(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
         {
             Entity* room = Request_Entity(game_state);
-            room->rarity = Rarity::epic;
+            room->rarity = Rarity::rare;
             if(fill_room_if_greater_than_zero)
             {
                 room->name_offset = Offset(STR("a library"), game_state);
@@ -1360,24 +1407,51 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
 
             return room;
         }
+
+
+        static Entity* King(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::legendary;
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("Bandit King's Chamber"), game_state);
+                char room_description[] = 
+                "A huge, hulking man sits on a throne of stone.. though due to the size of the chair; you suspect it is intented for a Dwarf.\n"
+                "The man is surrounded by three naked and chained women.";
+                room->description_offset = Offset(STR(room_description), game_state);
+
+                Create_Bandit_King(room, game_state);
+                LOOP(3) Create_Concubine(room, game_state);
+
+                LOOP(2) Create_Chest(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
     };
 
 
     local_storage Loot_Table_Entry entries[] = 
     {
-        {local::Corridor},          // 1
-        {local::Library},           // 2
-        {local::Hovel},             // 3
-        {local::Rift},              // 4
-        {local::Small_Camp},        // 5
-        {local::Cavern},            // 6
-        {local::Cellar},            // 7
-        {local::Warband},           // 8
-        {local::Scene_Of_Murder},   // 9
-        {local::Orc_Home},          // 10    
-        {local::Kennel},            // 11
-        {Earthen_Hall},             // 12
-        {Beast_Lair_Bear},          // 13
+        {Earthen_Hall},             // 1
+        {Beast_Lair_Bear},          // 2
+        {local::Corridor},          // 3
+        {local::Library},           // 4
+        {local::Hovel},             // 5
+        {local::Rift},              // 6
+        {local::Small_Camp},        // 7
+        {local::Cavern},            // 8
+        {local::Cellar},            // 9
+        {local::Warband},           // 10
+        {local::Scene_Of_Murder},   // 11
+        {local::Orc_Home},          // 12
+        {local::Kennel},            // 13
+        {local::Weapon_Room},       // 14
+        {local::Stairs},            // 15
+        {local::King, 10000000},              // 16
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};

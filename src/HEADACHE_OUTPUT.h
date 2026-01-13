@@ -627,48 +627,50 @@ Entity* Create_Orc(Entity* room, Game_State* game_state);                       
 Entity* Create_Bandit(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 368
 Entity* Create_Bandit_Leader(Entity* room, Game_State* game_state);                                                                                                                         // LINE: 450
 Entity* Create_Assassin(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 532
-Entity* Create_Giant_Honey_Badger(Entity* room, Game_State* game_state);                                                                                                                    // LINE: 610
-Entity* Create_Living_Vine(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 697
-Entity* Create_Vineling(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 755
-Entity* Create_Leech(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 826
-Entity* Create_Giant_Toad(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 884
-Entity* Create_Mosquito(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 945
-Entity* Create_Wolf(Entity* room, Game_State* game_state);                                                                                                                                  // LINE: 1009
-Entity* Create_Hound(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 1071
-Entity* Create_Fae_Flayer(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 1133
-Entity* Create_Salamander(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 1201
-Entity* Create_Earth_Golem(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 1266
-Entity* Create_Small_Earth_Golem(Entity* room, Game_State* game_state);                                                                                                                     // LINE: 1316
-Entity* Create_Tiny_Earth_Golem(Entity* room, Game_State* game_state);                                                                                                                      // LINE: 1366
-Entity* Create_Giant_Rat(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 1416
-Entity* Create_Blight_Rat(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 1480
-Entity* Create_Enlarged_Ant(Entity* room, Game_State* game_state);                                                                                                                          // LINE: 1602
-Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state);                                                                                                                    // LINE: 1652
-Entity* Create_Bear_Cub(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 1733
-Entity* Create_Cave_Bear(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 1798
-Entity* Create_Mutant_Hedgehog(Entity* room, Game_State* game_state);                                                                                                                       // LINE: 1865
-Entity* Create_Clear_Ambush_Table_Dummy_Entity(Entity* room, Game_State* game_state);                                                                                                       // LINE: 1951
-Entity* Create_Mimic(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 1960
-Entity* Create_Chest(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 2059
-Entity* Create_Weapon_Rack(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 2108
-Entity* Create_Armor_Rack(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 2141
-Entity* Create_Bookshelf(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 2174
-Entity* Create_Supply_Crate(Entity* room, Game_State* game_state);                                                                                                                          // LINE: 2207
-Entity* Create_Alchemists_Pouch(Entity* room, Game_State* game_state);                                                                                                                      // LINE: 2253
-Entity* Create_Rat_Mound(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 2287
-Entity* Create_Snake(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 2345
-Entity* Create_Scorpion(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 2405
-Entity* Create_Spider(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 2465
-Entity* Create_Boss_Spider(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 2505
-void Generate_Standard_Random_Loot(Entity* container, Game_State* game_state);                                                                                                              // LINE: 2556
+Entity* Create_Bandit_King(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 608
+Entity* Create_Concubine(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 659
+Entity* Create_Giant_Honey_Badger(Entity* room, Game_State* game_state);                                                                                                                    // LINE: 766
+Entity* Create_Living_Vine(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 853
+Entity* Create_Vineling(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 911
+Entity* Create_Leech(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 982
+Entity* Create_Giant_Toad(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 1040
+Entity* Create_Mosquito(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 1101
+Entity* Create_Wolf(Entity* room, Game_State* game_state);                                                                                                                                  // LINE: 1165
+Entity* Create_Hound(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 1227
+Entity* Create_Fae_Flayer(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 1289
+Entity* Create_Salamander(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 1357
+Entity* Create_Earth_Golem(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 1422
+Entity* Create_Small_Earth_Golem(Entity* room, Game_State* game_state);                                                                                                                     // LINE: 1472
+Entity* Create_Tiny_Earth_Golem(Entity* room, Game_State* game_state);                                                                                                                      // LINE: 1522
+Entity* Create_Giant_Rat(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 1572
+Entity* Create_Blight_Rat(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 1636
+Entity* Create_Enlarged_Ant(Entity* room, Game_State* game_state);                                                                                                                          // LINE: 1758
+Entity* Create_Enlarged_Ant_Queen(Entity* room, Game_State* game_state);                                                                                                                    // LINE: 1808
+Entity* Create_Bear_Cub(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 1889
+Entity* Create_Cave_Bear(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 1954
+Entity* Create_Mutant_Hedgehog(Entity* room, Game_State* game_state);                                                                                                                       // LINE: 2021
+Entity* Create_Clear_Ambush_Table_Dummy_Entity(Entity* room, Game_State* game_state);                                                                                                       // LINE: 2107
+Entity* Create_Mimic(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 2116
+Entity* Create_Chest(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 2215
+Entity* Create_Weapon_Rack(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 2264
+Entity* Create_Armor_Rack(Entity* room, Game_State* game_state);                                                                                                                            // LINE: 2297
+Entity* Create_Bookshelf(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 2330
+Entity* Create_Supply_Crate(Entity* room, Game_State* game_state);                                                                                                                          // LINE: 2363
+Entity* Create_Alchemists_Pouch(Entity* room, Game_State* game_state);                                                                                                                      // LINE: 2409
+Entity* Create_Rat_Mound(Entity* room, Game_State* game_state);                                                                                                                             // LINE: 2443
+Entity* Create_Snake(Entity* room, Game_State* game_state);                                                                                                                                 // LINE: 2501
+Entity* Create_Scorpion(Entity* room, Game_State* game_state);                                                                                                                              // LINE: 2561
+Entity* Create_Spider(Entity* room, Game_State* game_state);                                                                                                                                // LINE: 2621
+Entity* Create_Boss_Spider(Entity* room, Game_State* game_state);                                                                                                                           // LINE: 2661
+void Generate_Standard_Random_Loot(Entity* container, Game_State* game_state);                                                                                                              // LINE: 2712
 
 // FILE: src\Caves.cpp:
 void Generate_Entrance_Room(Entity* room, Game_State* game_state);                                                                                                                          // LINE: 9
-Loot_Table Caves_Wildlife_Section(Game_State* game_state);                                                                                                                                  // LINE: 84
-Loot_Table Caves_Bandit_Section(Game_State* game_state);                                                                                                                                    // LINE: 965
-Loot_Table Caves_Spider_Section(Game_State* game_state);                                                                                                                                    // LINE: 1390
-Loot_Table Caves_Boss(Game_State* game_state);                                                                                                                                              // LINE: 1425
-_inline Level_Segments Caves(Game_State* game_state);                                                                                                                                       // LINE: 1460
+Loot_Table Caves_Wildlife_Section(Game_State* game_state);                                                                                                                                  // LINE: 82
+Loot_Table Caves_Bandit_Section(Game_State* game_state);                                                                                                                                    // LINE: 960
+Loot_Table Caves_Spider_Section(Game_State* game_state);                                                                                                                                    // LINE: 1464
+Loot_Table Caves_Boss(Game_State* game_state);                                                                                                                                              // LINE: 1499
+_inline Level_Segments Caves(Game_State* game_state);                                                                                                                                       // LINE: 1534
 
 // FILE: src\Dungeon.cpp:
 char* Get_Output_Color_CSTR(ANSI_Color_Buffer* buffer, u8 red, u8 green, u8 blue);                                                                                                          // LINE: 86

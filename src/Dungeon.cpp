@@ -36,7 +36,7 @@
 enum class Custom_Start
 {
     level_1_zone_1, //  90% -- playable
-    level_1_zone_2, // ~50% -- somewhat playable 
+    level_1_zone_2, // ~70% -- somewhat playable 
     level_1_zone_3,
 
     level_2_zone_1,

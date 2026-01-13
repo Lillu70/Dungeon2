@@ -166,7 +166,7 @@ SIG Entity* Create_Goblin(Entity* room, Game_State* game_state)
         s16* stats = entity->_stats;
         stats[Stats::vitality]  = 5;
         stats[Stats::might]     = 7;
-        stats[Stats::dodge]     = 6;
+        stats[Stats::dodge]     = 5;
         stats[Stats::accuracy]  = 6;
         stats[Stats::speed]     = 14;
         stats[Stats::arcane]    = 1;
@@ -206,7 +206,7 @@ SIG Entity* Create_Goblin(Entity* room, Game_State* game_state)
                 }
                 else
                 {
-                    Print("resives the evasive buff, giving dodge equal to user level.");
+                    Print("resieves the evasive buff, giving dodge equal to user level.");
                 }
             }
         };
@@ -311,7 +311,7 @@ SIG Entity* Create_Orc(Entity* room, Game_State* game_state)
                 }
                 else
                 {
-                    Print("If damage from single source exceeds %d, the effected resives the \"Enraged\" buff.", damage_threshold);
+                    Print("If damage from single source exceeds %d, the effected reseives the \"Enraged\" buff.", damage_threshold);
                 }
             }
         };
@@ -378,10 +378,10 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
     
     {
         s16* stats = entity->_stats;
-        stats[Stats::vitality]  = 7;
-        stats[Stats::might]     = 7;
-        stats[Stats::dodge]     = 7;
-        stats[Stats::accuracy]  = 7;
+        stats[Stats::vitality]  = 6;
+        stats[Stats::might]     = 6;
+        stats[Stats::dodge]     = 6;
+        stats[Stats::accuracy]  = 6;
         stats[Stats::speed]     = 10;
         stats[Stats::arcane]    = 5;
         stats[Stats::immunity]  = 5;
@@ -473,7 +473,7 @@ SIG Entity* Create_Bandit_Leader(Entity* room, Game_State* game_state)
     Finalize_Entity(entity, room, game_state);
     
     {
-        Rules_Builder rules = Rules_Builder().Rarity(Comparison::between, Rarity::uncommon, Rarity::epic);
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare);
         
         if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
         {
@@ -520,8 +520,8 @@ SIG Entity* Create_Bandit_Leader(Entity* room, Game_State* game_state)
     (
         entity, 
         Basic_Merged_Loot_Table(game_state), 
-        Per_Count_Rolled_Random(3, 6, game_state), 
-        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
+        Per_Count_Rolled_Random(4, 3, game_state), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::epic).Finish(), 
         game_state
     );
 
@@ -544,8 +544,8 @@ SIG Entity* Create_Assassin(Entity* room, Game_State* game_state)
         s16* stats = entity->_stats;
         stats[Stats::vitality]  = 6;
         stats[Stats::might]     = 5;
-        stats[Stats::dodge]     = 8;
-        stats[Stats::accuracy]  = 7;
+        stats[Stats::dodge]     = 7;
+        stats[Stats::accuracy]  = 6;
         stats[Stats::speed]     = 13;
         stats[Stats::arcane]    = 5;
         stats[Stats::immunity]  = 5;
@@ -557,7 +557,7 @@ SIG Entity* Create_Assassin(Entity* room, Game_State* game_state)
     Loot_Table_Entry weapons[] =
     {
         {Create_Assassins_Claws},
-        {Create_Cestus},
+        //{Create_Cestus},
         {Create_Dagger},
         {Create_Poison_Dagger},
         {Create_Straightsword},
@@ -592,7 +592,6 @@ SIG Entity* Create_Assassin(Entity* room, Game_State* game_state)
         }
     }
 
-    #if 1
     Generate_From_Loot_Table
     (
         entity, 
@@ -601,8 +600,165 @@ SIG Entity* Create_Assassin(Entity* room, Game_State* game_state)
         Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
         game_state
     );
-    #endif
 
+    return entity;
+}
+
+
+SIG Entity* Create_Bandit_King(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Bandit King"), game_state);
+    entity->description_offset = Offset(STR("Ruler of the undergound bandits. The rumors of this mans cruelty have spread even up on the surface."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive | EFlags::can_be_stolen_from;
+    entity->faction = Faction::bandit;
+    entity->weight = 140;
+    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 13;
+        stats[Stats::might]     = 5;
+        stats[Stats::dodge]     = 8;
+        stats[Stats::accuracy]  = 8;
+        stats[Stats::speed]     = 10;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 11;
+    }
+    
+    Finalize_Entity(entity, room, game_state);
+
+    Equip(entity, Create_Great_Sword(entity, game_state), game_state);
+
+
+    Loot_Table table = Basic_Merged_Loot_Table(game_state);
+    Generate_From_Loot_Table
+    (
+        entity, 
+        table, 
+        Per_Count_Rolled_Random(5, 3, game_state), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
+        game_state
+    );
+
+    Generate_From_Loot_Table
+    (
+        entity, 
+        table, 
+        1, 
+        Rules_Builder().Rarity(Comparison::minimum, Rarity::rare).Finish(), 
+        game_state
+    );
+    
+    return entity;
+}
+
+
+SIG Entity* Create_Concubine(Entity* room, Game_State* game_state)
+{
+    struct local
+    {
+        static bool Could_Be_Master(Entity* entity, void* user_ptr, Game_State* game_state)
+        {
+            Entity_Offset weapon = entity->equipment[Equipment_Slots::primary_hand];
+
+            Entity* concubine = (Entity*)user_ptr;
+            bool result = Is_Alive(entity) && entity->faction == concubine->faction && (entity->flags & EFlags::aggressive) && Pointer(weapon, game_state);
+            return result;
+        }
+
+
+        static s32 Temp_Health_Amount()
+        {
+            return 5;
+        }
+
+        static void On_Turn_Start(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            s32 temp_health_amount = Temp_Health_Amount();
+            s16 might_boost = 1;
+            if(instance)
+            {
+                Effect* effect = Request_Effect(game_state);
+                effect->stat_modifiers[Stats::might] += might_boost;
+                effect->name_offset = Offset(STR("Worshiped"), game_state);
+                effect->type = Effect_Type::physical;
+
+                Effect_Instance worship = {};
+                worship.effect_offset = Offset(effect, game_state);
+                worship.source = instance->source;
+                worship.duration = 1;
+
+                Entity* residence = Pointer(target->residence, game_state);
+
+                if(Entity* master = Random_Entity_That_Matches_Criteria(&residence->inventory, Could_Be_Master, target, game_state))
+                {
+                    String source_name = Name(target, game_state);
+
+                    Apply_Effect_Result apply = Apply_Effect(master, worship, game_state);
+                    Push_Generic_Apply_Effect_Message(source_name, master, worship, apply, game_state);
+                    Give_Temporary_Health(master, Temp_Health_Amount(), source_name, Verbose::yes, game_state);
+                }
+            }
+            else
+            {
+                Print
+                (
+                    "Gives the Master the \"Worshiped\" buff, increasing his might by %d point%s and giving him %d point%s of temporary health.",
+                    might_boost,
+                    (might_boost > 1)? "s" : "",
+                    temp_health_amount,
+                    (temp_health_amount > 1)? "s" : ""
+                );
+            }
+        }
+    };
+
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Concubine"), game_state);
+    entity->description_offset = Offset(STR("Subjucated worshiper of her master."), game_state);
+    
+    entity->flags = EFlags::actor;
+    entity->faction = Faction::bandit;
+    entity->weight = 60;
+    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 4;
+        stats[Stats::might]     = 2;
+        stats[Stats::dodge]     = 1;
+        stats[Stats::accuracy]  = 1;
+        stats[Stats::speed]     = 5;
+        stats[Stats::arcane]    = 1;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 1;
+    }
+
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.type = Effect_Type::magic;
+        effect.name_offset = Offset(STR("Subjucation"), game_state);
+        effect.on_turn_start_fn_offset = Offset(local::On_Turn_Start, game_state);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    Finalize_Entity(entity, room, game_state);
+    
     return entity;
 }
 
@@ -2555,9 +2711,9 @@ SIG Entity* Create_Boss_Spider(Entity* room, Game_State* game_state)
 
 SIG void Generate_Standard_Random_Loot(Entity* container, Game_State* game_state)
 {
-    u64 count = 0;
-
     if(Roll(6, game_state) == 1) Create_Alchemists_Pouch(container, game_state);
+
+    if(Roll(6, game_state) == 1) Create_Supply_Crate(container, game_state);
 
     if(Roll(10, game_state) == 1)
     {
@@ -2576,6 +2732,7 @@ SIG void Generate_Standard_Random_Loot(Entity* container, Game_State* game_state
         }
     }
 
+    u64 count = 0;
     if(Roll(3, game_state) > 1)
     {
         u64 max = 5 + Per_Count_Rolled_Random(8, 5, game_state);
