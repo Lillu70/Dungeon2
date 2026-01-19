@@ -23,22 +23,24 @@
 // TODO: Improve the static string storage.. or rather the dynamic string storage. The offset already contains the lenght so it need not be stored seperatly.
 
 
-#define DEVMODE      1
-#define SEED         0
-#define RANDOM_SEED  1
-#define SAVE_ON_EXIT 1
-#define ENABLE_WAIT  0
-#define ENTRANCE     1
-#define QUICKSTART   1
-#define CUSTOM_START 1
-
+#define DEVMODE       1
+#define SEED          0
+#define RANDOM_SEED   1
+#define SAVE_ON_EXIT  1
+#define ENABLE_WAIT   0
+#define ENTRANCE      1
+#define QUICKSTART    1
+#define CUSTOM_START  0
+#define ENT_ALL_ITEMS 0
 
 enum class Custom_Start
 {
     level_1_zone_1, //  90% -- playable
-    level_1_zone_2, // ~70% -- somewhat playable 
-    level_1_zone_3,
+    level_1_zone_2, //  70% -- somewhat playable 
+    level_1_zone_3, //  20% -- not playable
 
+                    // |
+                    // v LOL: Don't even think you can get here.
     level_2_zone_1,
     level_2_zone_2,
     level_2_zone_3,
@@ -51,7 +53,7 @@ enum class Custom_Start
 #define CUSTOM_START_MANUAL_LEVEL_UP 0
 
 #if CUSTOM_START
-constexpr Custom_Start _global_custom_start = Custom_Start::level_1_zone_2;
+constexpr Custom_Start _global_custom_start = Custom_Start::level_1_zone_3;
 #endif
 
 
@@ -1960,10 +1962,24 @@ SIG void Assign_Dublicate_Name_Identifier(Entity* entity_to_insert, Entity* stor
 }
 
 
+SIG void Finalize_Entity(Entity* entity, Entity* container, Game_State* game_state)
+{
+    Set_Level_Based_On_Stats(entity);
+    Full_Heal(entity, game_state);
+    
+    if(container)
+    {
+        Deep_Insert(entity, container, game_state);
+    }
+}
+
+
 SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_state, Assign_Dublicate_Identifier::T assign_dublicate_identifier DEF(Assign_Dublicate_Identifier::T(1)))
 {
     if(storage_entity)
     {
+        storage_entity->flags &= (~EFlags::is_open);
+        
         entity->_temp_health = 0;
         entity->_threat = 0;
         entity->refnum = 0;
@@ -1978,6 +1994,10 @@ SIG void Deep_Insert(Entity* entity, Entity* storage_entity, Game_State* game_st
 
         Entity_Root_Node* storage = &storage_entity->inventory;
         Insert(entity, storage, game_state);
+    }
+    else
+    {
+        Delete_Entity(entity, game_state);
     }
 }
 
@@ -2815,9 +2835,23 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                     attacker->exp += ddr.exp_reward;
                 }
 
+                // CONSIDER: Can this crash the game?
+                // NOTE: This is at least potentially problematic and shoud be queued instead of done right here.
+                // But for the limited use that is this flag is in, eg: eggs and mounds.. it should be totally fine as those things don't have equipment.
+                if(defender->flags & EFlags::destroy_inventory_on_death)
+                {
+                    Entity_Root_Node* inventory = &defender->inventory;
+                    while(Has_Content(inventory))
+                    {
+                        Entity_Node* node = Pointer(inventory->node_offset, game_state);
+                        Entity* item = Pointer(node->entities[0], game_state);
+                        Delete_Entity(item, game_state);
+                    }
+                }
+
                 // If this entity is an item equipped on someone... unequip it.
                 // TODO: TODO: TODO:!!!! This is a crash bug!!!
-                // Can't just blidly en-equip stuff... will break effect iterator unless I fix that.
+                // Can't just blidly un-equip stuff... will break effect iterator unless I fix that.
                 {
                     Entity* residence = Pointer(defender->residence, game_state);
                     if(residence && defender->_health <= 0)
@@ -2825,6 +2859,11 @@ SIG Deal_Damage_Result Deal_Damage(Entity* defender, Entity_Offset attacker_offs
                         Unequip(residence, defender, game_state);
                     }
                 }
+            }
+            else
+            {
+                ddr.is_killing_blow = false;
+                ddr.exp_reward = 0;
             }
 
             if(verbose)
@@ -4294,10 +4333,10 @@ SIG void Open(Entity* actor, Game_State* game_state)
             Entity* entity = Pointer(*inv->entities, game_state);
             entity->flags |= EFlags::visible;
 
-            Deep_Insert(entity, residence, game_state);
-            
             Wait(0.5, game_state);
             Print("\n| - %s", Name(entity, game_state).ptr);
+            
+            Deep_Insert(entity, residence, game_state);
         }
         else
         {
@@ -6173,41 +6212,41 @@ SIG void Create_Player_Charater(Game_State* game_state)
         #endif
 
         #if CUSTOM_START
+        if(s32(_global_custom_start) > s32(Custom_Start::level_1_zone_1))
         {
             Level_Segments level_1 = Caves(game_state);
+
+            Open(player, game_state); // -> hmm?
+            
+            LOOP(2) Create_Mushroom(player, game_state);
+            LOOP(2) Create_Jerky(player, game_state);
+            Create_Healing_Potion(player, game_state);
+            Create_Bomb(player, game_state);
 
             switch(_global_custom_start)
             {
                 case Custom_Start::level_1_zone_1:
                 {
                     // Just the normal game start.
+                    Terminate("Inavalid code path?");
                 }break;
+                
                 case Custom_Start::level_1_zone_2:
                 {
                     s32 distance_travelled = level_1.segments[0].size;
                     game_state->distance_travelled = distance_travelled;
 
-                    //Equip(player, Create_Gambeson(player, game_state), game_state);
+                    Equip(player, Create_Straightsword(player, game_state), game_state);
+                    Equip(player, Create_Wooden_Shield(player, game_state), game_state);
+                    Equip(player, Create_Leather_Cuirass(player, game_state), game_state);
                     Equip(player, Create_Padded_Pants(player, game_state), game_state);
                     Equip(player, Create_Travel_Boots(player, game_state), game_state);
-                    // Equip(player, Create_Ring_Of_Protection(player, game_state), game_state);
                     Equip(player, Create_Ring_Of_Precision(player, game_state), game_state);
                     Equip(player, Create_Skull_Cap(player, game_state), game_state);
-                    // Equip(player, Create_Leather_Gloves(player, game_state), game_state);
-
-                    Drop_Command(player, STR("arming cap"), game_state);
-                    //Drop_Command(player, STR("leather cuirass"), game_state);
-                    Drop_Command(player, STR("bomb"), game_state);
-                    Drop_Command(player, STR("healing potion"), game_state);
-                    Drop_Command(player, STR("Steak & mashed potatoes"), game_state);
 
                     player->exp = Exp_To_Level_Up(Level(player) + 1);
                     
-                    #if CUSTOM_START_MANUAL_LEVEL_UP
-                    {
-                        Ding(player, game_state);
-                    }
-                    #else
+                    #if ! CUSTOM_START_MANUAL_LEVEL_UP
                     {
                         player->_lvl += 2;
                         player->_stats[Stats::vitality] += 3;
@@ -6217,11 +6256,35 @@ SIG void Create_Player_Charater(Game_State* game_state)
                     }
                     #endif
                     
-                    Full_Heal(player, game_state);
-
                 }break;
+                
                 case Custom_Start::level_1_zone_3:
                 {
+                    s32 distance_travelled = level_1.segments[0].size + level_1.segments[1].size;
+                    game_state->distance_travelled = distance_travelled;
+
+                    Equip(player, Create_War_Pick(player, game_state), game_state);
+                    Equip(player, Create_Wooden_Shield(player, game_state), game_state);
+                    Equip(player, Create_Nobles_Armored_Garb(player, game_state), game_state);
+                    Equip(player, Create_Plate_Leggings(player, game_state), game_state);
+                    Equip(player, Create_Travel_Boots(player, game_state), game_state);
+                    Equip(player, Create_Strong_Man_Belt(player, game_state), game_state);
+                    Equip(player, Create_Leather_Gloves(player, game_state), game_state);
+                    Equip(player, Create_Ring_Of_Precision(player, game_state), game_state);
+                    Equip(player, Create_Ring_Of_Wrath(player, game_state), game_state);
+                    Equip(player, Create_Skull_Cap(player, game_state), game_state);
+
+                    player->exp = Exp_To_Level_Up(Level(player) + 2);
+                    
+                    #if ! CUSTOM_START_MANUAL_LEVEL_UP
+                    {
+                        player->_lvl += 3;
+                        player->_stats[Stats::vitality] += 3;
+                        player->_stats[Stats::might]    += 4;
+                        player->_stats[Stats::dodge]    += 4;
+                        player->_stats[Stats::accuracy] += 4;
+                    }
+                    #endif
 
                 }break;
 
@@ -6253,6 +6316,12 @@ SIG void Create_Player_Charater(Game_State* game_state)
 
                 }break;
             }
+
+            #if CUSTOM_START_MANUAL_LEVEL_UP
+            Ding(player, game_state);
+            #endif
+
+            Full_Heal(player, game_state);
         }
         #endif
     }
@@ -6878,7 +6947,10 @@ SIG CMD_Result::T Pickup_Command(Entity* actor, String args, Game_State* game_st
         
         s16 target_weight = target->weight;
         
-        if(Is_Alive(target) && !target->stunned && !(actor->flags & EFlags::godmode) && !(target->flags & EFlags::container))
+        if(Is_Alive(target) && 
+            !target->stunned && !(actor->flags & EFlags::godmode) && 
+            !(target->flags & EFlags::container) && 
+            (target->flags & EFlags::aggressive))
         {
             Print("\nYou try to pickup %s but its alive!!!\n%s gets a free attack against you: ", target_name.ptr, target_name.ptr);
             Attack(target, actor, game_state);
@@ -7086,16 +7158,10 @@ SIG CMD_Result::T Drop_Command(Entity* actor, String args, Game_State* game_stat
             Print("\n%s unequiped.", target_name.ptr);
         }
         
-        if(Entity* room = Pointer(actor->residence, game_state))
-        {
-            Print("\n%s dropped.", target_name.ptr);
-            target->flags |= EFlags::visible;
-            Deep_Insert(target, room, game_state);
-        }
-        else
-        {
-            Delete_Entity(target, game_state);
-        }
+        Entity* room = Pointer(actor->residence, game_state);
+        Print("\n%s dropped.", target_name.ptr);
+        target->flags |= EFlags::visible;
+        Deep_Insert(target, room, game_state);
     }
     else
     {

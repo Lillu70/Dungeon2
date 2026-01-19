@@ -37,16 +37,6 @@
 // Hydra mechanic, if you kill a second head; two heads spawn.
 
 
-
-SIG void Finalize_Entity(Entity* entity, Entity* container, Game_State* game_state)
-{
-    Set_Level_Based_On_Stats(entity);
-    Full_Heal(entity, game_state);
-    
-    Deep_Insert(entity, container, game_state);
-}
-
-
 SIG Entity* Create_Class_Adventurer(Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
@@ -168,7 +158,7 @@ SIG Entity* Create_Goblin(Entity* room, Game_State* game_state)
         stats[Stats::might]     = 7;
         stats[Stats::dodge]     = 5;
         stats[Stats::accuracy]  = 6;
-        stats[Stats::speed]     = 14;
+        stats[Stats::speed]     = 9;
         stats[Stats::arcane]    = 1;
         stats[Stats::immunity]  = 16;
         stats[Stats::armor]     = 7;
@@ -386,6 +376,88 @@ SIG Entity* Create_Bandit(Entity* room, Game_State* game_state)
         stats[Stats::arcane]    = 5;
         stats[Stats::immunity]  = 5;
         stats[Stats::armor]     = 5;
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    
+    {
+        Rules_Builder rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::uncommon);
+        
+        if(GENERATE_ENTITY_FN* weapon_gen_fn = Pick_From_Loot_Table(Basic_Weapons_Loot_Table(game_state), rules.Finish(), game_state))
+        {
+            Entity* weapon = weapon_gen_fn(entity, game_state);
+            Equip(entity, weapon, game_state);
+
+            bool is_1h_weapon = weapon->required_equipment_slots == Equipment_Slots::flag[Equipment_Slots::primary_hand];
+            u32 roll = Roll(5, game_state);
+
+            if(is_1h_weapon && roll >= 3)
+            {
+                u32 offhand_slot = Equipment_Slots::flag[Equipment_Slots::secondary_hand];
+                rules.Slot_Filters(&offhand_slot, 1);
+
+                if(GENERATE_ENTITY_FN* offhand_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules.Finish(), game_state))
+                {
+                    Entity* offhand = offhand_gen_fn(entity, game_state);
+                    Equip(entity, offhand, game_state);
+                }
+            }
+        }
+    }
+
+    {
+        Pick_From_Table_Rules rules = Rules_Builder()
+        .Excluded_Slots(Equipment_Slots::flag[Equipment_Slots::secondary_hand])
+        .Rarity(Comparison::maximum, Rarity::rare)
+        .Finish();
+        
+        u64 count = Per_Count_Rolled_Square_Weighted_Random(5, game_state);
+        for(u64 i = 0; i < count; ++i)
+        {
+            if(GENERATE_ENTITY_FN* armor_gen_fn = Pick_From_Loot_Table(Basic_Armors_Loot_Table(game_state), rules, game_state))
+            {
+                Entity* armor = armor_gen_fn(entity, game_state);
+                Equip(entity, armor, game_state);
+
+                rules.excluded_slots |= armor->required_equipment_slots;
+            }
+        }
+    }
+
+    Generate_From_Loot_Table
+    (
+        entity, 
+        Basic_Merged_Loot_Table(game_state), 
+        Per_Count_Rolled_Random(3, 8, game_state), 
+        Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish(), 
+        game_state
+    );
+
+    return entity;
+}
+
+
+SIG Entity* Create_Skeleton(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Skeleton"), game_state);
+    entity->description_offset = Offset(STR("An animated skeleton. Necromantic energies are keeping it operational."), game_state);
+    
+    entity->flags = EFlags::actor | EFlags::aggressive | EFlags::can_be_stolen_from;
+    entity->faction = Faction::undead;
+    entity->weight = 100;
+    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 8;
+        stats[Stats::might]     = 8;
+        stats[Stats::dodge]     = 8;
+        stats[Stats::accuracy]  = 8;
+        stats[Stats::speed]     = 10;
+        stats[Stats::arcane]    = 5;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 7;
     }
 
     Finalize_Entity(entity, room, game_state);
@@ -2448,11 +2520,14 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
     entity->description_offset = Offset(STR("A pile if soil, gravel and rat feces. There could be treasure inside... Or even rats living in it!"), game_state);
     
     entity->flags = 
-        EFlags::actor           | 
-        EFlags::hidden_iniative | 
-        EFlags::container       | 
+        EFlags::actor                       | 
+        EFlags::hidden_iniative             | 
+        EFlags::container                   | 
+        EFlags::item                        |
+        EFlags::destroy_inventory_on_death  |
         EFlags::burst_container;
     
+
     entity->burst_message_offset = Offset(STR("bursts open releasing it's contents"), game_state);
     entity->burst_change = 0.3f;
     entity->weight = 1000;
@@ -2483,7 +2558,7 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
 
     Loot_Table_Entry rats[] =
     {
-        {Create_Giant_Rat, total_change * 0.6f},
+        {Create_Random_Rat, total_change * 0.6f},
     };
 
     table = Merge_Loot_Tables_Internal(table, {rats, Array_Length(rats), true}, &game_state->scratch_buffer);
@@ -2491,6 +2566,58 @@ SIG Entity* Create_Rat_Mound(Entity* room, Game_State* game_state)
     u64 count = Roll(2, game_state) + Per_Count_Rolled_Square_Weighted_Random(10, game_state) - 1;
     
     Generate_From_Loot_Table(entity, table, count, rules, game_state);
+
+    Finalize_Entity(entity, room, game_state);
+    entity->bonus_exp_reward = (s16)Exp_Reward(entity) * -1;
+    return entity;
+}
+
+
+SIG Entity* Create_Spider_Egg(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+  
+    entity->name_offset = Offset(STR("Spider Egg"), game_state);
+    entity->description_offset = Offset(STR("A large egg. It looks be about ready to hacth!"), game_state);
+    
+    entity->flags = 
+        EFlags::actor                       | 
+        EFlags::hidden_iniative             | 
+        EFlags::container                   | 
+        EFlags::item                        |
+        EFlags::destroy_inventory_on_death  |
+        EFlags::burst_container;
+    
+    entity->burst_message_offset = Offset(STR("hatches open releasing it's contents"), game_state);
+    entity->burst_change = 0.2f;
+    entity->weight = 50;
+    
+    entity->_stats[Stats::vitality] = 10;
+    entity->_stats[Stats::armor] = 0;
+
+    u64 cmax = 5;
+    Entity*(*create_fn)(Entity*, Game_State*) = 0;
+    switch(Roll(3, game_state))
+    {
+        case 1:
+        {
+            create_fn = Create_Toxic_Lurker;
+        }break;
+
+        case 2:
+        {
+            create_fn = Create_Hunter_Arachnid;
+        }break;
+
+        case 3:
+        {
+            create_fn = Create_Spiderling;
+            cmax = 20;
+        }break;
+    }
+
+    u64 count = Per_Count_Rolled_Square_Weighted_Random(cmax, game_state);
+    LOOP(count) create_fn(entity, game_state);
 
     Finalize_Entity(entity, room, game_state);
     entity->bonus_exp_reward = (s16)Exp_Reward(entity) * -1;
@@ -2618,7 +2745,61 @@ SIG Entity* Create_Scorpion(Entity* room, Game_State* game_state)
 }
 
 
-SIG Entity* Create_Spider(Entity* room, Game_State* game_state)
+SIG Entity* Create_Spiderling(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+    
+    entity->name_offset = Offset(STR("Spiderling"), game_state);
+    entity->description_offset = Offset(STR("Small for a giant spider, but still.. quite sizable compared to a regular one."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::aracnid;
+    entity->weight = 40;
+    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 4;
+        stats[Stats::might]     = 7;
+        stats[Stats::dodge]     = 5;
+        stats[Stats::accuracy]  = 5;
+        stats[Stats::speed]     = 17;
+        stats[Stats::arcane]    = 10;
+        stats[Stats::immunity]  = 5;
+        stats[Stats::armor]     = 5;
+    }
+
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Chelicera"), game_state);
+        effect.pierce = + 1;
+        Add_Dice(&effect, 2, 6);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    {
+        Pick_From_Table_Rules rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::uncommon).Finish();
+        u64 count = Per_Count_Rolled_Random(1, 5, game_state);
+        Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), count, rules, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Toxic_Lurker(Entity* room, Game_State* game_state)
 {
     Entity* entity = Request_Entity(game_state);
 
@@ -2626,34 +2807,237 @@ SIG Entity* Create_Spider(Entity* room, Game_State* game_state)
     {
         static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
         {
-            if(attacker)
+            if(instance)
             {
-                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Poison(3, attacker, game_state), game_state);
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Poison(4, attacker, game_state), game_state);
             }
         }
     };
     
-    entity->name_offset = Offset(STR("Spider"), game_state);
-    entity->description_offset = Offset(STR(""), game_state);
+    entity->name_offset = Offset(STR("Toxic Lurker"), game_state);
+    entity->description_offset = Offset(STR("A gigantic spider. It's enourmous chelicera are dripping green toxic goo."), game_state);
 
     entity->flags = EFlags::actor | EFlags::aggressive;
-    entity->faction = Faction::nature;
-    entity->weight = 30;
+    entity->faction = Faction::aracnid;
+    entity->weight = 120;
     
     {
         s16* stats = entity->_stats;
-        stats[Stats::vitality]  = 5;
-        stats[Stats::might]     = 5;
-        stats[Stats::dodge]     = 5;
-        stats[Stats::accuracy]  = 5;
-        stats[Stats::speed]     = 10;
-        stats[Stats::arcane]    = 5;
-        stats[Stats::immunity]  = 5;
-        stats[Stats::armor]     = 1;
+        stats[Stats::vitality]  = 11;
+        stats[Stats::might]     = 7;
+        stats[Stats::dodge]     = 8;
+        stats[Stats::accuracy]  = 8;
+        stats[Stats::speed]     = 12;
+        stats[Stats::arcane]    = 10;
+        stats[Stats::immunity]  = 6;
+        stats[Stats::armor]     = 7;
     }
 
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Chelicera"), game_state);
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        effect.pierce = + 2;
+        Add_Dice(&effect, 1, 6);
+        Add_Dice(&effect, 1, 8);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    {
+        Pick_From_Table_Rules rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish();
+        u64 count = Per_Count_Rolled_Random(3, 4, game_state);
+        Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), count, rules, game_state);
+    }
 
     Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Hunter_Arachnid(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Enwebbed(1, attacker, game_state), game_state);
+            }
+        }
+    };
+    
+    entity->name_offset = Offset(STR("Hunter Arachnid"), game_state);
+    entity->description_offset = Offset(STR("A web spinning spider."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::aracnid;
+    entity->weight = 120;
+    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 10;
+        stats[Stats::might]     = 9;
+        stats[Stats::dodge]     = 7;
+        stats[Stats::accuracy]  = 7;
+        stats[Stats::speed]     = 15;
+        stats[Stats::arcane]    = 10;
+        stats[Stats::immunity]  = 6;
+        stats[Stats::armor]     = 5;
+    }
+
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Chelicera"), game_state);
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        effect.pierce                   = + 2;
+        effect.critical_success_range   = + 4;
+        Add_Dice(&effect, 1, 14);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    {
+        Pick_From_Table_Rules rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish();
+        u64 count = Per_Count_Rolled_Random(3, 4, game_state);
+        Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), count, rules, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Bladedance_Spider(Entity* room, Game_State* game_state)
+{
+    Entity* entity = Request_Entity(game_state);
+
+    struct local
+    {
+        static void On_Hit(Effect_Instance* instance, Entity* attacker, Entity* defender, Attack_Record* ar, Game_State* game_state)
+        {
+            if(instance)
+            {
+                Attempt_Infection(attacker, defender, Effect_Name(instance, game_state), Get_Deep_Wound(1, attacker, game_state), game_state);
+            }
+        }
+    };
+    
+    entity->name_offset = Offset(STR("Blade-dance Spider"), game_state);
+    entity->description_offset = Offset(STR("A giant spider, but it's legs have been replaced by steel blades. Creation of the Dark Dwarfs."), game_state);
+
+    entity->flags = EFlags::actor | EFlags::aggressive;
+    entity->faction = Faction::aracnid;
+    entity->weight = 120;
+    
+    {
+        s16* stats = entity->_stats;
+        stats[Stats::vitality]  = 8;
+        stats[Stats::might]     = 7;
+        stats[Stats::dodge]     = 7;
+        stats[Stats::accuracy]  = 7;
+        stats[Stats::speed]     = 15;
+        stats[Stats::arcane]    = 10;
+        stats[Stats::immunity]  = 6;
+        stats[Stats::armor]     = 14;
+    }
+
+    Effect_Instance effect_instance = 
+    {
+        UNLIMITED_DURATION, 
+        {}, 
+        Offset(entity, game_state)
+    };
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &effect_instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Blade-leg"), game_state);
+        effect.on_hit_fn_offset = Offset(local::On_Hit, game_state);
+        effect.pierce = + 3;
+        Add_Dice(&effect, 3, 4);
+        effect_instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+    
+    Apply_Effect_Result apply = Apply_Effect(entity, effect_instance, game_state, Forced::yes);
+    Assert(apply == Apply_Effect_Result::success);
+
+    {
+        Pick_From_Table_Rules rules = Rules_Builder().Rarity(Comparison::maximum, Rarity::rare).Finish();
+        u64 count = Per_Count_Rolled_Random(3, 4, game_state);
+        Generate_From_Loot_Table(entity, Basic_Merged_Loot_Table(game_state), count, rules, game_state);
+    }
+
+    Finalize_Entity(entity, room, game_state);
+    return entity;
+}
+
+
+SIG Entity* Create_Random_Spider(Entity* room, Game_State* game_state)
+{
+    Entity* entity = 0;
+    s32 r = Roll(3, game_state);
+    switch(r)
+    {
+        case 1:
+        {
+            entity = Create_Toxic_Lurker(room, game_state);
+        }break;
+            
+        case 2:
+        {
+            entity = Create_Hunter_Arachnid(room, game_state);
+        }break;
+
+        case 3:
+        {
+            entity = Create_Bladedance_Spider(room, game_state);
+        }break;
+    }
+
+    return entity;
+}
+
+
+SIG Entity* Create_Random_Rat(Entity* room, Game_State* game_state)
+{
+    Entity* entity = 0;
+    s32 r = Roll(10, game_state);
+    if(r <= 7)
+    {
+        entity = Create_Giant_Rat(room, game_state);
+    }
+    else
+    {
+        entity = Create_Blight_Rat(room, game_state);
+    }
+
     return entity;
 }
 

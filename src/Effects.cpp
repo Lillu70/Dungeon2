@@ -523,6 +523,71 @@ SIG Effect_Instance Get_Neuro_Toxin(u64 duration, Entity* source, Game_State* ga
 }
 
 
+SIG Effect_Instance Get_Enwebbed(u64 duration, Entity* source, Game_State* game_state)
+{
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration = duration;
+    instance.duration_type = Duration_Type::room;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Enwebbed"), game_state);
+        effect.type = Effect_Type::physical;
+        effect.critical_failure_range       = + 10;
+        effect.stat_modifiers[Stats::might] = - 2;
+        effect.stat_modifiers[Stats::dodge] = - 7;
+        effect.stat_modifiers[Stats::speed] = - 7;
+
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    return instance;
+}
+
+
+SIG Effect_Instance Get_Deep_Wound(u64 duration, Entity* source, Game_State* game_state)
+{
+    struct local
+    {
+        static void On_Turn_End(Effect_Instance* instance, Entity* target, Game_State* game_state)
+        {
+            Dice dice = {1, 2};
+            if(instance)
+            {
+                s16 dmg = (s16)Roll(dice, game_state);
+                String name = Effect_Name(instance, game_state);
+                Deal_Damage(target, instance->source, name, dmg, 0, Damage_Type::magical, game_state, Verbose::yes);
+            }
+            else
+            {
+                Print("Deals %dd%d damage.\n", dice.count, dice.faces);
+            }
+        }
+    };
+
+    Effect_Instance instance = {};
+    instance.source = Offset(source, game_state);
+    instance.duration_type = Duration_Type::room;
+    instance.duration = duration;
+
+    Effect_Hash_Key key = EFFECT_KEY;
+    if(!Retrive_Effect(key, &instance.effect_offset, game_state))
+    {
+        Effect effect = {};
+        effect.name_offset = Offset(STR("Deep Wound"), game_state);
+        effect.type = Effect_Type::bleed;
+        effect.bonus_stacks = 10;
+        effect.on_turn_end_fn_offset = Offset(local::On_Turn_End, game_state);
+        instance.effect_offset = Insert_Effect(effect, key, game_state);
+    }
+
+    return instance;
+}
+
+
 SIG Effect_Instance Get_Leech(u64 duration, Entity* source, Game_State* game_state)
 {
     struct local

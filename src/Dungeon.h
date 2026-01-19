@@ -71,6 +71,7 @@ namespace EFlags
         can_be_stolen_from  = u64(1) << 11,
         visible             = u64(1) << 12,
         hidden              = u64(1) << 13,
+        destroy_inventory_on_death = u64(1) << 14,
 
         started_turn        = u64(1) << 49,
         player_controlled   = u64(1) << 50,
@@ -515,6 +516,7 @@ enum class Faction : u8
     mimic,
     goblin,
     fae,
+    aracnid,
 
     general_hostility,
     COUNT

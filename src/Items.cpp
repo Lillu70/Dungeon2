@@ -787,9 +787,9 @@ SIG Entity* Create_War_Pick(Entity* room, Game_State* game_state)
     if(!Retrive_Effect(key, &entity->on_equip_effect_offset, game_state))
     {
         Effect effect = {};
-        effect.pierce                        = + 5;
+        effect.pierce                        = + 3;
         effect.stat_modifiers[Stats::might]  = + 5;
-        Add_Dice(&effect, 1, 6);
+        Add_Dice(&effect, 1, 8);
         entity->on_equip_effect_offset = Insert_Effect(effect, key, game_state);
     }
 

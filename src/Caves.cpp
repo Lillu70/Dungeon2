@@ -17,9 +17,16 @@ SIG void Generate_Entrance_Room(Entity* room, Game_State* game_state)
     room->name_offset = Offset(STR("The Entrance"), game_state);
     room->description_offset = Offset(STR(room_description), game_state);
 
-    #if DEVMODE
+    #if ENT_ALL_ITEMS
     Spawn_All_Items_In_Loot_Table(Basic_Merged_Loot_Table(game_state), room, game_state);
     #endif
+
+    //Create_Toxic_Lurker(room, game_state);
+    //Create_Hunter_Arachnid(room, game_state);
+    //Create_Bladedance_Spider(room, game_state);
+
+    //Create_Spider_Egg(room, game_state);
+    //Create_Skeleton(room, game_state);
 }
 
 
@@ -1251,7 +1258,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
             room->rarity = Rarity::common;
             if(fill_room_if_greater_than_zero)
             {
-                Generic_Ambush(game_state, 0.2f);
+                Generic_Ambush(game_state, 0.05f);
 
                 room->name_offset = Offset(STR("a dark staircase"), game_state);
                 char room_description[] = 
@@ -1301,7 +1308,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
             Entity* room = Request_Entity(game_state);
             if(fill_room_if_greater_than_zero)
             {
-                Generic_Ambush(game_state, 0.1f);
+                Generic_Ambush(game_state, 0.05f);
 
                 room->name_offset = Offset(STR("a cellar"), game_state);
                 char room_description[] = 
@@ -1451,7 +1458,7 @@ SIG Loot_Table Caves_Bandit_Section(Game_State* game_state)
         {local::Kennel},            // 13
         {local::Weapon_Room},       // 14
         {local::Stairs},            // 15
-        {local::King, 10000000},              // 16
+        {local::King},              // 16
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -1476,7 +1483,257 @@ SIG Loot_Table Caves_Spider_Section(Game_State* game_state)
                 "A deep ravine cuts through the path, but there is bridge made of spider web that crosses it.";
                 room->description_offset = Offset(STR(room_description), game_state);
                 
-                Create_Spider(room, game_state);
+                if(Roll(4, game_state) == 1)
+                {
+                    LOOP(2) Create_Spider_Egg(room, game_state);
+                }
+
+                LOOP(1) Create_Random_Spider(room, game_state);
+                LOOP(3) Create_Spiderling(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Passage(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("a dark passage"), game_state);
+                
+                char room_description[] = 
+                "A tight passage. Sheets of web cover the way.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                Create_Hunter_Arachnid(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Pit(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::rare;
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("a pit"), game_state);
+                
+                char room_description[] = 
+                "Stumbling in the darkness you fall down into a pit. You are surounded!";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                LOOP(3) Create_Toxic_Lurker(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Enwebbed_Tomb(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("an enwebbed tomb"), game_state);
+                
+                char room_description[] = 
+                "A very.. very old tomb. The stone sarcophagi have been torn open and are now filled with spider eggs.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                Create_Random_Spider(room, game_state);
+
+                if(Roll(8, game_state) == 1) Create_Skeleton(room, game_state);
+
+                LOOP(2) Create_Spiderling(room, game_state);
+                LOOP(3) Create_Spider_Egg(room, game_state);
+
+                if(Roll(4, game_state) == 1) Create_Chest(room, game_state);
+                LOOP(2) Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Burial_Chamber(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("burial chamber"), game_state);
+                
+                char room_description[] = 
+                "As you enter, the restless dead awaken.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                Create_Skeleton(room, game_state);
+                if(Roll(4, game_state) == 1) Create_Skeleton(room, game_state);
+
+                if(Roll(4, game_state) == 1) Create_Chest(room, game_state);
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Ancient_Battle_Field(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::uncommon;
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("ancient battlefield"), game_state);
+                
+                char room_description[] = 
+                "The floor is covered with the long been dead.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                u64 count = Per_Count_Rolled_Random(10, 4, game_state);
+                LOOP(count)
+                {
+                    Entity* skeleton = Create_Skeleton(room, game_state);
+                    if(Roll(2, game_state) == 1)
+                    {
+                        skeleton->_health = 0;
+                    }
+                }
+
+                LOOP(2) Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Temple(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::uncommon;
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("a desecrated hall of worship"), game_state);
+                
+                char room_description[] = 
+                "The grand stone building looks like a temple, but due to the amount of damage it is hard to tell.\n"
+                "The place looks like it was deliberately broken down.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                switch(Roll(5, game_state))
+                {
+                    case 1:
+                    {
+                        LOOP(2) Create_Bandit(room, game_state);
+                        LOOP(3) Create_Random_Spider(room, game_state);
+                    }break;
+
+                    case 2:
+                    {
+                        LOOP(4) Create_Spiderling(room, game_state);
+                    }break;
+
+                    case 3:
+                    {
+                        Create_Random_Spider(room, game_state);
+                    }break;
+
+                    case 4:
+                    {
+                        LOOP(3) Create_Skeleton(room, game_state);
+                        Create_Chest(room, game_state);
+                    }break;
+
+                    case 5:
+                    {
+                        Create_Toxic_Lurker(room, game_state);
+                        Create_Skeleton(room, game_state);
+                        Create_Bookshelf(room, game_state);
+                    }break;
+                }
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Hatchery(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("a hatchery"), game_state);
+                
+                char room_description[] = 
+                "There are many arachnid eggs in this room. Some broken some intact. Thank the maker what ever laid these eggs isn't here.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                u64 count = 1 + Per_Count_Rolled_Random(6, 4, game_state); 
+                LOOP(count) Create_Spider_Egg(room, game_state);
+
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Treasure_Room(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::epic;
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("a treasury"), game_state);
+                
+                char room_description[] = 
+                "Looks like this is where the ancient dwarfs kept their valuables.. there are many useless piles of coins. Because of the softness you assume pure gold.";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                LOOP(2) Create_Chest(room, game_state);
+                Create_Supply_Crate(room, game_state);
+                
+                Generate_Standard_Random_Loot(room, game_state);
+            }
+
+            return room;
+        }
+
+
+        static Entity* Collapse(Entity* fill_room_if_greater_than_zero, Game_State* game_state)
+        {
+            Entity* room = Request_Entity(game_state);
+            room->rarity = Rarity::uncommon;
+            if(fill_room_if_greater_than_zero)
+            {
+                room->name_offset = Offset(STR("a collapsed cave"), game_state);
+                
+                char room_description[] = 
+                "The support pilars have crumpled and you have no choise, but to turn back and look for another way.. You hear creepy crawly legs creeping behind you!";
+                room->description_offset = Offset(STR(room_description), game_state);
+                
+                if(Roll(4, game_state) > 1)
+                {
+                    u64 count = 3 + Per_Count_Rolled_Random(3, 5, game_state);
+                    LOOP(count) Create_Spiderling(room, game_state);
+                }
+                else
+                {
+                    Create_Hunter_Arachnid(room, game_state);
+                }
+
+                Generate_Standard_Random_Loot(room, game_state);
             }
 
             return room;
@@ -1486,7 +1743,16 @@ SIG Loot_Table Caves_Spider_Section(Game_State* game_state)
 
     local_storage Loot_Table_Entry entries[] = 
     {
-        {local::Ravine},
+        {local::Ravine},                // 1
+        {local::Enwebbed_Tomb},         // 2
+        {local::Passage},               // 3
+        {local::Pit},                   // 4
+        {local::Hatchery},              // 5
+        {local::Treasure_Room},         // 6
+        {local::Collapse},              // 7
+        {local::Burial_Chamber},        // 8
+        {local::Ancient_Battle_Field},  // 9
+        {local::Temple},                // 10
     };
 
     local_storage Loot_Table table = {entries, Array_Length(entries)};
@@ -1511,7 +1777,7 @@ SIG Loot_Table Caves_Boss(Game_State* game_state)
                 "";
                 room->description_offset = Offset(STR(room_description), game_state);
                 
-                Create_Spider(room, game_state);
+                Create_Boss_Spider(room, game_state);
             }
 
             return room;
@@ -1536,8 +1802,8 @@ SIG _inline Level_Segments Caves(Game_State* game_state)
     local_storage Level_Segment segments[] = 
     {
         {Caves_Wildlife_Section(game_state), 10}, 
-        {Caves_Bandit_Section(game_state),   5}, 
-        {Caves_Spider_Section(game_state),   5}, 
+        {Caves_Bandit_Section(game_state),   8}, 
+        {Caves_Spider_Section(game_state),   6}, 
         {Caves_Boss(game_state), 1}
     };
 
